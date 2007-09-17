@@ -1,0 +1,5 @@
+default 0
+timeout 1
+title Ace OS 3.0.0
+kernel /kernel.sys
+boot

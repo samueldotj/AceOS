@@ -1,0 +1,20 @@
+Ace OS install scripts and makefile uses ACE_ROOT environment variable.
+So set ACE_ROOT environment variable after extracting Ace source files.
+It should point to base directory where Ace source files are copied.
+
+Creating Image Files:
+---------------------
+	Run create_image.sh to create the image files required by the simulators.
+
+	Setup grub in the created image file
+	1) copy these lines into bochsrc file:
+		floppya: image=raw.ima, status=inserted 
+		floppyb: image=floppy.ima, status=inserted 
+	2) Now run bochs and enter these commands from grub prompt.
+		This will setup the floppy.ima to boot grub.
+			root (fd1) 
+			setup (fd1)
+	3) Now floppy is set to boot from grub automatically.
+		go to bochsrc and modify the lines to look like this:
+			#floppya: image=raw.ima, status=inserted 
+			floppya: image=floppy.ima, status=inserted

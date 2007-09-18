@@ -1,15 +1,13 @@
 #! /bin/sh
 if test -z "$ACE_ROOT"
 then 
-	echo "Set the ACE_ROOT variable first![$ACE_ROOT]"
+	echo "Set the ACE_ROOT environment variable first"
 	exit
 else
 	echo "ACE_ROOT=$ACE_ROOT"
 fi
 
-#Commands: 
 #raw.ima - temporary grub disk. FAT.ima - Grub with FAT FS 
-
 bximage -fd -q -size=1.44 $ACE_ROOT/img/raw.ima 
 bximage -fd -q -size=1.44 $ACE_ROOT/img/FAT.ima 
 
@@ -35,15 +33,16 @@ cp -f $ACE_ROOT/img/boot/grub/menu.lst $ACE_ROOT/img/mnt/FAT/grub/.
 #all done - unmount the disks 
 umount $ACE_ROOT/img/mnt/FAT 
 
+#removing the loopback devices
 losetup -d /dev/loop0
 losetup -d /dev/loop1
 
+#rename the FAT to floppy
 mv $ACE_ROOT/img/FAT.ima $ACE_ROOT/img/floppy.ima
-
 
 #creating hardisk
 bximage -q -hd -size=20 -mode=flat c.img
 bximage -q -hd -size=20 -mode=flat d.img
-
+#create filesystem in the harddisk  (ace supports only FAT)
 mkdosfs c.img
 mkdosfs d.img

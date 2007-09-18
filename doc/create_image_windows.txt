@@ -1,0 +1,96 @@
+Creating floppy image files with GRUB installed
+
+To create floppy/harddisk image file with GRUB 0.9x installed you need the following tools.
+
+GRUB - (http://www.gnu.org/software/grub/) (download GRUB Legacy binary)
+FileDisk - (http://www.acc.umu.se/~bosse/)
+Bochs - (http://bochs.sourceforge.net/)
+NTRawrite - (http://ntrawrite.sourceforge.net/)
+
+Extract/install all the above programs into appropriate folders and set PATH variable accordingly. The following steps assume you copied grub binaries into c:\test\grub. 
+
+The following are the steps that I used to create GRUB floppy images.
+"	Create RAW floppy image file
+"	Write GRUB files in to the first sector of the image
+"	Create FAT formatted floppy image file
+"	Copy GRUB files to the image file
+"	Boot using the first floppy image to write GRUB into the second floppy
+
+Commands: 
+#raw.ima - temporary grub disk. FAT.ima - Grub with FAT FS 
+bximage -fd -q -size=1.44 raw.ima 
+bximage -fd -q -size=1.44 FAT.ima 
+
+#mount the images using filedisk 
+filedisk /mount 0 c:\test\raw.ima 1.44M m: 
+filedisk /mount 1 c:\test\FAT.ima 1.44M n: 
+
+#create temp grub disk in raw format 
+copy /b  grub\stage1+grub\stage2 grub.raw 
+ntrawrite -f grub.raw -d m: 
+
+#prepare the second disk with GRUB files and directory structure 
+format /fs:FAT n: 
+mkdir n:\grub 
+copy grub\stage1 n:\grub 
+copy grub\stage2 n:\grub 
+
+#copy your kernel - the name may be anything
+copy kernel.sys n:\ 
+
+#all done - unmount the disks 
+filedisk /umount m: 
+filedisk /umount n: 
+
+Replace the c:\test with your directory path.
+
+Installing GRUB
+Now we have two floppy images - raw.ima can boot however without any file system and FAT.ima with FAT file system but without GRUB. The following steps will install GRUB in the FAT.ima. 
+Modify your bochsrc file to include two floppy images. Also set your emulator to boot from floppy.
+floppya: image=raw.ima, status=inserted 
+floppyb: image=FAT.ima, status=inserted 
+
+If you are using QEmu or other emulator use the appropriate option to include the both floppy images and the order should be same - floppy a = raw.ima and floppy b = FAT.ima
+
+Now run the emulator and type the following command in the grub prompt 
+root (fd1) 
+setup (fd1) 
+
+This will install GRUB in the FAT.ima
+
+Starting Kernel
+Modify your bochsrc file again to include only the FAT.ima(remove raw.ima)
+floppya: image=FAT.ima, status=inserted 
+
+After booting type the following command. If your kernel is multiboot compatible it will boot.
+kernel /kernel.sys 
+boot 
+
+Misc
+We don't need the raw.ima so ou may delete it.
+del raw.ima
+
+To make the development easier you can use FileDisk in your makefile to insert your kernel after successful compilation. To do so you may insert the following command in your makefile
+
+filedisk /mount 0 c:\test\FAT.ima 1.44M n: 
+copy kernel.sys n:\ 
+filedisk /umount n: 
+
+Also you can create menu.lst file in the boot\grub directory in the floppy image to automatically boot your kernel.
+
+default 0
+timeout 1
+title My Kernel
+kernel /kernel.sys
+boot
+
+
+
+Links:
+
+http://www.osdev.org/osfaq2/index.php/GRUB
+http://www.osdever.net/tutorials/grub.php?the_id=5
+http://groups.google.ca/group/alt.os.development/browse_frm/thread/b20687de8af93506/#
+
+You can get recent version of this document from http://www.samueldotj.com/articles.asp
+

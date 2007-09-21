@@ -17,11 +17,14 @@ OBJS= $(KERNEL_OBJ) $(DEBUG_OBJ)
 
 LIBS= $(ACE_ROOT)/obj/libstring.a
 
-all:    $(TARGET)
+all:    $(TARGET) generic
 
 $(TARGET):  $(OBJS)
 	$(LD) -T kernel.ld $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS) -Map kernel.map -lgcc
 	$(ACE_ROOT)/img/copy_file_to_image.sh $(ACE_ROOT)/img/floppy.ima $(TARGET) .
+
+generic:	always
+	make -C generic
 
 clean:
 	rm	$(OBJS:.o=.d)
@@ -29,3 +32,6 @@ clean:
 	rm	$(TARGET)
 
 include $(OBJS:.o=.d)
+
+always:
+

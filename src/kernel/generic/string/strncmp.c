@@ -1,4 +1,4 @@
-
+#include<stdlib.h>
 /*
    The  function strcmp() compares the first (at most) n characters 
    of two strings s1 and s2.  

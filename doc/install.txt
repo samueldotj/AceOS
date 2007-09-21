@@ -1,12 +1,15 @@
 Ace OS install scripts and makefile uses ACE_ROOT environment variable.
-So set ACE_ROOT environment variable after extracting Ace source files.
+Export the ACE_ROOT environment variable after extracting Ace source files.
 It should point to base directory where Ace source files are copied.
 
 Creating Image Files:
 ---------------------
-	Run create_image.sh to create the image files required by the simulators.
-
-	Setup grub in the created image file
+	Linux:
+		Run ACE_ROOT/img/create_image.sh to create the image files required by the simulators.
+	Windows:
+		Follow the steps in create_image_file_windows.txt
+		
+	Setting up grub in the created image file:
 	1) copy these lines into bochsrc file:
 		floppya: image=raw.ima, status=inserted 
 		floppyb: image=floppy.ima, status=inserted 

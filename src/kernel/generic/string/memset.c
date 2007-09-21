@@ -15,7 +15,7 @@
 
    RETURN VALUE:   The memset() function returns a pointer to the memory area s.
  */
-
+#include <stdlib.h>
 void* memset(void *s, int c, size_t n)
 {
     int i;

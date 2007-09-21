@@ -1,25 +1,12 @@
 /*! \file vga_text.c
     \brief Ace Kernel VGA Console
-    
-    Author : Samuel (samueldotj@gmail.com)
-    Created Date : 16-Jan-2007 10:05PM
-    
-    This file provide a minimal text out routines. 
+    \author Samuel (samueldotj@gmail.com)
+    \date 21/09/07 16:55
+
+    \breif This file provide a minimal text out routines. 
     Does direct IO on VGA registers to move text mode cursor
-    
-    All 2based multiplications and divisions are done using >> and <<.
-    Although compiler will do it - this because i was overenthusiastic
-
 */
-//#include <kernel/vga_text.h>
-//#include <kernel/io.h>
-//#include <string.h>
-typedef unsigned char BYTE;
-typedef unsigned int UINT16;
-typedef unsigned long UINT32;
-
-#define VGA_DEFAULT_MAX_COL 80
-#define VGA_DEFAULT_MAX_ROW 25
+#include <kernel/i386/vga_text.h>
 
 #define VGA_TEXT_MEMORY (0xB8000)
 
@@ -87,12 +74,12 @@ void VgaInsertRow()
 {
 	BYTE * pLastrow;
 
-/*	memmove ( 
+	memmove ( 
 			(BYTE *)VGA_TEXT_MEMORY, 
 			(BYTE *)(VGA_TEXT_MEMORY + (vga_total_col << 1)), 
 			(vga_total_col << 1) * (vga_total_row-1) 
 			);
-*/
+
 	pLastrow = vga_text_memory = (BYTE *)(VGA_TEXT_MEMORY + (vga_total_col << 1) * (vga_total_row-1));
 	/*cant use memset() because both character and attribute need to be set*/
     while( pLastrow < vga_text_memory_end )
@@ -106,7 +93,7 @@ void VgaInsertRow()
 */
 void VgaClearScreen()
 {
-	BYTE * pVgaText = vga_text_memory = vga_text_memory;
+	BYTE * pVgaText = VGA_TEXT_MEMORY;
 	while( pVgaText < vga_text_memory_end )
     {
         *pVgaText++ = 0;

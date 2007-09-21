@@ -1,10 +1,5 @@
-/*
-	Ace Kernel Linker Script - Copied from Mobius OS
-*/
-OUTPUT_FORMAT("elf32-i386")
-SEARCH_DIR("/lib")
-SEARCH_DIR("/usr/lib/gcc/i386-redhat-linux/4.1.1/")
 
+SEARCH_DIR("/usr/lib/gcc/i686-pc-cygwin/3.4.4/")
 kernel_virtual_address =  0x100000;
 ENTRY (_KernelEntry)
 SECTIONS

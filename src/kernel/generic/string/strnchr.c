@@ -1,4 +1,4 @@
-
+#include <stdlib.h>
 /*
    The function strnchr reports the first occurance of character 'c' inside
    string 'str' within count characters.

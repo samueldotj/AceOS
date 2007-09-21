@@ -1,5 +1,6 @@
 #include <string.h>
 
+#if 0
 /*
    The strspn() function calculates the length of the initial segment of s which
    consists entirely of characters in accept.
@@ -66,3 +67,5 @@ size_t strcspn(const char *s, const char *reject)
     }
     return i;
 }
+
+#endif

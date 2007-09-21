@@ -15,7 +15,7 @@
 
    RETURN VALUE:  The memmove() function returns a pointer dest dest.
 */
-
+#include <stdlib.h>
 void* memmove(void *dest, void *src, size_t n)
 {
     size_t i;

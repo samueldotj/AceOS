@@ -10,7 +10,9 @@ char* strchr(const char *s, int c)
     s++;
   }
   if (cc == 0)
+  {
     return (char*) s;
+  }
   return 0;
 }
 

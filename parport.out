@@ -1,9 +1,0 @@
-
-Thread.c:78:CreateThread() ESP0 = 80009FAF ESP1 = 80007FF3
-Thread.c:103:CreateThread() hThread->IOBASE 8000A000
-VFS.c:117:VFS_Init() STDIN 80006313 STDOUT 8000621B STDERR 80006123
-PE.c:117:PE_LoadFile() ( C:\ Shell.exe) 
-GFS: No FS for C:\\Shell.exe ()
-GFS: No FS for C:\\Shell.exe ()
-PE.c:68:PE_LoadFileIntoMemory() Unable to open the file C:\\Shell.exe
-TaskMan.c:203:CreateTask(): Returns null

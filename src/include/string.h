@@ -1,12 +1,23 @@
+/*!	\file string.h
+	\brief standard string function declarations
+	\author Samuel (samueldotj@gmail.com)
+	\date 21/09/07 16:53
+	This file contains all the common string function declaration. 
+*/
 #ifndef STRING_H
 #define STRING_H
 
 #include <stdlib.h>
+
+#ifdef __cplusplus
+    extern "C" {
+#endif
+
 void * memchr(const void *s, int c, size_t n);
 int memcmp(const void *s1, const void *s2, size_t n);
 void* memcpy(void *dest, const void *src, size_t n);
 void* memmove(void *dest, void *src, size_t n);
-size_t strxfrm(dst, src, n);
+size_t strxfrm(void *dest, void *src, size_t n);
 void* memset(void *s, int c, size_t n);
 char * strcat(char *s, const char *append);
 char* strchr(const char *s, int c);
@@ -28,5 +39,9 @@ char * strstr(const char *s, const char *find);
 char * strtok(char *s, const char *delim);
 size_t strspn(const char *s, const char *accept);
 size_t strcspn(const char *s, const char *reject);
+
+#ifdef __cplusplus
+	}
+#endif
 
 #endif

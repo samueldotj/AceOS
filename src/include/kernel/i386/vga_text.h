@@ -1,6 +1,6 @@
 /*! \file vga_text.h
     \Author Samuel (samueldotj@gmail.com)
-    \date Created 21/09/07 16:52
+    \date 21/09/07 16:52
     \brief Kernel VGA Console Routines
     This file provide a minimal text out routines.
 */

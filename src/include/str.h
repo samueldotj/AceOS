@@ -1,8 +1,7 @@
-/*! \file str.h
-    \brief utility string functions
-    
-    \author	Samuel (samueldotj@gmail.com)
-    \date 21/09/07 18:27
+/*!	\file str.h
+	\brief utility string functions
+	\author	Samuel (samueldotj@gmail.com)
+	\date 21/09/07 18:27
 */
 #ifndef STR_H
 #define STR_H

@@ -1,10 +1,10 @@
-/*! \file ctype.h
-    \brief generic ctype
-    
-    This file contains common ascii check routines
-    
-    Author : Samuel (samueldotj@gmail.com)
+/*!	\file ctype.h
+	\brief generic ansi ctype
+	\author Samuel (samueldotj@gmail.com)
+	\date 21/09/07 16:53
+	This file contains common ascii check routines (no localization).
 */
+
 #ifndef CTYPE__H
 #define CTYPE__H
 

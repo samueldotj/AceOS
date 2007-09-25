@@ -17,7 +17,7 @@ void * memchr(const void *s, int c, size_t n);
 int memcmp(const void *s1, const void *s2, size_t n);
 void* memcpy(void *dest, const void *src, size_t n);
 void* memmove(void *dest, void *src, size_t n);
-size_t strxfrm(void *dest, void *src, size_t n);
+size_t strxfrm(char *dest, char *src, size_t n);
 void* memset(void *s, int c, size_t n);
 char * strcat(char *s, const char *append);
 char* strchr(const char *s, int c);

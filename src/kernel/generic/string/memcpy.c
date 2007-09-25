@@ -15,7 +15,6 @@
   memory areas do overlap.
   RETURN VALUE:     The memcpy() function returns a pointer to dest.
  */
-#include <stdio.h>
 #include <stdlib.h>
 
 void* memcpy(void *dest, const void *src, size_t n)

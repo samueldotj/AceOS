@@ -1,0 +1,32 @@
+#ifndef STRING_H
+#define STRING_H
+
+#include <stdlib.h>
+void * memchr(const void *s, int c, size_t n);
+int memcmp(const void *s1, const void *s2, size_t n);
+void* memcpy(void *dest, const void *src, size_t n);
+void* memmove(void *dest, void *src, size_t n);
+size_t strxfrm(dst, src, n);
+void* memset(void *s, int c, size_t n);
+char * strcat(char *s, const char *append);
+char* strchr(const char *s, int c);
+int strcmp(const char *s1, const char *s2);
+int strcoll(const char *s1, const char *s2);
+char *strcpy(char *dest, const char *src);
+char* strerror(int errnum);
+int stricmp(const char *s1, const char *s2);
+size_t strlen(const char *str);
+char* strncat(char *dest, const char *src, size_t n);
+char *strnchr(const char *str, char c, size_t count);
+int strncmp(const char *s1, const char *s2, size_t n);
+char * strncpy(char *dst, const char *src, size_t n);
+char * strpbrk(const char *s1, const char *s2);
+char * strrchr(const char *s, int c);
+size_t strspn(const char *s1, const char *s2);
+char * strstr(const char *s, const char *find);
+
+char * strtok(char *s, const char *delim);
+size_t strspn(const char *s, const char *accept);
+size_t strcspn(const char *s, const char *reject);
+
+#endif

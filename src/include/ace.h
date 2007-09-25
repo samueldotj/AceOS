@@ -12,21 +12,6 @@
 /*define this macro to enable SMP compilation*/
 #define CONFIG_SMP
 
-#ifndef _SIZE_T_DEFINED
-  typedef unsigned int size_t;
-  #define _SIZE_T_DEFINED
-#endif
-
-#define CONST const 
-
-#ifndef VOID
-    #define VOID void
-#endif
-
-#ifndef NULL
-    #define NULL 0
-#endif
-
 #define FALSE		0
 #define TRUE  		1
 

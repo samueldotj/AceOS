@@ -1,11 +1,7 @@
 /* Copyright (C) 1994 DJ Delorie, see COPYING.DJ for details */
 #include <string.h>
 
-size_t
-strxfrm(dst, src, n)
-     char *dst;
-     const char *src;
-     size_t n;
+size_t strxfrm(char *dst, char *src, size_t n)
 {
   size_t r = 0;
   int c;

@@ -10,10 +10,10 @@ include $(ACE_ROOT)/make.conf
 ARCH=	i386
 TARGET= $(OBJ)/kernel.sys
 
-KERNEL_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/*.asm))
+KERNEL_OBJ = $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.c,%.o,$(wildcard $(ARCH)/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/*.asm))
 DEBUG_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/debug/*.c))
 
-OBJS= $(KERNEL_OBJ) $(DEBUG_OBJ)
+OBJS= $(KERNEL_OBJ) $(DEBUG_OBJ) $(GENERIC_OBJ)
 
 LIBS= $(ACE_ROOT)/obj/libstring.a
 

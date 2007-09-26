@@ -1,3 +1,7 @@
+;Ace OS Startup file
+;author: Samuel
+;date: 26-09-2007 4:02pm
+
 MULTIBOOT_PAGE_ALIGN    equ 1<<0
 MULTIBOOT_MEMORY_INFO   equ 1<<1
 MULTIBOOT_AOUT_KLUDGE   equ 1<<16
@@ -16,9 +20,9 @@ EXTERN _cmain
 
 GLOBAL _KernelEntry
 
-[SECTION .text]
+[SECTION .boot]
 [BITS 32]
-; The Multiboot header
+;multiboot header
 align 4
 mboot:
     dd MULTIBOOT_HEADER_MAGIC

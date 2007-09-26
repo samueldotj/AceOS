@@ -27,10 +27,10 @@ generic:	always
 	make -C generic 
 
 clean:
+	make -C generic clean
 	rm	$(OBJS:.o=.d)
 	rm	$(OBJS)
 	rm	$(TARGET)
-	make -C generic clean
 
 include $(OBJS:.o=.d)
 

@@ -7,7 +7,7 @@
   			Last modified: 26/09/07 11:30
 	\brief	printf implementation
 	Copied and modified the doprnt.c file provided with DJGPP
-	This prints doesnt support floating point, 64bit division and mod operations*/
+	This prints doesnt support floating point, 64bit division and mod operations
 */
 
 #include <ctype.h>

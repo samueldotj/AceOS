@@ -21,9 +21,7 @@ all:    generic $(TARGET)
 
 $(TARGET):  $(OBJS)
 	$(LD) -T kernel.ld $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS) -Map kernel.map 
-	chmod 555 $(ACE_ROOT)/img/copy_file_to_image.sh
 	$(ACE_ROOT)/img/copy_file_to_image.sh $(ACE_ROOT)/img/floppy.ima $(TARGET) .
-	chmod 444 $(ACE_ROOT)/img/copy_file_to_image.sh
 
 generic:	always
 	make -C generic 

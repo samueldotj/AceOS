@@ -8,8 +8,8 @@
   \brief	This file contains all utility functions for string related operations inside kernel.
 */
 
-#include <ctype.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
 
 

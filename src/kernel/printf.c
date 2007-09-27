@@ -7,6 +7,7 @@
   			Last modified: 26/09/07 11:30
 	\brief	printf implementation
 	Copied and modified the doprnt.c file provided with DJGPP
+	This prints doesnt support floating point, 64bit division and mod operations*/
 */
 
 #include <ctype.h>
@@ -56,6 +57,17 @@ int modfl(int x, int y)
 {
 	return 0;	
 }
+/*kernel doesnt support 64 bit division*/
+int __udivdi3()
+{
+	return 0;
+}
+/*kernel doesnt support 64 bit mod*/
+int __umoddi3()
+{
+	return 0;
+}
+
 
 static char NULL_REP[] = "(null)";
 

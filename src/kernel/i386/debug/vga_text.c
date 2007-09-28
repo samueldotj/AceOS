@@ -7,6 +7,7 @@
     Does direct IO on VGA registers to move text mode cursor
 */
 #include <kernel/i386/vga_text.h>
+#include <string.h>
 
 #define VGA_TEXT_MEMORY (0xB8000)
 

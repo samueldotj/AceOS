@@ -41,8 +41,8 @@ losetup -d /dev/loop1
 mv $ACE_ROOT/img/FAT.ima $ACE_ROOT/img/floppy.ima
 
 #creating hardisk
-bximage -q -hd -size=20 -mode=flat c.img
-bximage -q -hd -size=20 -mode=flat d.img
+bximage -q -hd -size=3 -mode=flat c.img
+bximage -q -hd -size=3 -mode=flat d.img
 #create filesystem in the harddisk  (ace supports only FAT)
 mkdosfs c.img
 mkdosfs d.img

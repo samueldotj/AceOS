@@ -26,10 +26,10 @@ $(TARGET):  $(OBJS)
 generic:	always
 	make -C generic 
 
-clean:
-	make -C generic clean
-	rm	$(OBJS:.o=.d)
-	rm	$(OBJS)
+#TARGET should be in the last line, because if TARGET is not already present, make will break.
+clean:	always
+	rm	*.o *.d 
+	for dir in $(ALL_DIRS); do make -C $$dir clean; done
 	rm	$(TARGET)
 
 include $(OBJS:.o=.d)

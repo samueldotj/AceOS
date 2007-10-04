@@ -8,6 +8,7 @@
 	\brief	contains architecture related interface routines.
 */
 #include <kernel/debug.h>
+#include <kernel/gdb.h>
 #include <kernel/i386/vga_text.h>
 
 /*! This is the startup module for i386 architecture
@@ -15,10 +16,11 @@
 */
 void ArchInit()
 {
+	/*redirect kprintf to vga console*/
 	kprintf_putc = VgaPrintCharacter;
-
 	VgaClearScreen();
-	kprintf("Hello World\n");
+
+	//InitGdb();
 }
 
 /*! This function should halt the processor after terminating all the processes

@@ -7,18 +7,23 @@
 
 include $(ACE_ROOT)/make.conf
 
-TARGET= $(OBJ)/libstring.a
-
+#objects for this library
 OBJS = $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.asm,%.o,$(wildcard *.asm))
 
+#target path
+TARGET= $(OBJ)/libstring.a
+
+#phony - all - make target
 all:    $(TARGET)
 
-$(TARGET):  $(OBJS)
-	$(AR) ru $(TARGET) $(OBJS)
-
+#phony - clean - clean all object files
 clean:
-	rm	$(OBJS)
-	rm	$(TARGET)
-	rm	$(OBJS:.o=.d)
+	@rm -f *.d *.o
+	@rm -f $(TARGET)
 
+#how to make target
+$(TARGET):  $(OBJS)
+	@$(AR) ru $(TARGET) $(OBJS)
+
+#create .d files
 include $(OBJS:.o=.d)

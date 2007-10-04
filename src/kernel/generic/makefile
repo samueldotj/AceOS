@@ -9,9 +9,9 @@ include $(ACE_ROOT)/make.conf
 ALL_DIRS=	string
 
 all:	always
-	for dir in $(ALL_DIRS); do make -C $$dir; done
+	@for dir in $(ALL_DIRS); do make -C $$dir; done
 
 clean:	always
-	for dir in $(ALL_DIRS); do make -C $$dir clean; done
+	@for dir in $(ALL_DIRS); do make -C $$dir clean; done
 
 always:	

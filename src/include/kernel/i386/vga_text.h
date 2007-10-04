@@ -1,8 +1,8 @@
-/*! \file vga_text.h
-    \Author Samuel (samueldotj@gmail.com)
-    \date 21/09/07 16:52
-    \brief Kernel VGA Console Routines
-    This file provide a minimal text out routines.
+/*! \file	vga_text.h
+	\author	Samuel (samueldotj@gmail.com)
+	\date	21/09/07 16:52
+	\brief	Kernel VGA Console Routines
+	This file provide a minimal text out routines.
 */
 #include <ace.h>
 
@@ -16,7 +16,7 @@ extern BYTE vga_tab_col;
 #define VGA_DEFAULT_MAX_COL 80
 
 #ifdef __cplusplus
-    extern "C" {
+	extern "C" {
 #endif
 
 void VgaPrintCharacter(BYTE c);

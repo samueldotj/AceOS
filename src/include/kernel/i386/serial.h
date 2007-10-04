@@ -1,8 +1,7 @@
-/*! \file vga_text.h
-    \Author Samuel (samueldotj@gmail.com)
-    \date 26/09/07 15:09
-    \brief serial port read and write function declarations
-    This file provide a minimal text out routines.
+/*! \file	vga_text.h
+	\author	Samuel (samueldotj@gmail.com)
+	\date	26/09/07 15:09
+	\brief	serial port read and write function declarations
 */
 #include <ace.h>
 
@@ -29,10 +28,9 @@
 
 
 #ifdef __cplusplus
-    extern "C" {
+	extern "C" {
 #endif
 
-/*serial port read/write functions*/
 void InitSerialPort(UINT16 wIOBase, UINT32 wBaudRate, BYTE DataBits, BYTE Parity, BYTE StopBit);
 char SerialReadCharacter(UINT16 wIOBase);
 void SerialWriteCharacter(UINT16 wIOBase, char ch);

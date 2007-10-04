@@ -1,9 +1,9 @@
-/*! \file debug.h
-    \brief Debug function declartions
-	\author Samuel (samueldotj@gmail.com)
-    \date 26/09/07 15:29
+/*!	\file	debug.h
+	\brief	Debug function declartions
+	\author	Samuel (samueldotj@gmail.com)
+	\date	26/09/07 15:29
 
-    Contains declarations of kernel trace, debug, assert functions/macros
+	Contains declarations of kernel trace, debug, assert functions/macros
 */
 
 #ifndef DEBUG__H
@@ -26,16 +26,16 @@
 
 #ifdef __KERNEL_TRACE__
     #define KTRACE(msg) \
-			ktrace("%s:%d:%s(): %s\n", __FILE__ , __LINE__,__PRETTY_FUNCTION__, msg );
+		ktrace("%s:%d:%s(): %s\n", __FILE__ , __LINE__,__PRETTY_FUNCTION__, msg );
 
     #define KTRACE1(format, para1) \
-            ktrace("%s:%d:%s(): "format"\n", __FILE__ , __LINE__,__PRETTY_FUNCTION__, para1);
+		ktrace("%s:%d:%s(): "format"\n", __FILE__ , __LINE__,__PRETTY_FUNCTION__, para1);
 
     #define KTRACE2(format, para1, para2) \
-            ktrace("%s:%d:%s(): "format"\n", __FILE__ , __LINE__,__PRETTY_FUNCTION__, para1, para2);
+		ktrace("%s:%d:%s(): "format"\n", __FILE__ , __LINE__,__PRETTY_FUNCTION__, para1, para2);
 
     #define KTRACE3(format, para1, para2, para3) \
-            ktrace("%s:%d:%s(): "format"\n", __FILE__ , __LINE__,__PRETTY_FUNCTION__, para1, para2, para3);
+		ktrace("%s:%d:%s(): "format"\n", __FILE__ , __LINE__,__PRETTY_FUNCTION__, para1, para2, para3);
 #else
     #define KTRACE(msg) 
     #define KTRACE1(format, para1) 
@@ -45,7 +45,7 @@
 
 
 #ifdef __cplusplus
-    extern "C" {
+	extern "C" {
 #endif
 
 extern void (*kprintf_putc)(BYTE ch);

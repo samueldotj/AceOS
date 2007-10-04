@@ -1,9 +1,7 @@
-/*! \file debug.h
-    \brief Debug function declartions
+/*! \file arch.h
+    \brief Architecture specific function declartions
 	\author Samuel (samueldotj@gmail.com)
     \date 26/09/07 15:29
-
-    Contains declarations of kernel trace, debug, assert functions/macros
 */
 
 #ifndef ARCH__H

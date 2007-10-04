@@ -1,5 +1,4 @@
 /*! \file vga_text.c
-    \brief Ace Kernel VGA Console
     \author Samuel (samueldotj@gmail.com)
     \date 21/09/07 16:55
 
@@ -7,6 +6,7 @@
     Does direct IO on VGA registers to move text mode cursor
 */
 #include <kernel/i386/vga_text.h>
+#include <kernel/i386/io.h>
 #include <string.h>
 
 #define VGA_TEXT_MEMORY (0xB8000)
@@ -107,10 +107,8 @@ void VgaClearScreen()
 */
 void VgaMoveCursor(UINT16 Offset)
 {
-/*
     _outp(VGA_CRT_ADDRESS, VGA_CRT_CURSOR_H_LOCATION);
     _outp(VGA_CRT_DATA, Offset>>8);
     _outp(VGA_CRT_ADDRESS, VGA_CRT_CURSOR_L_LOCATION);
     _outp(VGA_CRT_DATA, (Offset<<8)>>8);
-*/
 }

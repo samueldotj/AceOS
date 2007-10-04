@@ -1,5 +1,7 @@
-/*
-GDB Stub Function declrations 
+/*! \file gdb.h
+    \brief Debug function declartions
+	\author Samuel (samueldotj@gmail.com)
+    \date 26/09/07 15:29
 */
 #ifndef __GDB_H
 #define __GDB_H
@@ -15,6 +17,7 @@ void flush_i_cache(void);
 /* this function is used to set up exception handlers for tracing and  breakpoints */
 void set_debug_traps (void);
 
+/*port on which gdb will connect*/
 extern UINT32 sys_gdb_port;
 
 #endif

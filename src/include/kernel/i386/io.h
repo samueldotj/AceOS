@@ -1,16 +1,15 @@
-/*! \file io.h
-    \brief Ace Kernel IO utility
-    
-    Author : Samuel (samueldotj@gmail.com)
-    Created Date : 18-Jan-07 21:48
+/*! \file	io.h
+	\brief	read/write io ports
+	\author	Samuel (samueldotj@gmail.com)
+	\date	18-Jan-07 21:48
 */
 #include <ace.h>
 
-#ifndef __IO__H
-#define __IO__H
+#ifndef IO__H
+#define IO__H
 
 #ifdef __cplusplus
-    extern "C" {
+	extern "C" {
 #endif
 
 BYTE _inp(UINT16 Port);

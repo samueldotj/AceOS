@@ -13,12 +13,12 @@
     extern "C" {
 #endif
 
-BYTE _inp(WORD Port);
-WORD _inpw(WORD Port);
-DWORD _inpd(WORD Port);
+BYTE _inp(UINT16 Port);
+UINT16 _inpw(UINT16 Port);
+UINT32 _inpd(UINT16 Port);
 
-void _outp(WORD Port, BYTE Value);
-void _outpw(WORD Port, WORD Value);
-void _outpd(WORD Port, DWORD Value);
+void _outp(UINT16 Port, BYTE Value);
+void _outpw(UINT16 Port, UINT16 Value);
+void _outpd(UINT16 Port, UINT32 Value);
 
 #endif

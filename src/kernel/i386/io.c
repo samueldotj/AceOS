@@ -9,7 +9,7 @@
 
 /*! Reads and returns a byte value from the specified port 
 */
-inline BYTE _inp(WORD Port)
+inline BYTE _inp(UINT16 Port)
 {
     BYTE Result;
     asm volatile("movw %1, %%dx;\
@@ -22,9 +22,9 @@ inline BYTE _inp(WORD Port)
 }
 /*! Reads and returns a word value from the specified port 
 */
-inline WORD _inpw(WORD Port)
+inline UINT16 _inpw(UINT16 Port)
 {
-    WORD Result;
+    UINT16 Result;
     asm volatile("movw %1, %%dx;\
                  in %%dx, %%ax;\
                  movw %%ax, %0"
@@ -36,9 +36,9 @@ inline WORD _inpw(WORD Port)
 }
 /*! Reads and returns a double word value from the specified port 
 */
-inline DWORD _inpd(WORD Port)
+inline UINT32 _inpd(UINT16 Port)
 {
-    DWORD Result;
+    UINT32 Result;
     asm volatile("movw %1, %%dx;\
                  in %%dx, %%eax;\
                  movl %%eax, %0"
@@ -51,7 +51,7 @@ inline DWORD _inpd(WORD Port)
 
 /*! Writes the given byte value to the specified port 
 */
-inline void _outp(WORD Port, BYTE Value)
+inline void _outp(UINT16 Port, BYTE Value)
 {
     asm volatile("movw %0, %%dx;\
                   movb %1, %%al;\
@@ -63,7 +63,7 @@ inline void _outp(WORD Port, BYTE Value)
 
 /*! Writes the given word value to the specified port 
 */
-inline void _outpw(WORD Port, WORD Value)
+inline void _outpw(UINT16 Port, UINT16 Value)
 {
     asm volatile("movw %0, %%dx;\
                   movw %1, %%ax;\
@@ -75,7 +75,7 @@ inline void _outpw(WORD Port, WORD Value)
 
 /*! Writes the given double word value to the specified port 
 */
-inline void _outpd(WORD Port, DWORD Value)
+inline void _outpd(UINT16 Port, UINT32 Value)
 {
     asm volatile("movw %0, %%dx;\
                   movl %1, %%eax;\

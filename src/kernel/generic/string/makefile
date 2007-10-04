@@ -17,8 +17,8 @@ $(TARGET):  $(OBJS)
 	$(AR) ru $(TARGET) $(OBJS)
 
 clean:
-	rm	$(OBJS:.o=.d)
 	rm	$(OBJS)
 	rm	$(TARGET)
+	rm	$(OBJS:.o=.d)
 
 include $(OBJS:.o=.d)

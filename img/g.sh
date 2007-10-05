@@ -1,0 +1,1 @@
+gdb -q --command=$ACE_ROOT/img/gdbinit --directory=$ACE_ROOT/src/kernel --symbols=$ACE_ROOT/obj/kernel.sys

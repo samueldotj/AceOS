@@ -84,3 +84,5 @@ command.com /C format /fs:FAT /v:hdd2 $HARDISK2_DRIVE 	< yes >> out
 echo "unmounting harddisk"
 filedisk /umount $HARDISK1_DRIVE
 filedisk /umount $HARDISK2_DRIVE
+
+rm -f yes

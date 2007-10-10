@@ -1,6 +1,8 @@
 romimage: file=$BXSHARE/BIOS-bochs-latest, address=0xf0000
 vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 
+cpu: count=1, ips=10000000, reset_on_triple_fault=1
+
 megs: 64
 vga: extension=vbe
 

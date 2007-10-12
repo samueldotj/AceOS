@@ -7,24 +7,36 @@
 #ifndef GDT_H
 #define GDT_H
 
+#define KERNEL_CODE_SELECTOR	8
+#define KERNEL_DATA_SELECTOR	16
+
+#define USER_CODE_SELECTOR		24
+#define USER_DATA_SELECTOR		32
+
 /*! GDT structure.
  * Defines a GDT entry. We say packed, because it prevents the compiler from doing things that it thinks is best.
  * Prevent compiler "optimization" by packing.
 */
 struct gdt_entry
 {
-        UINT16 limit;
-        UINT16 base_low;  /*0-15*/
-        BYTE base_middle; /*16-23*/
-        BYTE access;  /*!< P(1bit) | DPL(2bit) | S(1bit) | Type(4bit)*/
-        BYTE granularity; /*!< G(1bit) | D/B(1bit) | 0(1bit) | AVL(1bit) | limit16_19(4bit)*/
-        BYTE base_high;   /*24-31*/
-} __attribute__ ((packed));
+	UINT32 
+		segment_limit_low:16,
+		base_low:16;
 
-/* P=Present, DPL=Descriptor Privilege Level, S=Descriptor type (0=system; 1=code or data),
- * Type=Segment type, G=Granularity, D/B=Default operation size(0=16bit; 1=32bit segment),
- * AVL=Available for use by system software.
-*/
+	UINT32
+		base_mid:8,
+		type:4,
+		system:1,
+		descriptor_privilege_level:2,
+		present:1,
+
+		segment_limit_high:4,
+		software:1,
+		reserved:1,
+		default_operation_size:1,
+		granularity:1,
+		base_high:8;
+}__attribute__ ((aligned (8), packed));
 
 
 /*! The GDT register format.
@@ -38,6 +50,6 @@ struct gdt_register
 } __attribute__ ((packed));
 
 
-void GdtInstall();
+void LoadGdt();
 
 #endif

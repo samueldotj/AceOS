@@ -16,7 +16,7 @@
 
 void InstallInterruptHandler(int interrupt, void (*handler)(struct regs*));
 void UninstallInterruptHandler(int interrupt);
-void InterruptInstall();
+void SetupInterruptHandlers();
 
 
 #endif

@@ -9,26 +9,30 @@
 */
 
 #include <ace.h>
+#include <kernel/i386/gdt.h>
 #include <kernel/i386/idt.h>
 #include <string.h>
 
+
+/*System Interrupt Descriptor Table*/
 struct idt_entry idt[IDT_ENTRIES];
+
+/*Interrupt Descriptor Table Register*/
 struct idt_ptr idtp;
 
 /* Use this function to set an entry in the IDT.*/
-void IdtSetGate(BYTE num, UINT32 base)
-{
+void SetIdtGate(BYTE num, UINT32 base)
+{	
+	idt[num].base_low = (base & 0xFFFF);	
+	idt[num].base_high = ((base>>16) & 0xFFFF);
 	
-	idt[num].base_lo = (base & 0xFFFF);	
-	idt[num].base_hi = ((base>>16) & 0xFFFF);
-	
-	idt[num].sel = 0x08;
+	idt[num].selector = KERNEL_CODE_SELECTOR;
 	idt[num].always_zero = 0;
 	idt[num].flags = 0x8e;
 }
 
-/* Installs the IDT */
-void IdtInstall()
+/* Loads the Interrupt Descriptor Table*/
+void LoadIdt()
 {
 	/* Sets the special IDT pointer up, just like in 'gdt.c' */
 	idtp.limit = (sizeof (struct idt_entry) * IDT_ENTRIES) - 1;
@@ -36,8 +40,7 @@ void IdtInstall()
 
 	/* Clear out the entire IDT, initializing it to zeros */
 	memset(&idt, 0, sizeof(struct idt_entry) * IDT_ENTRIES);
-
-	/* Add any new ISRs to the IDT here using idt_set_gate */
-	/* Points the processor's internal register to the new IDT */
+	
+	/*load idtr*/
 	asm volatile ("lidt %0" : :"m"(idtp) );
 }

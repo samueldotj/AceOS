@@ -16,17 +16,14 @@
 #define IDT_ENTRIES 256
 #define MAX_INTERRUPTS 16
 
-/* This exists in 'start.asm', and is used to load our IDT */
-extern void IdtLoad();
-
 /* Defines an IDT entry */
 struct idt_entry
 {
-    UINT16 base_lo;
-    UINT16 sel;        /* Our kernel segment goes here! */
-    BYTE always_zero;     /* This will ALWAYS be set to 0! */
-    BYTE flags;       /* Set using the above table! */
-    UINT16 base_hi;
+    UINT16 base_low;
+    UINT16 selector;
+    BYTE always_zero; 
+    BYTE flags;
+    UINT16 base_high;
 } __attribute__((packed));
 
 struct idt_ptr
@@ -35,13 +32,8 @@ struct idt_ptr
     UINT32 base;
 } __attribute__((packed));
 
-/* Declare an IDT of IDT_ENTRIES(256) entries. Although we will only use the first 32 entries, the rest exists as a bit of a trap. 
- * If any undefined IDT entry is hit, it normally will cause an "Unhandled Interrupt" exception. 
- * Any descriptor for which the 'presence' bit is cleared (0) will generate an "Unhandled Interrupt" exception 
-*/
-
-void IdtInstall();
-void IdtSetGate(BYTE num, UINT32 base);
+void LoadIdt();
+void SetIdtGate(BYTE num, UINT32 base);
 
 #endif
 

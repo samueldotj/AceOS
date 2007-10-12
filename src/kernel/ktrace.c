@@ -10,6 +10,7 @@
 */
 #include <stdlib.h>
 #include <kernel/debug.h>
+#include <kernel/arch.h>
 
 /*! function pointer is used by the ktrace() to write characters 
 */

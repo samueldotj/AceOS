@@ -21,7 +21,7 @@ struct regs
     unsigned int eip, cs, eflags, useresp, ss;   /* pushed by the processor automatically */ 
 } __attribute__((packed));
 
-void ExceptionStubInstall();
+void SetupExceptionHandlers();
 void ExceptionHandler(struct regs *reg);
 
 #endif

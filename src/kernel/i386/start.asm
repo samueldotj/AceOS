@@ -2,6 +2,25 @@
 ;author: Samuel
 ;date: 26-09-2007 4:02pm
 
+; This will set up our new segment registers. We need to do
+; something special in order to set CS. We do what is called a
+; far jump. A jump that includes a segment as well as an offset.
+; This is declared in gdt.c as 'extern void gdt_flush();'
+global _GdtFlush     ; Allows the C code to link to this
+extern _gp            ; Says that '_gp' is in another file
+_GdtFlush:
+	lgdt [_gp]        ; Load the GDT with our '_gp' which is a special pointer
+	mov ax, 0x10      ; 0x10 is the offset in the GDT to our data segment
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	mov ss, ax
+	jmp 0x08:flush2   ; 0x08 is the offset to our code segment: Far jump!
+flush2:
+	ret               ; Returns back to the C code!
+
+
 MULTIBOOT_PAGE_ALIGN    equ 1<<0
 MULTIBOOT_MEMORY_INFO   equ 1<<1
 MULTIBOOT_AOUT_KLUDGE   equ 1<<16
@@ -25,37 +44,38 @@ GLOBAL _KernelEntry
 ;multiboot header
 align 4
 mboot:
-    dd MULTIBOOT_HEADER_MAGIC
-    dd MULTIBOOT_HEADER_FLAGS
-    dd CHECKSUM
-    ; fields used if MULTIBOOT_AOUT_KLUDGE is set in MULTIBOOT_HEADER_FLAGS
-    dd mboot - VIRTUAL_BASE_ADDRESS + PHYSICAL_ADDRESS          ; these are PHYSICAL addresses
-    dd PHYSICAL_ADDRESS                                         ; start of kernel .text (code) section
-    dd _sbss - VIRTUAL_BASE_ADDRESS + PHYSICAL_ADDRESS          ; end of kernel .data section
-    dd _ebss - VIRTUAL_BASE_ADDRESS + PHYSICAL_ADDRESS          ; end of kernel BSS
-    dd _KernelEntry - VIRTUAL_BASE_ADDRESS + PHYSICAL_ADDRESS   ; kernel entry point (initial EIP)
+	dd MULTIBOOT_HEADER_MAGIC
+	dd MULTIBOOT_HEADER_FLAGS
+	dd CHECKSUM
+	; fields used if MULTIBOOT_AOUT_KLUDGE is set in MULTIBOOT_HEADER_FLAGS
+	dd mboot - VIRTUAL_BASE_ADDRESS + PHYSICAL_ADDRESS          ; these are PHYSICAL addresses
+	dd PHYSICAL_ADDRESS                                         ; start of kernel .text (code) section
+	dd _sbss - VIRTUAL_BASE_ADDRESS + PHYSICAL_ADDRESS          ; end of kernel .data section
+	dd _ebss - VIRTUAL_BASE_ADDRESS + PHYSICAL_ADDRESS          ; end of kernel BSS
+	dd _KernelEntry - VIRTUAL_BASE_ADDRESS + PHYSICAL_ADDRESS   ; kernel entry point (initial EIP)
 
 align 4
 _KernelEntry:
-    mov esp, kstack+KSTACK_SIZE         ;create kernel stack
+	mov esp, kstack+KSTACK_SIZE         ;create kernel stack
 
-    push ebx                            ;Push the pointer to the Multiboot information structure.
-    push eax                            ;Push the magic value
+	push ebx                            ;Push the pointer to the Multiboot information structure.
+	push eax                            ;Push the magic value
 
-    ; Zeroing BSS section
-    mov edi, _sbss
-    mov ecx, _ebss
-    sub ecx, edi
-    add edi, PHYSICAL_ADDRESS - VIRTUAL_BASE_ADDRESS
-    xor eax, eax
-    rep stosb
+	; Zeroing BSS section
+	mov edi, _sbss
+	mov ecx, _ebss
+	sub ecx, edi
+	add edi, PHYSICAL_ADDRESS - VIRTUAL_BASE_ADDRESS
+	xor eax, eax
+	rep stosb
 
-    ;parameters are pushed initially
-    call _cmain
+	;parameters are pushed initially
+	call _cmain
 
-    ;endless loop should not be reached.
-    jmp $
+	;endless loop should not be reached.
+	jmp $
 
 align 4
 [SECTION .data]
-    kstack times KSTACK_SIZE dd 0
+	kstack times KSTACK_SIZE dd 0
+

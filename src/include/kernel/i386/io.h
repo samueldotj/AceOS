@@ -3,10 +3,10 @@
 	\author	Samuel (samueldotj@gmail.com)
 	\date	18-Jan-07 21:48
 */
-#include <ace.h>
-
 #ifndef IO__H
 #define IO__H
+
+#include <ace.h>
 
 #ifdef __cplusplus
 	extern "C" {

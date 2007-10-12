@@ -3,10 +3,10 @@
 	\date	26/09/07 15:09
 	\brief	serial port read and write function declarations
 */
-#include <ace.h>
-
 #ifndef SERIAL__H
 #define SERIAL__H
+
+#include <ace.h>
 
 #define UART_PARITY_NONE        0
 #define UART_PARITY_ODD         1

@@ -4,11 +4,10 @@
 	\brief	Kernel VGA Console Routines
 	This file provide a minimal text out routines.
 */
-#include <ace.h>
-
 #ifndef VGA_TEXT__H
 #define VGA_TEXT__H
 
+#include <ace.h>
 extern BYTE vga_text_attribute;
 extern BYTE vga_tab_col;
 

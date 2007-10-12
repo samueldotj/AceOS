@@ -94,7 +94,7 @@ void VgaInsertRow()
 */
 void VgaClearScreen()
 {
-	BYTE * pVgaText = VGA_TEXT_MEMORY;
+	BYTE *pVgaText = (BYTE*)VGA_TEXT_MEMORY;
 	while( pVgaText < vga_text_memory_end )
     {
         *pVgaText++ = 0;

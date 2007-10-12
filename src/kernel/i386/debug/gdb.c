@@ -2,7 +2,7 @@
     \author Samuel (samueldotj@gmail.com)
     \date 20-Jan-07 11:19
 
-    \breif GDB interface function definitions
+    \brief GDB interface function definitions
 	This file contains all the routines which are required by the gdb-stub.c
 */
 #include <kernel/debug.h>
@@ -15,7 +15,7 @@ UINT32 sys_gdb_port = 0x3F8;
 void InitGdb()
 {
 	/*set up the serial port*/
-	InitSerialPort(sys_gdb_port, 115200, UART_DATA_BIT_8, UART_PARITY_NONE ,UART_STOP_BIT_1 );
+	InitSerialPort(sys_gdb_port, 115200, UART_DATA_BIT_8, UART_PARITY_NONE, UART_STOP_BIT_1);
 	/*setup exception handlers*/
 	set_debug_traps();
 	kprintf("Waiting for GDB(0x%X) : ", sys_gdb_port );

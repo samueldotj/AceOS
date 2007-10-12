@@ -2,7 +2,7 @@
     \author Samuel (samueldotj@gmail.com)
     \date 20-Jan-07 11:19
 
-    \breif Serial read/write functions mostly used for remote debugging with GDB
+    \brief Serial read/write functions mostly used for remote debugging with GDB
 */
 
 #include <ace.h>

@@ -113,13 +113,14 @@ char *exception_messages[] =
 */
 void ExceptionHandler(struct regs *reg)
 {
-	kprintf("%s - Exception No [%d]\n", exception_messages[reg->int_no], reg->int_no);
+	#define REG_FORMAT	"0x%08x\t"
+	#define SEG_FORMAT	"0x%02x"
+	kprintf("######### Unhandled Exception [%s] - No [%d]########\n", exception_messages[reg->int_no], reg->int_no);
 	/*now print some useful info from regs structure for debugging*/
-	kprintf("gs = 0x%x fs = 0x%x\tes = 0x%x\tds = 0x%x\n", reg->gs, reg->fs, reg->es, reg->ds);
-	kprintf("edi = 0x%x\tesi = 0x%x\tebp = 0x%x\tesp = 0x%x\n", reg->edi, reg->esi, reg->ebp, reg->esp);
-	kprintf("ebx = 0x%x\tedx = 0x%x\tecx = 0x%x\teax = 0x%x\n", reg->ebx, reg->edx, reg->ecx, reg->eax);
-	kprintf("eip = 0x%x\tcs = 0x%x\teflags = 0x%x\n", reg->eip, reg->cs, reg->eflags);
-	kprintf("useresp = 0x%x\tss = 0x%x\n", reg->useresp, reg->ss);
+	kprintf("eax="REG_FORMAT"ebx="REG_FORMAT"ecx="REG_FORMAT"edx="REG_FORMAT"\n", reg->eax, reg->ebx, reg->ecx, reg->edx);
+	kprintf("esi="REG_FORMAT"edi="REG_FORMAT"ebp="REG_FORMAT"esp="REG_FORMAT"\n", reg->esi, reg->edi, reg->ebp, reg->esp);
+	kprintf("cs:eip="SEG_FORMAT":"REG_FORMAT"[user stack ss:esp="SEG_FORMAT":"REG_FORMAT"]\n", reg->cs, reg->eip, reg->ss, reg->useresp);
+	kprintf("ds="SEG_FORMAT" es="SEG_FORMAT" gs="SEG_FORMAT" fs="SEG_FORMAT" eflags=0x%X\n", reg->ds, reg->es, reg->gs, reg->fs, reg->eflags);
 	kprintf("System Halted!\n");
 	ArchHalt();
 }

@@ -27,7 +27,7 @@ keyboard_mapping: enabled=0, map=
 mouse: enabled=0
 private_colormap: enabled=0
 
-#com1: enabled=1, mode=term, dev=/dev/ttyp9
+#com1: enabled=1, mode=raw, dev=/dev/com6
 #parport1: enabled=1, file="parport.out"
 
 #fullscreen: enabled=0

@@ -8,6 +8,7 @@
 #include <kernel/debug.h>
 #include <kernel/gdb.h>
 #include <kernel/i386/serial.h>
+#include <kernel/i386/idt.h>
 
 /*! This port can be configured through kernel boot parameters*/
 UINT32 sys_gdb_port = 0x3F8;
@@ -40,8 +41,7 @@ void exceptionHandler(int exc, void *addr)
 		exc != 13 &&    /* GPF (normal in V86 mode) */
 		exc != 8 )     /* double fault (so abnormal we just crash) */
 	{
-		//TBD
-		//SetInterruptGate(exc, addr);
+		SetIdtGate(exc, addr);
 	}
 }
 

@@ -26,4 +26,4 @@ $(TARGET):  $(OBJS)
 	@$(AR) ru $(TARGET) $(OBJS)
 
 #create .d files
-include $(OBJS:.o=.d)
+-include $(OBJS:.o=.d)

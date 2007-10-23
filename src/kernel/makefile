@@ -40,11 +40,12 @@ clean:	always
 
 #increment the build number, link the kernel and copy the kernel to image file
 $(TARGET):  $(OBJS)
-	$(INCLUDE)/version.sh $(INCLUDE)
-	$(LD) -T kernel.ld $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS) -Map kernel.map 
-	$(ACE_ROOT)/img/copy_file_to_image.sh $(ACE_ROOT)/img/floppy.ima $(TARGET) .
+	@$(INCLUDE)/version.sh $(INCLUDE)
+	@$(LD) -T kernel.ld $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS) -Map kernel.map
+	@$(ACE_ROOT)/img/copy_file_to_image.sh $(ACE_ROOT)/img/floppy.ima $(TARGET) .
+	@echo -n "Compilation success: New kernel is in $(ACE_ROOT)/img/floppy.ima"
 
-#create dependency files
-include $(OBJS:.o=.d)
+#include dependency files
+-include $(OBJS:.o=.d)
 
 always:

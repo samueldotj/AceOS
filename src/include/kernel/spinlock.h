@@ -18,16 +18,16 @@
 
 typedef struct spinlock
 {
-	VOID *	Data;
-}SPIN_LOCK, * PSPIN_LOCK;
+	void * data;
+}SPIN_LOCK, * SPIN_LOCK_PTR;
 
 #ifdef __cplusplus
     extern "C" {
 #endif
 
-inline void InitSpinLock(PSPIN_LOCK_DATA pLockData);
-inline void SpinLock(PSPIN_LOCK_DATA pLockData);
-inline void SpinUnlock(PSPIN_LOCK_DATA pLockData);
+__inline__ void InitSpinLock(SPIN_LOCK_PTR pLockData);
+__inline__ void SpinLock(SPIN_LOCK_PTR pLockData);
+__inline__ void SpinUnlock(SPIN_LOCK_PTR pLockData);
 
 void BitSpinLock(void * pLockData, int iPos);
 void BitSpinUnlock(void * pLockData, int iPos);

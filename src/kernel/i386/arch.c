@@ -48,3 +48,4 @@ void ArchHalt()
 {
 	asm("cli;hlt");
 }
+

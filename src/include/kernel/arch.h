@@ -13,6 +13,7 @@
     extern "C" {
 #endif
 
+void panic(char * message);
 void ArchInit();
 void ArchHalt();
 

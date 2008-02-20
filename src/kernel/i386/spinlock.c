@@ -15,14 +15,14 @@
 
 /*! InitSpinLock - initialize the spinlock data structure
 */
-inline void InitSpinLock(PSPIN_LOCK pSpinLock)
+inline void InitSpinLock(SPIN_LOCK_PTR pSpinLock)
 {
-	pSpinLock->Data = 0;
+	pSpinLock->data = 0;
 }
 
 /*! SpinLock - Spin to get a lock until timeout occurs
 */
-inline void SpinLock(PSPIN_LOCK pSpinLock)
+inline void SpinLock(SPIN_LOCK_PTR pSpinLock)
 {
 	UINT32 result, count=SPIN_LOCK_TRY_COUNT;
 	/*loop until acquiring the lock*/
@@ -37,13 +37,13 @@ inline void SpinLock(PSPIN_LOCK pSpinLock)
 	}while( result && count-- );
 	/*check for timeout*/
 	if ( result )
-		Panic("SpinLock timeout");
+		panic("SpinLock timeout");
 }
 
 /*! TrySpinLock - Actually there is no spin here - it just tries to acquire the 
 lock only once; returns success or failure.
 */
-inline int TrySpinLock(PSPIN_LOCK pSpinLock)
+inline int TrySpinLock(SPIN_LOCK_PTR pSpinLock)
 {
 	asm volatile("\
 			movl $1, %%eax;\
@@ -52,13 +52,14 @@ inline int TrySpinLock(PSPIN_LOCK pSpinLock)
             :"d"(pSpinLock)
             :"%eax"
 			);
+	/*compiler will generate warning, however return value is already in EAX*/
 }
 
 /*! SpinUnlock - unlocks the given spinlock data
 */
-inline void SpinUnlock(PSPIN_LOCK pSpinLock)
+inline void SpinUnlock(SPIN_LOCK_PTR pSpinLock)
 {
-	assert( pSpinLock->Data != 0 );
+	assert( pSpinLock->data != 0 );
 	
 	/*adding lock prefix causes an invalid instruction execption
 	although lock is not neccesssary for an unlock operation - it is good to have*/
@@ -71,7 +72,7 @@ inline void SpinUnlock(PSPIN_LOCK pSpinLock)
 */
 void BitSpinLock(void * pSpinLock, int iPos)
 {
-	DWORD i, count=SPIN_LOCK_TRY_COUNT;
+	UINT32 i, count=SPIN_LOCK_TRY_COUNT;
 	/*loop until acquiring the lock*/
 	do
 	{
@@ -85,7 +86,7 @@ void BitSpinLock(void * pSpinLock, int iPos)
 		);
 	}while( i && count-- );
 	if ( i )
-		Panic("SpinLock timeout\n");
+		panic("SpinLock timeout\n");
 }
 
 /*! TrySpinLock - Actually there is no spin here - it just tries to acquire the 
@@ -106,8 +107,8 @@ int BitSpinLockTry(void * pSpinLock, int iPos)
 */
 void BitSpinUnlock(void * pSpinLock, int iPos)
 {
-	UINT32 Data = *(UINT32*)pSpinLock;
-	assert ( ((UINT32)Data & (1<<iPos)) == 1 );
+	UINT32 data = *(UINT32*)pSpinLock;
+	assert ( ((UINT32)data & (1<<iPos)) == 1 );
 
 	asm volatile("\lock btr %%ecx, (%%edx);"
 		:

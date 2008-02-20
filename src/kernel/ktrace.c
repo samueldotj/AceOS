@@ -43,3 +43,11 @@ void _assert(const char *msg, const char *file, int line)
 	kprintf("Assertion failed at %s:%d::[%s]\n", file, line, msg);
 	ArchHalt();
 }
+
+/*! Halts the system after printing the given message
+*/
+void panic(char * message) 
+{
+	kprintf(message);
+	ArchHalt();
+}

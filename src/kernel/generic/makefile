@@ -6,7 +6,7 @@
 #	Brief			:	commands supported are: all clean 
 
 include $(ACE_ROOT)/make.conf
-ALL_DIRS=	string
+ALL_DIRS=	
 
 all:	always
 	@for dir in $(ALL_DIRS); do make -C $$dir; done

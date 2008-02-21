@@ -11,15 +11,7 @@
 
 #include <ace.h>
 #include <stdarg.h>
-
-/*define this macro to remove assert checking*/
-//#define NDEBUG
-
-#if defined(NDEBUG)
-	#define assert(test) ((void)0) 
-#else
-	#define assert(test) ((void)((test)||(_assert(#test,__FILE__,__LINE__),0)))
-#endif
+#include <assert.h>
 
 /*define this macro to enable kernel tracing*/
 #define __KERNEL_TRACE__
@@ -55,7 +47,6 @@ int _doprint(const char *fmt0, void (*putc)(BYTE ch), va_list argp);
 
 int kprintf(const char *fmt, ...);
 int ktrace(const char *fmt, ...);
-void _assert(const char *msg, const char *file, int line);
 
 /*architecture depended function declarations*/
 void KtracePrint(BYTE ch);

@@ -11,6 +11,7 @@
 #define LIST__H
 
 #include <stdlib.h>
+#include <assert.h>
 
 /*! define LIST_LINK_NULLIFY to nullify the list next/prev pointers after freeing.
 	This will be usefull in debugging.

@@ -15,9 +15,7 @@
 	6. To iterate through the list you can use ListForEach or ListForEachPrev macro		
 */
 
-#include <windows.h>
-#include "list.h"
-#include <assert.h>
+#include <list.h>
 
 /*! This is used to initialize a circular doubly linked list
 	Use the LIST_NODE macro if possible

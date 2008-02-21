@@ -9,8 +9,7 @@
 	
 */
 
-#include "binary_tree.h"
-#include <assert.h>
+#include <binary_tree.h>
 
 #define MARK_TREELIST_END(list)		(list)->next = (LIST_PTR) (((unsigned long)(list)->next ) | 1);
 

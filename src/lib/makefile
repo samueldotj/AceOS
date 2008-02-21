@@ -1,21 +1,21 @@
 #	File			:	src makefile
 #   Author			:	DilipSimha N M and Samuel Jacob
 #  	Version			:	3.0
-#  	Created 		:	20-Sep-2007 11:55 AM
+#  	Created 		:	21-Feb-2008 15:22PM
 #	Last modified	:
-#	Brief			:	commands supported are: kernel lib all clean 
+#	Brief			:	commands supported are: ds string all clean 
 
 include $(ACE_ROOT)/make.conf
-ALL_DIRS=	lib kernel
+ALL_DIRS=	string ds
 
 all:	always
 	@for dir in $(ALL_DIRS); do make -C $$dir all; done
 
-kernel:	always
-	@make -C kernel
+string:	always
+	@make -C string
 
-lib:	always
-	@make -C lib
+ds:	always
+	@make -C ds
 
 clean:	always
 	@for dir in $(ALL_DIRS); do make -C $$dir clean; done

@@ -20,10 +20,10 @@ clean:
 
 #how to make target
 testtree:	testtree.c
-	$(CC) -I $(INCLUDE) -o testtree testtree.c $(OBJ)/libds.a
+	$(CC) -I $(INCLUDE) -L $(OBJ) -o testtree testtree.c -lds
 
 testlist:	testlist.c
-	$(CC) -I $(INCLUDE) -o testlist testlist.c $(OBJ)/libds.a
+	$(CC) -I $(INCLUDE) -L $(OBJ) -o testlist testlist.c -lds
 
 #create .d files
 -include $(OBJS:.o=.d)

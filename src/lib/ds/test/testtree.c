@@ -97,7 +97,7 @@ int main()
 		if ( del )
 		{
 			printf("found. Deleting it : ");
-			result = RemoveNodeFromBinaryTree(del, NULL);
+			result = RemoveNodeFromBinaryTree(del, NULL, NULL);
 			if ( result )
 				printf("failed\n");
 			else

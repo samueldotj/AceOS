@@ -36,12 +36,12 @@ struct list {
 
 /*! To iterate a list use this macro.
 */
-#define ListForEach(pos, head) \
+#define LIST_FOR_EACH(pos, head) \
 	for ((pos) = (head)->next; (pos) != (head) ; (pos) = (pos)->next)
 
 /*! To iterate a list backwards use this macro.
 */
-#define ListForEachPrev(pos, head) \
+#define LIST_FOR_EACH_PREV(pos, head) \
 	for ((pos) = (head)->prev; (pos) != (head); (pos) = (pos)->prev)
 
 /*!
@@ -50,7 +50,7 @@ struct list {
  * @n:		another &struct list_head to use as temporary storage
  * @head:	the head for your list.
  */
-#define ListForEachSafe(pos, n, head) \
+#define LIST_FOR_EACH_SAFE(pos, n, head) \
 	for (pos = (head)->next, n = pos->next; (head) && pos && pos != (head); \
 		pos = n, n = pos->next)
 		

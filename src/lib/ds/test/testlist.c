@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 
 	/*insert into list*/
 	printf("Inserting numbers -2 to 10\n");
-	for(i=0;i<10;i++)
+	for(i=-2;i<=10;i++)
 	{
 		LIST_TEST_PTR p;
 
@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
 
 	printf("printing odd list..\n");
 	i=0;
-	ListForEach(n, &odd_head.list)
+	LIST_FOR_EACH(n, &odd_head.list)
 	{
 		printf("%d) Node = %d\n", i++, STRUCT_FROM_MEMBER(LIST_TEST_PTR, list, n)->data );
 
@@ -74,14 +74,14 @@ int main(int argc, char* argv[])
 
 	printf("printing even list..\n");
 	i=0;
-	ListForEach(n, &even_head.list)
+	LIST_FOR_EACH(n, &even_head.list)
 	{
 		printf("%d) Node = %d\n", i++, STRUCT_FROM_MEMBER(LIST_TEST_PTR, list, n)->data );
 	}
 	
 	printf("printing full list..\n");
 	i=0;
-	ListForEach(n, &head.full_list)
+	LIST_FOR_EACH(n, &head.full_list)
 	{
 		printf("%d) Node = %d\n", i++, STRUCT_FROM_MEMBER(LIST_TEST_PTR, full_list, n)->data );
 	}
@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
 	/*remove 5 and 8*/
 	printf("removing 5 and 8..\n");
 	i=0;
-	ListForEachSafe(n, tmp, &head.full_list)
+	LIST_FOR_EACH_SAFE(n, tmp, &head.full_list)
 	{
 		if ( STRUCT_FROM_MEMBER(LIST_TEST_PTR, full_list, n)->data == 5 ||
 			 STRUCT_FROM_MEMBER(LIST_TEST_PTR, full_list, n)->data == 8 
@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
 			RemoveFromList(n);
 	}
 	printf("printing full list again..\n");
-	ListForEach(n, &head.full_list)
+	LIST_FOR_EACH(n, &head.full_list)
 	{
 		printf("%d) Node = %d\n", i++, STRUCT_FROM_MEMBER(LIST_TEST_PTR, full_list, n)->data );
 	}

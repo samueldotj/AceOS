@@ -1,4 +1,4 @@
-#include "binary_tree.h"
+#include <binary_tree.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +20,12 @@ COMPARISION_RESULT compare_number(struct binary_tree * node1, struct binary_tree
 BT_TEST_PTR InitBT_TestNode(BT_TEST_PTR node, int data);
 
 void print_tree(BINARY_TREE_PTR node);
+
+void _assert(const char *msg, const char *file, int line)
+{
+	printf("%s : %s %d", msg, file, line);
+	exit(1);
+}
 
 int main()
 {
@@ -91,7 +97,7 @@ int main()
 		if ( del )
 		{
 			printf("found. Deleting it : ");
-			result = RemoveNodeFromBinaryTree(del);
+			result = RemoveNodeFromBinaryTree(del, NULL);
 			if ( result )
 				printf("failed\n");
 			else

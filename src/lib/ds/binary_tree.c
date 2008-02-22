@@ -164,7 +164,7 @@ int InsertNodeIntoBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR new_node)
 		case 3(only right node)
 		case 4(both left and right nodes present)
 */
-int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node)
+int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node)
 {
 	TREE_LIST_TYPE in_list_type;
 	BINARY_TREE_PTR left_node, right_node;
@@ -205,7 +205,14 @@ int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node)
 				LinkTwoTreeLists( &parent_node->right, &left_node->right);
 			}
 		}
-		return 0;
+		
+		/*if leaf_node passed, then point the new leaf_node.
+		*/
+		if ( leaf_node )
+		{
+			*leaf_node = parent_node;
+		}
+		return 0;/*success*/
 		
 	}
 	
@@ -218,7 +225,7 @@ int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node)
 	right_most_node = TREE_RIGHT_PARENT( left_node );
 	
 	//remove right_most_node
-	RemoveNodeFromBinaryTree(right_most_node);
+	RemoveNodeFromBinaryTree(right_most_node, leaf_node);
 	//reinitialize the pointer
 	InitBinaryTreeNode(right_most_node, right_most_node->fnCompareKey);
 	
@@ -226,7 +233,7 @@ int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node)
 	ReplaceTreeListNode(&node->left, &right_most_node->left);
 	ReplaceTreeListNode(&node->right, &right_most_node->right);
 
-	return 0;
+	return 0;/*success*/
 }
 
 /*! Unlinks the given tree "list" node from the tree "list".

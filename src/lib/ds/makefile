@@ -7,6 +7,9 @@
 
 include $(ACE_ROOT)/make.conf
 
+#since we might use different cross compiler for Ace, for testing use the host's default compiler.
+#CC = /usr/bin/gcc
+
 #objects for this library
 OBJS = $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.asm,%.o,$(wildcard *.asm))
 

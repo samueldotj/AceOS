@@ -30,12 +30,8 @@ typedef enum
 /*! Binary tree data structure
 */
 struct binary_tree {
-	/*LIST_NODE(left);
-	LIST_NODE(right);*/
-
-	LIST left;// = { 0, 0  };
+	LIST left;
 	LIST right;
-
 	
 	COMPARISION_RESULT (*fnCompareKey)(struct binary_tree * , struct binary_tree *);
 };
@@ -60,7 +56,7 @@ typedef struct binary_tree BINARY_TREE, * BINARY_TREE_PTR;
 
 BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_node);
 int InsertNodeIntoBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR new_node);
-int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node);
+int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node,  BINARY_TREE_PTR * leaf_node);
 
 BINARY_TREE_PTR InitBinaryTreeNode(BINARY_TREE_PTR node, COMPARISION_RESULT (*compare_function_ptr)(struct binary_tree * , struct binary_tree *));
 BINARY_TREE_PTR GetTreeNodeParent(BINARY_TREE_PTR node, TREE_LIST_TYPE * list_type);

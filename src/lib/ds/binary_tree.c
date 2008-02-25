@@ -155,8 +155,12 @@ int InsertNodeIntoBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR new_node)
 	}
 }
 /*! Removes the given node from the Tree.
-	Return values:
-		0 - Sucess
+	Return values
+		leaf_node - Points to the parent node of the deleted leaf node. 
+					It is always a leaf(after deletion).
+		root_ptr  - The new root pointer.
+		
+		Note: leaf_node and/or root_ptr can be null;
 		
 	Cases:
 		case 1(leaf - no left or right node)
@@ -164,7 +168,7 @@ int InsertNodeIntoBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR new_node)
 		case 3(only right node)
 		case 4(both left and right nodes present)
 */
-int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, BINARY_TREE_PTR * root_ptr)
+void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, BINARY_TREE_PTR * root_ptr)
 {
 	TREE_LIST_TYPE in_list_type;
 	BINARY_TREE_PTR left_node, right_node;
@@ -211,7 +215,7 @@ int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, 
 		if ( leaf_node )
 			*leaf_node = parent_node;
 			
-		return 0;/*success*/
+		return;/*success*/
 		
 	}
 	
@@ -236,7 +240,6 @@ int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, 
 	if ( root_ptr && parent_node==NULL )
 		*root_ptr = node;
 
-	return 0;/*success*/
 }
 
 /*! Unlinks the given tree "list" node from the tree "list".

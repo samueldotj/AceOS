@@ -97,18 +97,12 @@ int main()
 		if ( del )
 		{
 			printf("found. Deleting it : ");
-			result = RemoveNodeFromBinaryTree(del, NULL, NULL);
-			if ( result )
-				printf("failed\n");
-			else
+			RemoveNodeFromBinaryTree(del, NULL, NULL);
+			if ( SearchBinaryTree(&root.t, &del_node.t) )
 			{
-				printf("sucess\n");
-				if ( SearchBinaryTree(&root.t, &del_node.t) )
-				{
-					printf("Delete succeed but node still exists\n");
-					print_tree(&root.t);
-					return 1;
-				}
+				printf("node still exists\n");
+				print_tree(&root.t);
+				return 1;
 			}
 		}
 		else

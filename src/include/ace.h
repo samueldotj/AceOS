@@ -31,5 +31,9 @@ typedef unsigned long UINT32;
 #define STRUCT_ADDRESS_FROM_MEMBER(member_address, struct_name, member_name)	\
 		((struct_name *)( (BYTE *)member_address) - ((UINT32) &(((struct_name *)0)->member_name)) )
 
+/*! returns maximum of two numbers
+*/
+#define MAX(a,b) (((a) > (b)) ? (a):(b))
+
 #endif
 

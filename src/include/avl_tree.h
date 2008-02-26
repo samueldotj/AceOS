@@ -12,14 +12,13 @@
 
 #include <binary_tree.h>
 
-struct AVLTree;
 
 /*structures go here*/
-struct AVLTree {
+struct avl_tree {
 	BINARY_TREE	bintree;
     int			height;
 };
-typedef struct AVLTree  AVL_TREE, *AVL_TREE_PTR;
+typedef struct avl_tree  AVL_TREE, *AVL_TREE_PTR;
 
 AVL_TREE_PTR SearchAvlTree(AVL_TREE_PTR start, AVL_TREE_PTR search_node);
 int InsertNodeIntoAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR new_node);

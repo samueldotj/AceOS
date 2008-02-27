@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:
-  			Last modified: Mon Feb 25, 2008  12:29PM
+  			Last modified: Wed Feb 27, 2008  10:57AM
   \brief	
 */
 #ifndef _AVL_TREE_H_
@@ -25,8 +25,8 @@ int InsertNodeIntoAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR new_node);
 int RemoveNodeFromAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR node);
 
 
-#define AVL_TREE_LEFT_NODE(node)	(AVL_TREE_PTR)TREE_LEFT_NODE((BINARY_TREE_PTR)(node))
-#define AVL_TREE_RIGHT_NODE(node)	(AVL_TREE_PTR)TREE_RIGHT_NODE((BINARY_TREE_PTR)(node))
-#define AVL_TREE_PARENT_NODE(node)	(AVL_TREE_PTR)GetTreeNodeParent((BINARY_TREE_PTR)(node), NULL)
+#define AVL_TREE_LEFT_NODE(node)	((AVL_TREE_PTR)TREE_LEFT_NODE((BINARY_TREE_PTR)(node)))
+#define AVL_TREE_RIGHT_NODE(node)	((AVL_TREE_PTR)TREE_RIGHT_NODE((BINARY_TREE_PTR)(node)))
+#define AVL_TREE_PARENT_NODE(node)	((AVL_TREE_PTR)GetTreeNodeParent((BINARY_TREE_PTR)(node), NULL))
 
 #endif

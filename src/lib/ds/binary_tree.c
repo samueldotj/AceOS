@@ -4,7 +4,7 @@
 	\version 	1.0
 	\date	
   			Created: 04-Feb-2008 18:24
-  			Last modified: 04-Feb-2008 18:24
+  			Last modified: Wed Feb 27, 2008  11:25AM
 	\brief	Generic binary tree implementation
 	
 */
@@ -245,7 +245,7 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 /*! Unlinks the given tree "list" node from the tree "list".
 	This function takes care of removing END marks and putting it back.
 */
-static void UnlinkTreeList(LIST_PTR list_node)
+void UnlinkTreeList(LIST_PTR list_node)
 {
 	LIST_PTR prev_node = NULL;
 	
@@ -273,7 +273,7 @@ static void UnlinkTreeList(LIST_PTR list_node)
 /*! Joins two tree lists.
 	This function takes care of removing END marks and putting it back.
 */
-static void LinkTwoTreeLists( LIST_PTR list1head, LIST_PTR list2head )
+void LinkTwoTreeLists( LIST_PTR list1head, LIST_PTR list2head )
 {
 	LIST_PTR tail = list2head->prev;
 	
@@ -285,7 +285,7 @@ static void LinkTwoTreeLists( LIST_PTR list1head, LIST_PTR list2head )
 /*!	Links the new tree node list with the prev and next of old tree node list
 	This function takes care of removing END marks and putting it back.
 */
-static void ReplaceTreeListNode(LIST_PTR old_node, LIST_PTR new_node)
+void ReplaceTreeListNode(LIST_PTR old_node, LIST_PTR new_node)
 {
 	LIST_PTR prev_node, next_node;
 	int is_tail, is_head;

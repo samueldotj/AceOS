@@ -10,13 +10,14 @@
  */
 
 #include <avl_tree.h>
+#include <ace.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #define GET_AVL_TREE_HEIGHTS( node, left_height, right_height )	\
-	if ( !IS_END_OF_LEFT_LIST( (node) ) )						\				
+	if ( !IS_END_OF_LEFT_LIST( (BINARY_TREE_PTR)(node) ) )						\
 		left_height = AVL_TREE_LEFT_NODE( (node) )->height;		\
-	if ( !IS_END_OF_RIGHT_LIST( (node) ) )						\
+	if ( !IS_END_OF_RIGHT_LIST( (BINARY_TREE_PTR)(node) ) )						\
 		right_height = AVL_TREE_RIGHT_NODE( (node) )->height;	
 
 #define RECALCULATE_HEIGHT( node ) (node)->height = RecalculateAvlTreeHeight( node )
@@ -31,6 +32,7 @@ static void single_rotate_right_avltree(AVL_TREE_PTR *node, AVL_TREE_PTR *root);
 static void single_rotate_left_avltree(AVL_TREE_PTR *node, AVL_TREE_PTR *root);
 static void double_rotate_left_right(AVL_TREE_PTR *start, AVL_TREE_PTR *root);
 static void double_rotate_right_left(AVL_TREE_PTR *start, AVL_TREE_PTR *root);
+static int RecalculateAvlTreeHeight(AVL_TREE_PTR node);
 
 
 /*! Initializes the avl tree structure.
@@ -118,7 +120,7 @@ static int RecalculateAvlTreeHeight(AVL_TREE_PTR node)
 
 static int GetAvlTreeBalanceFactor(AVL_TREE_PTR node)
 {
-	int left_height=-1, right_height=-1, balance_factor;
+	int left_height=-1, right_height=-1;
 	GET_AVL_TREE_HEIGHTS( node, left_height, right_height );
 
 	return right_height-left_height;
@@ -134,9 +136,10 @@ static int GetAvlTreeBalanceFactor(AVL_TREE_PTR node)
 		3) If stable, then avl tree is balanced, so simply return.
  */
 
-void BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root)
+static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root)
 {
 	int balance_factor;
+	AVL_TREE_PTR parent;
 	
 	RECALCULATE_HEIGHT(start_node);
 	balance_factor = GetAvlTreeBalanceFactor(start_node);
@@ -161,6 +164,7 @@ void BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root)
 	/* continue till root */
 	if (parent != start_node) 
 		BalanceAvlTree(parent, root);
+	return 0;
 }
 
 
@@ -210,6 +214,7 @@ void LeftRotateAvlTree(AVL_TREE_PTR *node, AVL_TREE_PTR *root)
 
 void single_rotate_right_avltree(AVL_TREE_PTR *node, AVL_TREE_PTR *root)
 {
+#if 0
 	/*rotate right*/
 	AVL_TREE_PTR temp;
 
@@ -228,6 +233,7 @@ void single_rotate_right_avltree(AVL_TREE_PTR *node, AVL_TREE_PTR *root)
 	
 	RECALCULATE_HEIGHT( *node);
 	return;
+#endif
 }
 
 /*! Performs a left rotation, rooted at *node_ptr
@@ -243,23 +249,24 @@ void single_rotate_right_avltree(AVL_TREE_PTR *node, AVL_TREE_PTR *root)
 */
 void single_rotate_left_avltree(AVL_TREE_PTR *node_ptr, AVL_TREE_PTR *root_ptr)
 {
+#if 0
 	AVL_TREE_PTR parent, child;
 	
 	parent = *node_ptr;
 	child = AVL_TREE_RIGHT_NODE(parent);
 	
 	//Remove parent from the right list
-	UnlinkTreeList(&parent->right);
+	UnlinkTreeList(&((LIST_PTR)AVL_TREE_RIGHT_NODE(parent)));
 	
 	//Link child's "left child" as parents right child
-	if ( !IS_END_OF_LEFT_LIST( child ) )
+	if ( !IS_END_OF_LEFT_LIST( (BINARY_TREE_PTR)child ) )
 	{
-		LIST_PTR left = &child->left.next;
+		LIST_PTR left_list = &child->left.next;
 		UnlinkTreeList(&child->left);
-		LinkTwoTreeLists( &parent->right,  left);
+		LinkTwoTreeLists( &parent->right,  left_list);
 	}
 	//Link parent as "left child" of child.
-	LinkTwoTreeLists( &child->left, &parent->right );
+	LinkTwoTreeLists( &child->left, &parent );
 	
 	//updates the root pointer if neccesary
 	if ( *node_ptr = *root_ptr )
@@ -270,10 +277,12 @@ void single_rotate_left_avltree(AVL_TREE_PTR *node_ptr, AVL_TREE_PTR *root_ptr)
 	RECALCULATE_HEIGHT(child);
 	
 	return;
+#endif
 }
 
 void double_rotate_left_right(AVL_TREE_PTR *start, AVL_TREE_PTR *root)
 {
+#if 0
 	/*First rotate left*/
 	AVL_TREE_PTR temp, temp_left;
 
@@ -303,10 +312,12 @@ void double_rotate_left_right(AVL_TREE_PTR *start, AVL_TREE_PTR *root)
 	
 	RECALCULATE_HEIGHT(*start);
 	return;
+#endif
 }
 
 void double_rotate_right_left(AVL_TREE_PTR *start, AVL_TREE_PTR *root)
 {
+#if 0
 	/*First rotate right*/
 	AVL_TREE_PTR temp, temp_right;
 
@@ -335,5 +346,6 @@ void double_rotate_right_left(AVL_TREE_PTR *start, AVL_TREE_PTR *root)
 	RECALCULATE_HEIGHT( temp_right );
 	RECALCULATE_HEIGHT( *start );
 	return;
+#endif
 }
 

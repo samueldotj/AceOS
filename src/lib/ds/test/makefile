@@ -11,7 +11,7 @@ include $(ACE_ROOT)/make.conf
 CC = /usr/bin/gcc
 
 #phony - all - make target
-all:    testtree testlist
+all:    testtree testlist testavl
 
 #phony - clean - clean all object files
 clean:
@@ -24,6 +24,9 @@ testtree:	testtree.c
 
 testlist:	testlist.c
 	$(CC) -I $(INCLUDE) -L $(OBJ) -o testlist testlist.c -lds
-
+	
+testavl:	testavl.c
+	$(CC) -I $(INCLUDE) -L $(OBJ) -o testavl testavl.c -lds
+	
 #create .d files
 -include $(OBJS:.o=.d)

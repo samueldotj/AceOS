@@ -60,10 +60,9 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 BINARY_TREE_PTR InitBinaryTreeNode(BINARY_TREE_PTR node, COMPARISION_RESULT (*compare_function_ptr)(struct binary_tree * , struct binary_tree *));
 BINARY_TREE_PTR GetTreeNodeParent(BINARY_TREE_PTR node, TREE_LIST_TYPE * list_type);
 
-void UnlinkTreeList(LIST_PTR list_node);
-void LinkTwoTreeLists( LIST_PTR list1head, LIST_PTR list2head );
-void ReplaceTreeListNode(LIST_PTR old_node, LIST_PTR new_node);
-	
+void RotateRight(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr);
+void RotateLeft(BINARY_TREE_PTR  node, BINARY_TREE_PTR *root_ptr);
+
 #ifdef __cplusplus
 	}
 #endif

@@ -19,7 +19,7 @@ typedef struct bt_test BT_TEST, * BT_TEST_PTR;
 COMPARISION_RESULT compare_number(struct binary_tree * node1, struct binary_tree * node2);
 BT_TEST_PTR InitBT_TestNode(BT_TEST_PTR node, int data);
 
-void print_tree(BINARY_TREE_PTR node);
+void print_tree(AVL_TREE_PTR avl_node);
 
 void _assert(const char *msg, const char *file, int line)
 {
@@ -31,8 +31,8 @@ int main()
 {
 	int i, numbers[MAX_TREE_NUMBERS]={1, 2, 3, 4,5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
 	int del_numbers[MAX_DEL_NUMBERS]={5, 8, 17, 10, 3, 15}, del_number_index;
-	BT_TEST root;
-	AVL_TREE_PTR * root_ptr=&root.t;
+	BT_TEST first_element;
+	AVL_TREE_PTR root=&first_element.t;
 	BT_TEST_PTR search_node=NULL;
 	int max_tree_numbers;
 		
@@ -48,7 +48,7 @@ int main()
 		del_number_index = 6;
 	}
 	
-	InitBT_TestNode( &root, 0);
+	InitBT_TestNode( &first_element, 0);
 	
 	/*insert into list*/
 	printf("Inserting 20 numbers between 0 to 100\n");
@@ -70,7 +70,7 @@ int main()
 		
 		InitBT_TestNode(new_node, num);
 		printf("Adding node %p (%d) : ", &new_node->t, num );
-		if ( InsertNodeIntoAvlTree(root_ptr, &new_node->t ) != 0 )
+		if ( InsertNodeIntoAvlTree( &root, &new_node->t ) != 0 )
 			printf("failure\n");
 		else
 		{
@@ -84,7 +84,7 @@ int main()
 		}
 		
 	}
-	print_tree(*root_ptr);
+	print_tree(root);
 	printf("\n");
 	del_number_index--;
 	for(;del_number_index>=0;del_number_index--)
@@ -94,15 +94,15 @@ int main()
 		InitBT_TestNode(&del_node, del_numbers[del_number_index]);
 		
 		printf("Searching %d : ", del_node.data);
-		BINARY_TREE_PTR del = SearchAvlTree( *root_ptr, &del_node.t);
+		AVL_TREE_PTR del = SearchAvlTree( root, &del_node.t);
 		if ( del )
 		{
 			printf("found. Deleting it : ");
-			RemoveNodeFromAvlTree( root_ptr, del);
-			if ( SearchAvlTree( *root_ptr, &del_node.t) )
+			RemoveNodeFromAvlTree( &root, del);
+			if ( SearchAvlTree( root, &del_node.t) )
 			{
 				printf("node still exists\n");
-				print_tree(&root.t);
+				print_tree( root );
 				return 1;
 			}
 		}
@@ -112,7 +112,7 @@ int main()
 		}
 	}
 	printf("-------------------FINAL TREE---------------------------------------------\n");
-	print_tree(*root_ptr);
+	print_tree( root);
 	printf("\n--------------------------------------------------------------------------\n");
 	
 	printf("\nNormal exit\n");
@@ -154,7 +154,7 @@ void print_tree(AVL_TREE_PTR avl_node)
 	{
 		level++;
 		printf("-");
-		print_tree( TREE_LEFT_NODE(node) );
+		print_tree( (AVL_TREE_PTR) TREE_LEFT_NODE(node) );
 		level--;
 	}
 	
@@ -167,7 +167,7 @@ void print_tree(AVL_TREE_PTR avl_node)
 		printf("|\n");
 		for (j=0 ;j<(level*len);j++ ) printf(" ");
 		
-		print_tree( TREE_RIGHT_NODE(node) );
+		print_tree( (AVL_TREE_PTR) TREE_RIGHT_NODE(node) );
 	}
 	
 }

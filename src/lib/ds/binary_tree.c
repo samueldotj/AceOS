@@ -34,6 +34,11 @@
 			break;												\
 	}
 
+static void UnlinkTreeList(LIST_PTR list_node);
+static void LinkTwoTreeLists( LIST_PTR list1head, LIST_PTR list2head );
+static void ReplaceTreeListNode(LIST_PTR old_node, LIST_PTR new_node);
+
+	
 /*! Returns parent node of given node and also returns on which list(left or right) the node is attached with the parent.
 	If the node has no parent(root), NULL is returned
 */
@@ -242,10 +247,81 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 
 }
 
+/*! Performs a right rotation, rooted at node
+	and updates the root pointer if neccesary
+	
+	Algo for right rotation
+		parent = node
+		child = node->left
+		1) Remove parent from the left list
+		2) Link child's "right child" as parents left child
+		3) Link parent as "right child" of child.
+*/
+void RotateRight(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
+{
+	BINARY_TREE_PTR parent, child;
+	
+	parent = node;
+	child = TREE_LEFT_NODE(parent);
+	
+	//Remove parent from the left list
+	UnlinkTreeList( &parent->left );
+	
+	//Link child's "right child" as parents left child
+	if ( !IS_END_OF_RIGHT_LIST( child ) )
+	{
+		BINARY_TREE_PTR child_right_node = TREE_RIGHT_NODE(child);
+		UnlinkTreeList( &child->right );
+		LinkTwoTreeLists( &parent->left,  &child_right_node->right );
+	}
+	//Link parent as "right child" of child.
+	LinkTwoTreeLists( &child->right, &parent->right );
+	
+	//updates the root pointer if neccesary
+	if ( node == *root_ptr )
+		*root_ptr = child;
+}
+
+/*! Performs a left rotation, rooted at node
+	and updates the root pointer if neccesary
+	
+	Algo for left rotation
+		parent = node
+		child = node->right
+		1) Remove parent from the right list
+		2) Link child's "left child" as parents right child
+		3) Link parent as "left child" of child.
+*/
+void RotateLeft(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
+{
+	BINARY_TREE_PTR parent, child;
+	
+	parent = node;
+	child = TREE_RIGHT_NODE(parent);
+	
+	//Remove parent from the right list
+	UnlinkTreeList( &parent->right );
+	
+	//Link child's "left child" as parents right child
+	if ( !IS_END_OF_LEFT_LIST( child ) )
+	{
+		BINARY_TREE_PTR child_left_node = TREE_LEFT_NODE(child);
+		UnlinkTreeList( &child->left );
+		LinkTwoTreeLists( &parent->right,  &child_left_node->left );
+	}
+	//Link parent as "left child" of child.
+	LinkTwoTreeLists( &child->left, &parent->left );
+	
+	//updates the root pointer if neccesary
+	if ( node == *root_ptr )
+		*root_ptr = child;
+}
+
+
 /*! Unlinks the given tree "list" node from the tree "list".
 	This function takes care of removing END marks and putting it back.
 */
-void UnlinkTreeList(LIST_PTR list_node)
+static void UnlinkTreeList(LIST_PTR list_node)
 {
 	LIST_PTR prev_node = NULL;
 	
@@ -273,7 +349,7 @@ void UnlinkTreeList(LIST_PTR list_node)
 /*! Joins two tree lists.
 	This function takes care of removing END marks and putting it back.
 */
-void LinkTwoTreeLists( LIST_PTR list1head, LIST_PTR list2head )
+static void LinkTwoTreeLists( LIST_PTR list1head, LIST_PTR list2head )
 {
 	LIST_PTR tail = list2head->prev;
 	
@@ -285,7 +361,7 @@ void LinkTwoTreeLists( LIST_PTR list1head, LIST_PTR list2head )
 /*!	Links the new tree node list with the prev and next of old tree node list
 	This function takes care of removing END marks and putting it back.
 */
-void ReplaceTreeListNode(LIST_PTR old_node, LIST_PTR new_node)
+static void ReplaceTreeListNode(LIST_PTR old_node, LIST_PTR new_node)
 {
 	LIST_PTR prev_node, next_node;
 	int is_tail, is_head;

@@ -11,7 +11,6 @@
 
 #include <avl_tree.h>
 #include <ace.h>
-#include <stdlib.h>
 
 #define GET_AVL_TREE_HEIGHTS( node, left_height, right_height )	\
 	if ( !IS_END_OF_LEFT_LIST( (BINARY_TREE_PTR)(node) ) )						\

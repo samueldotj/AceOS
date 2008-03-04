@@ -1,5 +1,5 @@
 /*!
-	\file		ktrace.c
+	\file		src/kernel/i386/debug/ktrace.c
 	\author		Samuel
 	\version	3.0
 	\date	

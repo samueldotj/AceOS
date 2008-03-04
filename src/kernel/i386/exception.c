@@ -1,5 +1,5 @@
 /*!
-  \file		ExceptionStub.c
+  \file		exception.c
   \author	DilipSimha N M
   \version 	3.0
   \date	

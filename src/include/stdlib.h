@@ -1,4 +1,4 @@
-/*!	\file strlib.h
+/*!	\file stdlib.h
 	\brief standard C library function declarations
 	\author Samuel (samueldotj@gmail.com)
 	\date 21/09/07 16:53

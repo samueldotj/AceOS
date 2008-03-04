@@ -41,7 +41,7 @@ void exceptionHandler(int exc, void *addr)
 		exc != 13 &&    /* GPF (normal in V86 mode) */
 		exc != 8 )     /* double fault (so abnormal we just crash) */
 	{
-		SetIdtGate(exc, addr);
+		SetIdtGate(exc, (UINT32)addr);
 	}
 }
 

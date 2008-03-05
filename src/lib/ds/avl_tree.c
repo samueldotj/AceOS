@@ -84,6 +84,8 @@ int InsertNodeIntoAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR new_node)
 		/*Failure: Duplicate value already exists, so return -1 */
 		return -1;
 	}
+	printf("node inserted\n");
+
 	if (new_node == *root) {
 		return 0;
 	}
@@ -147,6 +149,8 @@ static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr)
 	int balance_factor;
 	AVL_TREE_PTR parent;
 
+	assert(start_node != NULL);
+
 	RECALCULATE_HEIGHT(start_node);
 	printf("starting recalculated height = %d\n", start_node->height);
 	balance_factor = GetAvlTreeBalanceFactor(start_node);
@@ -158,7 +162,7 @@ static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr)
 		case 1:
 		case -1: /*tree is balanced*/
 			printf("tree is balanced\n");
-			return 0;
+			break;
 		case 2: /*heavy on right*/
 			printf("left rotating at node\n");
 			LeftRotateAvlTree(start_node, root_ptr);
@@ -169,16 +173,16 @@ static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr)
 			break;
 	}
 
+	if (start_node == *root_ptr) {
+		return 0;
+	}
+
+	printf("getting parent node\n");
 	parent = AVL_TREE_PARENT_NODE(start_node);
 	/* start_node is now a child and hence it's parent is also balanced*/
-	/* TBD... optmisise this.... Also we need to go recursive 
-	 * till root only for removal. Hence we can optimise for insertions 
-	 * by returning after only 1 adjustment*/
-
-	/* continue till root */
-	if (parent != start_node) 
-		BalanceAvlTree(parent, root_ptr);
-
+	/* continue recursion till root */
+	printf("recursive call....\n");
+	BalanceAvlTree(parent, root_ptr);
 	return 0;
 }
 

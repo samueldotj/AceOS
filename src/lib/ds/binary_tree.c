@@ -4,7 +4,7 @@
 	\version 	1.0
 	\date	
   			Created: 04-Feb-2008 18:24
-  			Last modified: Wed Mar 05, 2008  08:00PM
+  			Last modified: Wed Mar 05, 2008  11:51PM
 	\brief	Generic binary tree implementation
 	
 */
@@ -47,7 +47,7 @@ BINARY_TREE_PTR GetTreeNodeParent(BINARY_TREE_PTR node, TREE_LIST_TYPE * list_ty
 	BINARY_TREE_PTR left_parent, right_parent;
 	left_parent = TREE_LEFT_PARENT( node );
 	right_parent = TREE_RIGHT_PARENT( node );
-	
+	printf("left_parent=%p right_parent=%p node=%p\n", left_parent,	right_parent, node);
 	if ( !IS_END_OF_LEFT_LIST(left_parent) && left_parent!=node &&  TREE_LEFT_NODE(left_parent)==node )
 	{
 		if ( list_type )
@@ -274,7 +274,7 @@ void RotateRight(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
 	{
 		BINARY_TREE_PTR child_right_node = TREE_RIGHT_NODE(child);
 		UnlinkTreeList( &child->right );
-		LinkTwoTreeLists( &parent->left,  &child_right_node->right );
+		LinkTwoTreeLists( &parent->left,  &child_right_node->left );
 	}
 	//Link parent as "right child" of child.
 	LinkTwoTreeLists( &child->right, &parent->right );
@@ -302,25 +302,23 @@ void RotateLeft(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
 	child = TREE_RIGHT_NODE(parent);
 	
 	//Remove parent from the right list
-	printf("before parent: parent->left.next=%p right.next=%p\n", parent->left.next, parent->right.next); 
 	UnlinkTreeList( &parent->right );
-	printf("after parent: parent->left.next=%p right.next=%p\n", parent->left.next, parent->right.next); 
 	
 	//Link child's "left child" as parents right child
 	if ( !IS_END_OF_LEFT_LIST( child ) )
 	{
 		BINARY_TREE_PTR child_left_node = TREE_LEFT_NODE(child);
 		UnlinkTreeList( &child->left );
-		LinkTwoTreeLists( &parent->right,  &child_left_node->left );
+		LinkTwoTreeLists( &parent->right,  &child_left_node->right );
 	}
 	//Link parent as "left child" of child.
 	LinkTwoTreeLists( &child->left, &parent->left );
-	printf("child: child->left.next=%p next=%p\n", child->left.next, child->left.prev); 
-	printf("parent: parent->left.next=%p right.next=%p\n", parent->left.next, parent->right.next); 
 	
 	//updates the root pointer if neccesary
-	if ( node == *root_ptr )
+	if ( node == *root_ptr ) {
 		*root_ptr = child;
+		printf("root pointer updated..........\n");
+	}
 }
 
 

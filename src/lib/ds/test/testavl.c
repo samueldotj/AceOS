@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define MAX_TREE_NUMBERS 30
+#define MAX_TREE_NUMBERS 30 
 #define MAX_DEL_NUMBERS  10
 
 int random_number_test=0;
@@ -29,7 +29,7 @@ void _assert(const char *msg, const char *file, int line)
 
 int main()
 {
-	int i, numbers[MAX_TREE_NUMBERS];
+	int i, numbers[MAX_TREE_NUMBERS],j;
 	int del_numbers[MAX_DEL_NUMBERS]={5, 8, 17, 10, 3, 15}, del_number_index;
 	BT_TEST first_element;
 	AVL_TREE_PTR root=&first_element.t;
@@ -42,8 +42,9 @@ int main()
 	}
 	else
 	{
-		for(i=0;i<MAX_TREE_NUMBERS;i++)
-			numbers[i] = i+1;
+		//for(i=0;i<MAX_TREE_NUMBERS;i++)
+		for(i=MAX_TREE_NUMBERS-1,j=0; i>=0; i--, j++)
+			numbers[j] = i+1;
 		del_number_index = 6;
 	}
 	

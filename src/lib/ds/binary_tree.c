@@ -4,7 +4,7 @@
 	\version 	1.0
 	\date	
   			Created: 04-Feb-2008 18:24
-  			Last modified: Wed Mar 05, 2008  03:54PM
+  			Last modified: Wed Mar 05, 2008  08:00PM
 	\brief	Generic binary tree implementation
 	
 */
@@ -344,6 +344,7 @@ static void UnlinkTreeList(LIST_PTR list_node)
 	
 	/*unlink the node*/
 	RemoveFromList( list_node );
+	MARK_TREELIST_END( list_node );
 	
 	/*put the END mark if required*/
 	if ( is_tail )

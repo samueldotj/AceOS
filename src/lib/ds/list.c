@@ -4,7 +4,7 @@
 	\version 	1.0
 	\date	
   			Created: 04-Feb-2008 17:24
-  			Last modified: 04-Feb-2008 17:24
+  			Last modified: Wed Mar 05, 2008  03:57PM
 	\brief	Generic doubly linked circular list implementation
 	
 	1. There is no null termination because its doubly linked and circular list
@@ -74,7 +74,8 @@ void RemoveFromList(LIST_PTR node)
 	node->prev->next = node->next;
 	node->next->prev = node->prev;
 #ifdef LIST_LINK_NULLIFY
-		node->next = node->prev = NULL;
+	printf("inside here...........\n");
+//		node->next = node->prev = NULL;
 #endif
 }
 

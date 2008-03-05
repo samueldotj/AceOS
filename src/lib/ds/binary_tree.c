@@ -4,7 +4,7 @@
 	\version 	1.0
 	\date	
   			Created: 04-Feb-2008 18:24
-  			Last modified: Wed Feb 27, 2008  11:25AM
+  			Last modified: Wed Mar 05, 2008  03:54PM
 	\brief	Generic binary tree implementation
 	
 */
@@ -302,7 +302,9 @@ void RotateLeft(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
 	child = TREE_RIGHT_NODE(parent);
 	
 	//Remove parent from the right list
+	printf("before parent: parent->left.next=%p right.next=%p\n", parent->left.next, parent->right.next); 
 	UnlinkTreeList( &parent->right );
+	printf("after parent: parent->left.next=%p right.next=%p\n", parent->left.next, parent->right.next); 
 	
 	//Link child's "left child" as parents right child
 	if ( !IS_END_OF_LEFT_LIST( child ) )
@@ -313,6 +315,8 @@ void RotateLeft(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
 	}
 	//Link parent as "left child" of child.
 	LinkTwoTreeLists( &child->left, &parent->left );
+	printf("child: child->left.next=%p next=%p\n", child->left.next, child->left.prev); 
+	printf("parent: parent->left.next=%p right.next=%p\n", parent->left.next, parent->right.next); 
 	
 	//updates the root pointer if neccesary
 	if ( node == *root_ptr )

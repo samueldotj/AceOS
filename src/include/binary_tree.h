@@ -4,7 +4,7 @@
 	\author Samuel
 	\date 
 		Created: 04-Feb-2008 18:24
-		Last modified: Wed Feb 27, 2008  11:25AM
+		Last modified: Wed Mar 05, 2008  03:30PM
 */
 
 #ifndef BINARY_TREE__H

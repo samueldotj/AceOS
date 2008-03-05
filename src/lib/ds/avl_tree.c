@@ -12,16 +12,14 @@
 #include <avl_tree.h>
 #include <ace.h>
 
+/*This will only return heights of non-leaf, left and right nodes*/
+
 #define GET_AVL_TREE_HEIGHTS( node, left_height, right_height )					\
-	left_height = right_height = 0;												\
+	left_height = right_height = -1;							\
 	if ( !IS_END_OF_LEFT_LIST( (BINARY_TREE_PTR)(node) ) )		\
 		left_height = AVL_TREE_LEFT_NODE( (node) )->height;						\
-	else 														\
-		left_height = -1;										\
 	if ( !IS_END_OF_RIGHT_LIST( (BINARY_TREE_PTR)(node) ) )		\
 		right_height = AVL_TREE_RIGHT_NODE( (node) )->height;	\
-	else														\
-		right_height = -1;
 
 #define RECALCULATE_HEIGHT( node ) (node)->height = RecalculateAvlTreeHeight( node )
 
@@ -86,33 +84,44 @@ int InsertNodeIntoAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR new_node)
 		/*Failure: Duplicate value already exists, so return -1 */
 		return -1;
 	}
-
+	if (new_node == *root) {
+		return 0;
+	}
 	/* Balance the entire tree. 
 	 * Parent will always be balanced; So get grand-parent and start balancing from there.
 	 */
 	parent = AVL_TREE_PARENT_NODE(new_node);
 	if (parent == *root)
 	{
-		/*parent is the root, so tree is balanced*/
+		/* 
+		 * parent is the root, so tree is balanced
+		 * Only update the height.
+		 */
+		RECALCULATE_HEIGHT(parent);
 		return 0;
 	}
+	printf("adjusting parent's height %d...\n", parent->height);
 	RECALCULATE_HEIGHT(parent);
+	printf("adjusted parent's height %d...\n", parent->height);
 	
 	grand_parent = AVL_TREE_PARENT_NODE(parent);
 	if (grand_parent == parent) 
 	{
+		printf("No grandparent\n");
 		/*No grand parent, so tree is balanced*/
 		return 0;
 	}
-	return BalanceAvlTree(parent, root);
+	printf("calling balance tree for node height = %d\n", grand_parent->height);
+	return BalanceAvlTree(grand_parent, root);
 }
 
 /*! Recalculates the AVL Tree height and returns the value
 */
 static int RecalculateAvlTreeHeight(AVL_TREE_PTR node)
 {
-	int left_height=0, right_height=0;
+	int left_height, right_height;
 	GET_AVL_TREE_HEIGHTS( node, left_height, right_height );
+	printf("recalculate height: left height = %d and rigth_height = %d\n", left_height, right_height);
 	return MAX( left_height, right_height ) + 1;
 }
 
@@ -120,8 +129,9 @@ static int RecalculateAvlTreeHeight(AVL_TREE_PTR node)
 */
 static int GetAvlTreeBalanceFactor(AVL_TREE_PTR node)
 {
-	int left_height=-1, right_height=-1;
+	int left_height, right_height;
 	GET_AVL_TREE_HEIGHTS( node, left_height, right_height );
+	printf("get balance factor: left_height=%d and right_height=%d\n", left_height, right_height);
 
 	return right_height-left_height;
 }
@@ -141,6 +151,7 @@ static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr)
 	AVL_TREE_PTR parent;
 
 	RECALCULATE_HEIGHT(start_node);
+	printf("starting recalculated height = %d\n", start_node->height);
 	balance_factor = GetAvlTreeBalanceFactor(start_node);
 	assert( balance_factor >= -2 &&  balance_factor <= 2 );
 
@@ -149,11 +160,14 @@ static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr)
 		case 0:
 		case 1:
 		case -1: /*tree is balanced*/
+			printf("tree is balanced\n");
 			return 0;
 		case 2: /*heavy on right*/
+			printf("left rotating at node\n");
 			LeftRotateAvlTree(start_node, root_ptr);
 			break;
 		case -2: /*heavy on left*/
+			printf("Right rotating at node\n");
 			RightRotateAvlTree(start_node, root_ptr);
 			break;
 	}
@@ -193,6 +207,7 @@ void LeftRotateAvlTree(AVL_TREE_PTR node, AVL_TREE_PTR *root_ptr)
 {
 	AVL_TREE_PTR child = AVL_TREE_RIGHT_NODE(node);
 	int balance_factor = GetAvlTreeBalanceFactor(child);
+	printf("inside left rotation: balance factor = %d\n", balance_factor);
 	/*only -1,0 or 1 balance is expected*/
 	assert( balance_factor<=1 && balance_factor>=-1 );
 	
@@ -201,7 +216,8 @@ void LeftRotateAvlTree(AVL_TREE_PTR node, AVL_TREE_PTR *root_ptr)
 		RotateRight( &child->bintree, (BINARY_TREE_PTR *)root_ptr);
 	
 	/*single rotate*/
-	RotateLeft( &node->bintree, (BINARY_TREE_PTR *)root_ptr);
+	RotateLeft( (BINARY_TREE_PTR)node, (BINARY_TREE_PTR *)root_ptr);
+	printf("rotated left\n");
 	
 	/*calculate the new heights*/
 	RECALCULATE_HEIGHT(node);

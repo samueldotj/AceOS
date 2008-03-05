@@ -4,7 +4,7 @@
 	\author Samuel & Dilip
 	\date 
 		Created: 04-Feb-2008 17:24
-		Last modified: 04-Feb-2008 17:24
+		Last modified: Wed Mar 05, 2008  03:51PM
 */
 
 #ifndef LIST__H
@@ -16,7 +16,7 @@
 /*! define LIST_LINK_NULLIFY to nullify the list next/prev pointers after freeing.
 	This will be usefull in debugging.
 */
-#define LIST_LINK_NULLIFY
+//#define LIST_LINK_NULLIFY
 
 /*! List data structure
 */

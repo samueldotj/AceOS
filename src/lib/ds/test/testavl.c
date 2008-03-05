@@ -7,7 +7,7 @@
 #define MAX_TREE_NUMBERS 30
 #define MAX_DEL_NUMBERS  10
 
-int random_number_test=1;
+int random_number_test=0;
 
 struct bt_test
 {
@@ -29,29 +29,28 @@ void _assert(const char *msg, const char *file, int line)
 
 int main()
 {
-	int i, numbers[MAX_TREE_NUMBERS]={1, 2, 3, 4,5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
+	int i, numbers[MAX_TREE_NUMBERS];
 	int del_numbers[MAX_DEL_NUMBERS]={5, 8, 17, 10, 3, 15}, del_number_index;
 	BT_TEST first_element;
 	AVL_TREE_PTR root=&first_element.t;
 	BT_TEST_PTR search_node=NULL;
-	int max_tree_numbers;
 		
 	if ( random_number_test )
 	{
 		del_number_index=0;
-		max_tree_numbers = MAX_TREE_NUMBERS;
 		srand ( time(NULL) );
 	}
 	else
 	{
-		max_tree_numbers = 20;
+		for(i=0;i<MAX_TREE_NUMBERS;i++)
+			numbers[i] = i+1;
 		del_number_index = 6;
 	}
 	
 	InitBT_TestNode( &first_element, 0);
 	
 	/*insert into list*/
-	printf("Inserting 20 numbers between 0 to 100\n");
+	printf("Inserting %d numbers between 0 to 100\n", MAX_TREE_NUMBERS);
 	for(i=0;i<MAX_TREE_NUMBERS;)
 	{
 		int num;
@@ -84,6 +83,7 @@ int main()
 		}
 		
 	}
+	printf("Printing Tree :\n");
 	print_tree(root);
 	printf("\n");
 	del_number_index--;
@@ -105,6 +105,7 @@ int main()
 				print_tree( root );
 				return 1;
 			}
+			printf("Sucess\n");
 		}
 		else
 		{

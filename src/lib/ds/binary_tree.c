@@ -50,13 +50,15 @@ BINARY_TREE_PTR GetTreeNodeParent(BINARY_TREE_PTR node, TREE_LIST_TYPE * list_ty
 	
 	if ( !IS_END_OF_LEFT_LIST(left_parent) && left_parent!=node &&  TREE_LEFT_NODE(left_parent)==node )
 	{
-		*list_type = LEFT_TREE_LIST;
+		if ( list_type )
+			*list_type = LEFT_TREE_LIST;
 		return left_parent;
 	}
 	
 	if ( !IS_END_OF_RIGHT_LIST(right_parent) && right_parent!=node && TREE_RIGHT_NODE(right_parent)==node)
 	{
-		*list_type = RIGHT_TREE_LIST;
+		if ( list_type )
+			*list_type = RIGHT_TREE_LIST;
 		return right_parent;
 	}
 

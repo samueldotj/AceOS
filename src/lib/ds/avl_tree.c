@@ -12,9 +12,10 @@
 #include <avl_tree.h>
 #include <ace.h>
 
-#define GET_AVL_TREE_HEIGHTS( node, left_height, right_height )	\
+#define GET_AVL_TREE_HEIGHTS( node, left_height, right_height )					\
+	left_height = right_height = 0;												\
 	if ( !IS_END_OF_LEFT_LIST( (BINARY_TREE_PTR)(node) ) )		\
-		left_height = AVL_TREE_LEFT_NODE( (node) )->height;		\
+		left_height = AVL_TREE_LEFT_NODE( (node) )->height;						\
 	else 														\
 		left_height = -1;										\
 	if ( !IS_END_OF_RIGHT_LIST( (BINARY_TREE_PTR)(node) ) )		\
@@ -91,18 +92,18 @@ int InsertNodeIntoAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR new_node)
 	 */
 	parent = AVL_TREE_PARENT_NODE(new_node);
 	if (parent == *root)
-	{ 
+	{
 		/*parent is the root, so tree is balanced*/
 		return 0;
 	}
-
 	RECALCULATE_HEIGHT(parent);
 	
 	grand_parent = AVL_TREE_PARENT_NODE(parent);
-	if (grand_parent == parent) { /*No grand parent, so tree is balanced*/
+	if (grand_parent == parent) 
+	{
+		/*No grand parent, so tree is balanced*/
 		return 0;
 	}
-	
 	return BalanceAvlTree(parent, root);
 }
 
@@ -138,9 +139,10 @@ static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr)
 {
 	int balance_factor;
 	AVL_TREE_PTR parent;
-	
+
 	RECALCULATE_HEIGHT(start_node);
 	balance_factor = GetAvlTreeBalanceFactor(start_node);
+	assert( balance_factor >= -2 &&  balance_factor <= 2 );
 
 	switch(balance_factor) 
 	{
@@ -154,14 +156,13 @@ static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr)
 		case -2: /*heavy on left*/
 			RightRotateAvlTree(start_node, root_ptr);
 			break;
-		default:
-			assert(0);
 	}
 
 	parent = AVL_TREE_PARENT_NODE(start_node);
 	/* continue till root */
 	if (parent != start_node) 
 		BalanceAvlTree(parent, root_ptr);
+
 	return 0;
 }
 
@@ -173,21 +174,17 @@ void RightRotateAvlTree(AVL_TREE_PTR node, AVL_TREE_PTR *root_ptr)
 	int balance_factor = GetAvlTreeBalanceFactor(child);
 	/*only -1,0 or 1 balance is expected*/
 	assert( balance_factor<=1 && balance_factor>=-1 );
+	
+	/*check for double rotate*/
+	if ( balance_factor == 1 )
+		RotateLeft( &child->bintree, (BINARY_TREE_PTR *) root_ptr);
 
-	switch (balance_factor) 
-	{
-		case 0:		
-		case -1:	/* Single rotate */
-					RotateRight((BINARY_TREE_PTR)node, (BINARY_TREE_PTR *)root_ptr);
-					RECALCULATE_HEIGHT(node);
-					break;
-		case 1:	/* double rotate */
-					RotateLeft((BINARY_TREE_PTR)child, (BINARY_TREE_PTR *)root_ptr);
-					RECALCULATE_HEIGHT(child);
-					RotateRight((BINARY_TREE_PTR)node, (BINARY_TREE_PTR *)root_ptr);
-					RECALCULATE_HEIGHT(node);
-					break;
-	}
+	/*single right rotate*/
+	RotateRight( &node->bintree, (BINARY_TREE_PTR *) root_ptr);
+	
+	/*calculate the new heights*/
+	RECALCULATE_HEIGHT(node);
+	RECALCULATE_HEIGHT(child);
 }
 
 /*! Single or double left rotates the AVL tree on the node to balance
@@ -198,19 +195,15 @@ void LeftRotateAvlTree(AVL_TREE_PTR node, AVL_TREE_PTR *root_ptr)
 	int balance_factor = GetAvlTreeBalanceFactor(child);
 	/*only -1,0 or 1 balance is expected*/
 	assert( balance_factor<=1 && balance_factor>=-1 );
-
-	switch (balance_factor) 
-	{
-		case 0:		
-		case 1:		/* Single rotate */
-					RotateLeft((BINARY_TREE_PTR)node, (BINARY_TREE_PTR *)root_ptr);
-					RECALCULATE_HEIGHT(node);
-					break;
-		case -1:	/* double rotate */
-					RotateRight((BINARY_TREE_PTR)child, (BINARY_TREE_PTR *)root_ptr);
-					RECALCULATE_HEIGHT(child);
-					RotateLeft((BINARY_TREE_PTR)node, (BINARY_TREE_PTR *)root_ptr);
-					RECALCULATE_HEIGHT(node);
-					break;
-	}
+	
+	/*check for double rotate*/
+	if ( balance_factor == -1 )
+		RotateRight( &child->bintree, (BINARY_TREE_PTR *)root_ptr);
+	
+	/*single rotate*/
+	RotateLeft( &node->bintree, (BINARY_TREE_PTR *)root_ptr);
+	
+	/*calculate the new heights*/
+	RECALCULATE_HEIGHT(node);
+	RECALCULATE_HEIGHT(child);
 }

@@ -57,7 +57,10 @@ int RemoveNodeFromAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR node)
 {
 	AVL_TREE_PTR parent;
 	RemoveNodeFromBinaryTree((BINARY_TREE_PTR)node, (BINARY_TREE_PTR*)(&parent), (BINARY_TREE_PTR*)root);
-	//printf("removed from binary tree\n");
+	//printf("removed from binary tree node=%p parent=%p\n", node, parent);
+	if (!parent) { /* parent is null means I just removed root! */
+		return 0;
+	}
 	/*update the height of this node*/
 	RECALCULATE_HEIGHT(parent);
 
@@ -147,7 +150,7 @@ static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr)
 {
 	int balance_factor;
 	AVL_TREE_PTR parent;
-	//printf("inside balance avl tree\n");
+	//printf("inside balance avl tree for node %p\n", start_node);
 	assert(start_node != NULL);
 
 	RECALCULATE_HEIGHT(start_node);

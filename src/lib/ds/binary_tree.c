@@ -47,7 +47,6 @@ BINARY_TREE_PTR GetTreeNodeParent(BINARY_TREE_PTR node, TREE_LIST_TYPE * list_ty
 	BINARY_TREE_PTR left_parent, right_parent;
 	left_parent = TREE_LEFT_PARENT( node );
 	right_parent = TREE_RIGHT_PARENT( node );
-	printf("left_parent=%p right_parent=%p node=%p\n", left_parent,	right_parent, node);
 	if ( !IS_END_OF_LEFT_LIST(left_parent) && left_parent!=node &&  TREE_LEFT_NODE(left_parent)==node )
 	{
 		if ( list_type )
@@ -194,6 +193,14 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 	//case 1, 2 or 3
 	if ( is_left_end || is_right_end )
 	{
+		//root
+		if ( in_list_type == NO_LIST )
+		{
+			if ( !is_left_end )
+				in_list_type = LEFT_TREE_LIST;
+			else
+				in_list_type = RIGHT_TREE_LIST;
+		}
 		if ( in_list_type == LEFT_TREE_LIST )
 		{
 			//case 1 or 2
@@ -204,8 +211,11 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 				UnlinkTreeList( &node->right );
 				LinkTwoTreeLists( &parent_node->left, &right_node->left);
 			}
+			//update the root pointer
+			if ( root_ptr && parent_node==NULL )
+				*root_ptr = left_node;
 		}
-		if ( in_list_type == RIGHT_TREE_LIST )
+		else if ( in_list_type == RIGHT_TREE_LIST )
 		{
 			//case 1 or 3
 			UnlinkTreeList( &node->right );
@@ -215,15 +225,18 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 				UnlinkTreeList( &node->left );
 				LinkTwoTreeLists( &parent_node->right, &left_node->right);
 			}
+			
+			//update the root pointer
+			if ( root_ptr && parent_node==NULL )
+				*root_ptr = right_node;
 		}
 		
 		/*if leaf_node passed, then point the new leaf_node.
 		*/
 		if ( leaf_node )
 			*leaf_node = parent_node;
-			
-		return;/*success*/
 		
+		return;/*success*/
 	}
 	
 	/*case 4(both left and right nodes present)
@@ -245,7 +258,7 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 	
 	/*reassign the root pointer if it is changed.*/
 	if ( root_ptr && parent_node==NULL )
-		*root_ptr = node;
+		*root_ptr = right_most_node;
 
 }
 
@@ -315,10 +328,8 @@ void RotateLeft(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
 	LinkTwoTreeLists( &child->left, &parent->left );
 	
 	//updates the root pointer if neccesary
-	if ( node == *root_ptr ) {
+	if ( node == *root_ptr )
 		*root_ptr = child;
-		printf("root pointer updated..........\n");
-	}
 }
 
 

@@ -20,16 +20,16 @@ int parse_arguments(int argc, char * argv[]);
 
 int main(int argc, char* argv[])
 {
-	BT_TEST root;
+	BT_TEST first_element;
 	BT_TEST_PTR search_node=NULL;
 	int i, * numbers, total_numbers, * del_numbers, del_number_index;
-	
-	
+	BINARY_TREE_PTR root_ptr = &first_element.t;
+		
 	if ( parse_arguments(argc, argv) )
 		return;
 	numbers = init_numbers(&total_numbers, &del_numbers, &del_number_index);
 		
-	InitBT_TestNode( &root, 150);
+	InitBT_TestNode( &first_element, 150);
 	
 	/*insert into list*/
 	printf("Inserting 20 numbers between 0 to 100\n");
@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 		
 		InitBT_TestNode(new_node, numbers[i]);
 		printf("Adding node %p (%d) : ", &new_node->t, numbers[i] );
-		if ( InsertNodeIntoBinaryTree(&root.t, &new_node->t ) != 0 )
+		if ( InsertNodeIntoBinaryTree(root_ptr, &new_node->t ) != 0 )
 		{
 			printf("failure\n");
 			return;
@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
 			printf("success\n");
 		
 	}
-	print_tree(&root.t);
+	print_tree(root_ptr);
 	printf("\n");
 	
 	/*deletion test*/
@@ -66,17 +66,19 @@ int main(int argc, char* argv[])
 		InitBT_TestNode(&del_node, del_numbers[del_number_index]);
 		
 		printf("Searching %d : ", del_node.data);
-		BINARY_TREE_PTR del = SearchBinaryTree(&root.t, &del_node.t);
+		BINARY_TREE_PTR del = SearchBinaryTree(root_ptr, &del_node.t);
 		if ( del )
 		{
 			printf("found. Deleting it : ");
-			RemoveNodeFromBinaryTree(del, NULL, NULL);
-			if ( SearchBinaryTree(&root.t, &del_node.t) )
+			RemoveNodeFromBinaryTree(del, NULL, &root_ptr);
+			if ( SearchBinaryTree(root_ptr, &del_node.t) )
 			{
 				printf("node still exists\n");
-				print_tree(&root.t);
+				print_tree(root_ptr);
 				return 1;
 			}
+			else
+				printf("success\n");
 		}
 		else
 		{
@@ -84,7 +86,7 @@ int main(int argc, char* argv[])
 		}
 	}
 	printf("-------------------FINAL TREE---------------------------------------------\n");
-	print_tree(&root.t);
+	print_tree(root_ptr);
 	printf("\n--------------------------------------------------------------------------\n");
 	
 	printf("\nNormal exit\n");

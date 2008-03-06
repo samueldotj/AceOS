@@ -73,8 +73,8 @@ void RemoveFromList(LIST_PTR node)
 
 	node->prev->next = node->next;
 	node->next->prev = node->prev;
+
 #ifdef LIST_LINK_NULLIFY
-	printf("inside here...........\n");
 //		node->next = node->prev = NULL;
 #endif
 	node->next = node->prev = node;

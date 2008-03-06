@@ -4,7 +4,7 @@
 	\version 	1.0
 	\date	
   			Created: 04-Feb-2008 18:24
-  			Last modified: Wed Mar 05, 2008  11:51PM
+  			Last modified: Thu Mar 06, 2008  03:44PM
 	\brief	Generic binary tree implementation
 	
 */
@@ -44,13 +44,16 @@ static void ReplaceTreeListNode(LIST_PTR old_node, LIST_PTR new_node);
 */
 BINARY_TREE_PTR GetTreeNodeParent(BINARY_TREE_PTR node, TREE_LIST_TYPE * list_type)
 {
+	//printf("getting tree node parent\n");
 	BINARY_TREE_PTR left_parent, right_parent;
 	left_parent = TREE_LEFT_PARENT( node );
 	right_parent = TREE_RIGHT_PARENT( node );
+	//printf("left parent=%p right_parent=%p node=%p\n", left_parent, right_parent, node);
 	if ( !IS_END_OF_LEFT_LIST(left_parent) && left_parent!=node &&  TREE_LEFT_NODE(left_parent)==node )
 	{
 		if ( list_type )
 			*list_type = LEFT_TREE_LIST;
+		//printf("returning left parent\n");
 		return left_parent;
 	}
 	
@@ -58,11 +61,13 @@ BINARY_TREE_PTR GetTreeNodeParent(BINARY_TREE_PTR node, TREE_LIST_TYPE * list_ty
 	{
 		if ( list_type )
 			*list_type = RIGHT_TREE_LIST;
+		//printf("returning right parent\n");
 		return right_parent;
 	}
 
 	/*root doesnt have any parent*/	
-	*list_type = NO_LIST;
+	if (list_type)
+		*list_type = NO_LIST;
 	return NULL;
 }
 
@@ -201,7 +206,7 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 			else
 				in_list_type = RIGHT_TREE_LIST;
 		}
-		if ( in_list_type == LEFT_TREE_LIST )
+		else if ( in_list_type == LEFT_TREE_LIST )
 		{
 			//case 1 or 2
 			UnlinkTreeList( &node->left );
@@ -250,7 +255,7 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 	//remove right_most_node
 	RemoveNodeFromBinaryTree(right_most_node, leaf_node, root_ptr);
 	//reinitialize the pointer
-	InitBinaryTreeNode(right_most_node, right_most_node->fnCompareKey);
+	//InitBinaryTreeNode(right_most_node, right_most_node->fnCompareKey);
 	
 	//Replace current node with right_most_node
 	ReplaceTreeListNode(&node->left, &right_most_node->left);
@@ -275,11 +280,19 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 void RotateRight(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
 {
 	BINARY_TREE_PTR parent, child;
+	LIST_PTR temp;
 	
+	//printf("inside binary tree right rotate\n");	
 	parent = node;
 	child = TREE_LEFT_NODE(parent);
 	
 	//Remove parent from the left list
+	
+	if ( IS_END_OF_RIGHT_LIST(parent) && parent != *root_ptr && ((TREE_RIGHT_PARENT(parent)) != parent )) {
+		temp = &((TREE_RIGHT_PARENT(parent))->right);
+		UnlinkTreeList( &(parent->right) );
+		LinkTwoTreeLists( temp,  &((TREE_LEFT_NODE(parent))->right) ); 
+	}
 	UnlinkTreeList( &parent->left );
 	
 	//Link child's "right child" as parents left child
@@ -310,11 +323,17 @@ void RotateRight(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
 void RotateLeft(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
 {
 	BINARY_TREE_PTR parent, child;
-	
+	LIST_PTR temp;
+	//printf("inside binary tree left rotate\n");	
 	parent = node;
 	child = TREE_RIGHT_NODE(parent);
 	
 	//Remove parent from the right list
+	if ( IS_END_OF_LEFT_LIST(parent) && parent != *root_ptr && ((TREE_LEFT_PARENT(parent)) != parent ) ) {
+		temp = &((TREE_LEFT_PARENT(parent))->left);
+		UnlinkTreeList( &(parent->left) );
+		LinkTwoTreeLists( temp,  &((TREE_RIGHT_NODE(parent))->left) ); 
+	}
 	UnlinkTreeList( &parent->right );
 	
 	//Link child's "left child" as parents right child

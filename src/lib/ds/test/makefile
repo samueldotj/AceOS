@@ -19,14 +19,17 @@ clean:
 	@rm -f *.exe
 
 #how to make target
-testtree:	testtree.c
-	$(CC) -I $(INCLUDE) -L $(OBJ) -o testtree testtree.c -lds
+testcommon.o:	testcommon.c
+	$(CC) -I $(INCLUDE) -c -o testcommon.o testcommon.c
+	
+testtree:	testcommon.o testtree.c $(OBJ)/libds.a
+	$(CC) -I $(INCLUDE) -L $(OBJ) -o testtree testtree.c testcommon.o -lds
 
-testlist:	testlist.c
+testlist:	testlist.c $(OBJ)/libds.a
 	$(CC) -I $(INCLUDE) -L $(OBJ) -o testlist testlist.c -lds
 	
-testavl:	testavl.c
-	$(CC) -I $(INCLUDE) -L $(OBJ) -o testavl testavl.c -lds
+testavl:	testcommon.o testavl.c $(OBJ)/libds.a
+	$(CC) -I $(INCLUDE) -L $(OBJ) -o testavl testavl.c testcommon.o -lds
 	
 #create .d files
 -include $(OBJS:.o=.d)

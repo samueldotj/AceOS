@@ -4,7 +4,7 @@
 	\version 	1.0
 	\date	
   			Created: 04-Feb-2008 18:24
-  			Last modified: Thu Mar 06, 2008  08:11PM
+  			Last modified: Fri Mar 07, 2008  10:31AM
 	\brief	Generic binary tree implementation
 	
 */
@@ -206,7 +206,8 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 			else
 				in_list_type = RIGHT_TREE_LIST;
 		}
-		else if ( in_list_type == LEFT_TREE_LIST )
+
+		if ( in_list_type == LEFT_TREE_LIST )
 		{
 			//case 1 or 2
 			UnlinkTreeList( &node->left );

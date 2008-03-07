@@ -18,6 +18,7 @@ void print_tree(BINARY_TREE_PTR node);
 int * init_numbers(int * total_numbers, int ** del_numbers_ptr, int * total_del_numbers);
 int parse_arguments(int argc, char * argv[]);
 
+extern int verbose_level;
 int main(int argc, char* argv[])
 {
 	BT_TEST first_element;
@@ -32,7 +33,7 @@ int main(int argc, char* argv[])
 	InitBT_TestNode( &first_element, 150);
 	
 	/*insert into list*/
-	printf("Inserting 20 numbers between 0 to 100\n");
+	if ( verbose_level > 0 ) printf("Inserting %d numbers between 0 to 100\n", total_numbers);
 	for(i=0;i<total_numbers;i++)
 	{
 		BT_TEST_PTR new_node;
@@ -44,19 +45,21 @@ int main(int argc, char* argv[])
 		}
 		
 		InitBT_TestNode(new_node, numbers[i]);
-		printf("Adding node %p (%d) : ", &new_node->t, numbers[i] );
+		if ( verbose_level > 1 ) printf("Adding node %p (%d) : ", &new_node->t, numbers[i] );
 		if ( InsertNodeIntoBinaryTree(root_ptr, &new_node->t ) != 0 )
 		{
 			printf("failure\n");
 			return;
 		}
 		else
-			printf("success\n");
+			if ( verbose_level > 1 ) printf("success\n");
 		
 	}
-	print_tree(root_ptr);
-	printf("\n");
-	
+	if ( verbose_level > 0 )
+	{
+		print_tree(root_ptr);
+		printf("\nDeleting %d numbers from the tree\n", del_number_index);
+	}
 	/*deletion test*/
 	del_number_index--;
 	for(;del_number_index>=0;del_number_index--)
@@ -65,31 +68,35 @@ int main(int argc, char* argv[])
 		BT_TEST del_node;
 		InitBT_TestNode(&del_node, del_numbers[del_number_index]);
 		
-		printf("Searching %d : ", del_node.data);
+		if ( verbose_level > 1 ) printf("Searching %d : ", del_node.data);
 		BINARY_TREE_PTR del = SearchBinaryTree(root_ptr, &del_node.t);
 		if ( del )
 		{
-			printf("found. Deleting it : ");
+			if ( verbose_level > 1 ) printf("found. Deleting it : ");
 			RemoveNodeFromBinaryTree(del, NULL, &root_ptr);
 			if ( SearchBinaryTree(root_ptr, &del_node.t) )
 			{
-				printf("node still exists\n");
+				printf("Deleted node still exists\n");
 				print_tree(root_ptr);
 				return 1;
 			}
 			else
-				printf("success\n");
+				if ( verbose_level > 1 ) printf("success\n");
 		}
 		else
 		{
-			printf("***********Not found**************\n");
+			printf("Node (%d) not found while deleting \n", del_node.data);
+			return;
 		}
 	}
-	printf("-------------------FINAL TREE---------------------------------------------\n");
-	print_tree(root_ptr);
-	printf("\n--------------------------------------------------------------------------\n");
-	
-	printf("\nNormal exit\n");
+	if ( verbose_level > 0 ) 
+	{
+		printf("-------------------FINAL TREE---------------------------------------------\n");
+		print_tree(root_ptr);
+		printf("\n--------------------------------------------------------------------------\n");
+	}
+	if ( verbose_level > 1 ) 
+		printf("\nNormal exit\n");
 	return 0;
 }
 

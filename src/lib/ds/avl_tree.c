@@ -206,7 +206,7 @@ void RightRotateAvlTree(AVL_TREE_PTR node, AVL_TREE_PTR *root_ptr)
 
 	/*single right rotate*/
 	RotateRight( &node->bintree, (BINARY_TREE_PTR *) root_ptr);
-	
+	//printf("rotated right\n");	
 	/*calculate the new heights*/
 	RECALCULATE_HEIGHT(node);
 	RECALCULATE_HEIGHT(child);

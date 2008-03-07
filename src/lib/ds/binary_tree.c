@@ -4,7 +4,7 @@
 	\version 	1.0
 	\date	
   			Created: 04-Feb-2008 18:24
-  			Last modified: Fri Mar 07, 2008  10:31AM
+  			Last modified: Fri Mar 07, 2008  03:09PM
 	\brief	Generic binary tree implementation
 	
 */
@@ -37,6 +37,7 @@
 static void UnlinkTreeList(LIST_PTR list_node);
 static void LinkTwoTreeLists( LIST_PTR list1head, LIST_PTR list2head );
 static void ReplaceTreeListNode(LIST_PTR old_node, LIST_PTR new_node);
+static void InsertNodeInTreeList( LIST_PTR list, LIST_PTR node );
 
 	
 /*! Returns parent node of given node and also returns on which list(left or right) the node is attached with the parent.
@@ -56,7 +57,8 @@ BINARY_TREE_PTR GetTreeNodeParent(BINARY_TREE_PTR node, TREE_LIST_TYPE * list_ty
 		//printf("returning left parent\n");
 		return left_parent;
 	}
-	
+	//printf("right node=%p of right parent=%p\n", TREE_RIGHT_NODE(right_parent), right_parent);	
+	//printf("end if right list of right parent %p\n", (right_parent->right).next); 
 	if ( !IS_END_OF_RIGHT_LIST(right_parent) && right_parent!=node && TREE_RIGHT_NODE(right_parent)==node)
 	{
 		if ( list_type )
@@ -284,20 +286,24 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 */
 void RotateRight(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
 {
-	BINARY_TREE_PTR parent, child;
+	BINARY_TREE_PTR parent, child, right_parent;
 	LIST_PTR temp;
-	
-	//printf("inside binary tree right rotate\n");	
+	right_parent = TREE_RIGHT_PARENT(node);
+	//printf("before right rotate is right parent end of list %p\n", 	(right_parent->right).next);
+	//printf("inside binary tree right rotate for node %p\n", node);	
 	parent = node;
 	child = TREE_LEFT_NODE(parent);
 	
 	//Remove parent from the left list
-	
+
+#if 0	
+
 	if ( IS_END_OF_RIGHT_LIST(parent) && parent != *root_ptr && ((TREE_RIGHT_PARENT(parent)) != parent )) {
 		temp = &((TREE_RIGHT_PARENT(parent))->right);
 		UnlinkTreeList( &(parent->right) );
 		LinkTwoTreeLists( temp,  &((TREE_LEFT_NODE(parent))->right) ); 
 	}
+#endif
 	UnlinkTreeList( &parent->left );
 	
 	//Link child's "right child" as parents left child
@@ -308,8 +314,9 @@ void RotateRight(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
 		LinkTwoTreeLists( &parent->left,  &child_right_node->left );
 	}
 	//Link parent as "right child" of child.
-	LinkTwoTreeLists( &child->right, &parent->right );
-	
+//	LinkTwoTreeLists( &child->right, &parent->right );
+	InsertNodeInTreeList(&(parent->right), &(child->right));
+	//printf("insertnode called\n");
 	//updates the root pointer if neccesary
 	if ( node == *root_ptr )
 		*root_ptr = child;
@@ -332,13 +339,15 @@ void RotateLeft(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
 	//printf("inside binary tree left rotate\n");	
 	parent = node;
 	child = TREE_RIGHT_NODE(parent);
-	
+
+#if 0	
 	//Remove parent from the right list
 	if ( IS_END_OF_LEFT_LIST(parent) && parent != *root_ptr && ((TREE_LEFT_PARENT(parent)) != parent ) ) {
 		temp = &((TREE_LEFT_PARENT(parent))->left);
 		UnlinkTreeList( &(parent->left) );
 		LinkTwoTreeLists( temp,  &((TREE_RIGHT_NODE(parent))->left) ); 
 	}
+#endif
 	UnlinkTreeList( &parent->right );
 	
 	//Link child's "left child" as parents right child
@@ -349,7 +358,9 @@ void RotateLeft(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr)
 		LinkTwoTreeLists( &parent->right,  &child_left_node->right );
 	}
 	//Link parent as "left child" of child.
-	LinkTwoTreeLists( &child->left, &parent->left );
+//	LinkTwoTreeLists( &child->left, &parent->left );
+	InsertNodeInTreeList(&(parent->left), &(child->left));
+	//AddToList(parent->left.prev, &(child->left));
 	
 	//updates the root pointer if neccesary
 	if ( node == *root_ptr )
@@ -386,6 +397,30 @@ static void UnlinkTreeList(LIST_PTR list_node)
 		MARK_TREELIST_END( prev_node );
 	
 }
+
+/*! Insert a node into the list 
+	This function takes care of removing END marks and putting it back.
+*/
+static void InsertNodeInTreeList( LIST_PTR list, LIST_PTR node )
+{
+	int is_tail;
+	LIST_PTR tail;
+
+	//printf("inside insertnodeintolist list=%p node=%p list->prev=%p\n", list, node, list->prev);	
+	is_tail =  IS_TREE_LIST_END(list->prev);
+	
+	tail = list->prev;
+	REMOVE_END_MARK(node);
+	REMOVE_END_MARK(tail);
+
+	AddToList(tail, node);
+	if (is_tail) {
+		MARK_TREELIST_END(tail);
+	}
+	//printf("end of insertnode\n");
+}
+
+
 /*! Joins two tree lists.
 	This function takes care of removing END marks and putting it back.
 */

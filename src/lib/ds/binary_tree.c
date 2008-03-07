@@ -4,7 +4,7 @@
 	\version 	1.0
 	\date	
   			Created: 04-Feb-2008 18:24
-  			Last modified: Fri Mar 07, 2008  03:09PM
+  			Last modified: Fri Mar 07, 2008  08:13PM
 	\brief	Generic binary tree implementation
 	
 */
@@ -241,8 +241,10 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 		
 		/*if leaf_node passed, then point the new leaf_node.
 		*/
-		if ( leaf_node )
+		if ( leaf_node ) {
 			*leaf_node = parent_node;
+			//printf("new leaf node for node=%p is %p\n", node, parent_node);
+		}
 		
 		return;/*success*/
 	}
@@ -257,9 +259,9 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 	
 	//remove right_most_node
 	RemoveNodeFromBinaryTree(right_most_node, leaf_node, root_ptr);
-	//printf("remove: leaf node is parent's parent node=%p leaf=%p\n", node, leaf_node);
+	//printf("remove: leaf node is parent's parent node=%p leaf=%p\n", node, *leaf_node);
 	if (leaf_node && *leaf_node == node) { /*return the parent of this node as leaf node*/
-		*leaf_node = parent_node;
+		*leaf_node = right_most_node;
 	}
 	//reinitialize the pointer
 	//InitBinaryTreeNode(right_most_node, right_most_node->fnCompareKey);

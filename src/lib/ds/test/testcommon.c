@@ -1,8 +1,7 @@
-#define MAX_NUMBER 		100
-#define MAX_TREE_NUMBERS 30
-#define MAX_DEL_NUMBERS  30
+#define MAX_NUMBER 			1000
+#define MAX_TREE_NUMBERS 	500
+#define MAX_DEL_NUMBERS  	500
 
-#include <avl_tree.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,9 +101,11 @@ static void fill_random_numbers(int * number_array, int capacity, int max_number
 int * init_numbers(int * total_numbers, int ** del_numbers_ptr, int * total_del_numbers)
 {
 	if ( !use_predefined_numbers )
+	{
 		max_tree_numbers = MAX_TREE_NUMBERS;
-	if ( full_delete )
-		max_del_numbers = MAX_DEL_NUMBERS;
+		if ( full_delete )
+			max_del_numbers = MAX_DEL_NUMBERS;
+	}
 
 	srand ( time(NULL) );		
 	//initialize the numbers
@@ -127,7 +128,8 @@ int * init_numbers(int * total_numbers, int ** del_numbers_ptr, int * total_del_
 		}
 	}
 	//initialize delete numbers
-	fill_random_numbers( del_numbers, max_del_numbers, MAX_NUMBER);
+	if ( !use_predefined_numbers )
+		fill_random_numbers( del_numbers, max_del_numbers, MAX_NUMBER);
 
 	* total_numbers = max_tree_numbers;
 	* del_numbers_ptr = del_numbers;

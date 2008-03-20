@@ -1,9 +1,5 @@
-// test.cpp : Defines the entry point for the console application.
-//
-
-#include "malloc.h"
-
-#include "list.h"
+#include <malloc.h>
+#include <ds/list.h>
 struct ListTest
 {
 	LIST list;

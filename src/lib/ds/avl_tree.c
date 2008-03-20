@@ -9,8 +9,7 @@
  *
  */
 
-#include <avl_tree.h>
-#include <ace.h>
+#include <ds/avl_tree.h>
 
 #define GET_AVL_TREE_HEIGHTS( node, left_height, right_height )					\
 	left_height = right_height = -1;							\
@@ -124,7 +123,7 @@ static int RecalculateAvlTreeHeight(AVL_TREE_PTR node)
 	GET_AVL_TREE_HEIGHTS( node, left_height, right_height );
 	//printf("123recalculate height: left height = %d left node = %p\n", left_height, (node->bintree).left);
 	//printf("123recalculate height: right height = %d right node = %p\n", right_height, (node->bintree).right);
-	return MAX( left_height, right_height ) + 1;
+	return ( left_height>right_height?left_height:right_height ) + 1;
 }
 
 /*! Returns the balance factor for the given AVL tree node

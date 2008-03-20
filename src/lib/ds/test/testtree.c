@@ -1,8 +1,8 @@
-#include <binary_tree.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <ds/binary_tree.h>
 
 struct bt_test
 {
@@ -30,11 +30,11 @@ int main(int argc, char* argv[])
 		return;
 	numbers = init_numbers(&total_numbers, &del_numbers, &del_number_index);
 		
-	InitBT_TestNode( &first_element, 150);
+	InitBT_TestNode( &first_element, numbers[0]);
 	
 	/*insert into list*/
 	if ( verbose_level > 0 ) printf("Inserting %d numbers between 0 to 100\n", total_numbers);
-	for(i=0;i<total_numbers;i++)
+	for(i=1;i<total_numbers;i++)
 	{
 		BT_TEST_PTR new_node;
 		

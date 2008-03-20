@@ -1,9 +1,8 @@
-#include <avl_tree.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-
+#include <ds/avl_tree.h>
 struct bt_test
 {
 	AVL_TREE t;
@@ -31,11 +30,11 @@ int main(int argc, char * argv[])
 		return;
 	numbers = init_numbers(&total_numbers, &del_numbers, &del_number_index);
 	
-	InitBT_TestNode( &first_element, 150);
+	InitBT_TestNode( &first_element, numbers[0]);
 	
 	/*insertion test*/
 	if ( verbose_level > 0 ) printf("Inserting %d numbers between 0 to 100\n", total_numbers);
-	for(i=0;i<total_numbers; i++)
+	for(i=1;i<total_numbers; i++)
 	{
 		BT_TEST_PTR new_node;
 		if ( (new_node = (BT_TEST_PTR ) malloc(sizeof(BT_TEST))) == NULL )
@@ -49,19 +48,19 @@ int main(int argc, char * argv[])
 		
 		if ( InsertNodeIntoAvlTree( &root, &new_node->t ) != 0 )
 		{
-			if ( verbose_level > 1 ) printf("failure\n");
+			printf("failure\n");
 			return;
 		}
 		else
 			if ( verbose_level > 1 ) printf("success\n");
 		
 	}
-	if ( verbose_level > 0 )
+	if ( verbose_level > 1 )
 	{
 		printf("After insertion - Tree :\n");
 		print_tree(root);
-		printf("\nDeleting %d numbers from the tree\n", del_number_index);
 	}
+	if ( verbose_level > 0 ) printf("\nDeleting %d numbers from the tree\n", del_number_index);
 	
 	
 	/*deletion test*/
@@ -80,7 +79,7 @@ int main(int argc, char * argv[])
 			RemoveNodeFromAvlTree( &root, del);
 			if ( SearchAvlTree( root, &del_node.t) )
 			{
-				printf("Deleted node still exists\n");
+				printf("Deleted node still exists(%d)\n", del_number_index);
 				print_tree( root );
 				return 1;
 			}
@@ -92,13 +91,13 @@ int main(int argc, char * argv[])
 			return 1;
 		}
 	}
-	if ( verbose_level > 0 )
+	if ( verbose_level > 1 )
 	{
 		printf("-------------------FINAL TREE---------------------------------------------\n");
 		print_tree( root);
 		printf("\n--------------------------------------------------------------------------\n");
 	}
-	if ( verbose_level > 1 )
+	if ( verbose_level > 0 )
 		printf("\nNormal exit\n");
 	return 0;
 }

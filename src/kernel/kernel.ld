@@ -1,8 +1,15 @@
-kernel_virtual_address =  0x100000;
+/*
+	Ace Kernel Linker Script
+*/
+
+kernel_physical_load_address = 0x100000;
+kernel_virtual_address = 0xC0000000 + kernel_physical_load_address;
+
 ENTRY (_KernelEntry)
+
 SECTIONS
 {
-	.boot kernel_virtual_address :
+	.boot kernel_virtual_address : AT (kernel_physical_load_address)
 	{	
 		*(.boot*) 
 	}
@@ -25,6 +32,12 @@ SECTIONS
 	}
 	.bss : 
 	{   _sbss = .;
+	
+		/*kernel page directory*/
+		. = ALIGN(4096);
+		_kernel_page_directory = .;
+		. += 4096;
+		
 		bss = .;
 		*(.bss)
 		*(COMMON)

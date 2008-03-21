@@ -38,7 +38,7 @@ void ArchInit()
     __asm__ __volatile__ ("sti");
 
 	/*start gdb as soon as possible but after setting up idt*/
-	InitGdb();
+	//InitGdb();
 }
 
 /*! This function should halt the processor after terminating all the processes

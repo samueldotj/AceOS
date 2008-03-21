@@ -21,9 +21,10 @@ LIBS= $(ACE_ROOT)/obj/libstring.a
 
 #kernel object files
 DEBUG_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/debug/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/debug/*.asm))
-KERNEL_OBJ = $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.c,%.o,$(wildcard $(ARCH)/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/*.asm))
+KERNEL_OBJ = $(patsubst %.c,%.o,$(wildcard *.c)) 
+ARCH_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/*.asm)) $(patsubst %.c,%.o,$(wildcard $(ARCH)/mm/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/mm/*.asm))
 #kernel objects
-OBJS= $(KERNEL_OBJ) $(DEBUG_OBJ) $(GENERIC_OBJ)
+OBJS= $(KERNEL_OBJ) $(ARCH_OBJ) $(DEBUG_OBJ) $(GENERIC_OBJ)
 
 #phony command - all - makes all object
 all:    generic $(TARGET)

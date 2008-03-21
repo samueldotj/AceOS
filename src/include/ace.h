@@ -8,6 +8,9 @@
 #ifndef ACE__H
 #define ACE__H
 
+/*give the architecture directory name here*/
+#define ARCH	i386
+
 /*define this macro to enable SMP compilation*/
 #define CONFIG_SMP
 

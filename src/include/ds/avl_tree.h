@@ -10,8 +10,7 @@
 #ifndef _AVL_TREE_H_
 #define _AVL_TREE_H_
 
-#include <binary_tree.h>
-
+#include "binary_tree.h"
 
 /*structures go here*/
 struct avl_tree {

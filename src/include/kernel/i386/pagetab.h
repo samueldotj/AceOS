@@ -39,13 +39,14 @@
 #define CR4_PERF_MONITOR_ENABLE       256
 
 /*kernel is loaded above 1MB*/
-#define KERNEL_PHYSICAL_ADDRESS			(0x100000)
+#define KERNEL_PHYSICAL_ADDRESS_LOAD		(0x100000)
 /*since 4MB page size is used the page should be 4MB aligned -
 so to map kernel and 0-1MB we are using kernel virtual address as the following*/
-#define KERNEL_VIRTUAL_ADDRESS			(0xC0000000 + KERNEL_PHYSICAL_ADDRESS)
+#define KERNEL_VIRTUAL_ADDRESS_START		(0xC0000000) 
+#define KERNEL_VIRTUAL_ADDRESS_TEXT_START	(KERNEL_VIRTUAL_ADDRESS_START + KERNEL_PHYSICAL_ADDRESS_LOAD)
 
 /*returns physical address for a given kernel virtual address*/
-#define KERNEL_VTOP(k_addr)				( (k_addr) - KERNEL_VIRTUAL_ADDRESS + KERNEL_PHYSICAL_ADDRESS )
+#define KERNEL_VTOP(k_addr)				( (k_addr) - KERNEL_VIRTUAL_ADDRESS_START + KERNEL_PHYSICAL_ADDRESS_LOAD )
 
 /*one entry in the page table should point to itself so that it is easy to modify
 the page tables = ((KERNEL_VIRTUAL_ADDRESS / (PAGE_TABLE_ENTRIES * PAGE_SIZE)) -1) */

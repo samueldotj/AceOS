@@ -7,21 +7,21 @@
   			Last modified: 
   \brief	Ace Kernel memory management - i386 page directory/table management
 	This file initializes the kernel page table it is in separate file because it executes in protected not in paged mode.
-	Functions in this file should not access any global variables directly; they can use BOOT_ADDRESS macro to get the correct address of the global varible to access.
 */
 #include <ace.h>
-#include "pagetab.h"
+#include <kernel/i386/pagetab.h>
 #include <kernel/mm/vm.h>
 #include <kernel/debug.h>
 
 extern UINT32 ebss;
 
-#define BOOT_ADDRESS(addr)	(((UINT32)addr - KERNEL_VIRTUAL_ADDRESS)+KERNEL_PHYSICAL_ADDRESS )
+#define BOOT_ADDRESS(addr)	(((UINT32)addr - KERNEL_VIRTUAL_ADDRESS_TEXT_START)+KERNEL_PHYSICAL_ADDRESS_LOAD )
 
 #define KERNEL_PTE_FLAG		(PAGE_PRESENT | PAGE_READ_WRITE | PAGE_SUPERUSER | PAGE_4MB_SIZE | PAGE_GLOBAL)
 
 /*! Create static page table entries for kernel
-
+	Should not access any global variables directly; use BOOT_ADDRESS macro to get the correct address of the global varible to access.
+	
 	1) Initialize Kernel Page Table
 		* Boot time kernel page directory contains only entry for the kernel code/data
 		* It also creates pte for 0-4MB so that it is easy for the kernel to access 0-4MB during booting. 
@@ -35,7 +35,7 @@ extern UINT32 ebss;
 	2) Set the control registers( CR3 and CR4) 
 	3) Returns the correct value of CR0 in EAX register.
 */
-void InitKernelPageDirectory()
+void InitKernelPageDirectoryPhase1()
 {
 	int i;
 	UINT32 * k_page_dir = (UINT32 *)BOOT_ADDRESS( kernel_page_directory );
@@ -56,9 +56,9 @@ void InitKernelPageDirectory()
 		Physical address start - 0
 				        end - size of kernel/code/data.
 	*/
-	i = KERNEL_VIRTUAL_ADDRESS / (PAGE_TABLE_ENTRIES * PAGE_SIZE) ;
+	i = KERNEL_VIRTUAL_ADDRESS_START / (PAGE_TABLE_ENTRIES * PAGE_SIZE) ;
 	physical_address = 0;
-	end_physical_address = KERNEL_PHYSICAL_ADDRESS + (UINT32)(k_map_end)-KERNEL_VIRTUAL_ADDRESS;
+	end_physical_address = BOOT_ADDRESS( k_map_end );
 	do
 	{
 		k_page_dir[i++] = physical_address | KERNEL_PTE_FLAG;
@@ -69,9 +69,18 @@ void InitKernelPageDirectory()
 	k_page_dir[PT_SELF_MAP_INDEX] = ((UINT32)k_page_dir) | KERNEL_PTE_FLAG;
 	
 	/*activate paging*/	
-	asm volatile("\
-                   movl %0, %%eax; movl %%eax, %%cr3; /*load cr3 with page directory address*/ \
+	asm volatile(" movl %0, %%eax; movl %%eax, %%cr3; /*load cr3 with page directory address*/ \
                    movl %1, %%eax; movl %%eax, %%cr4; /*set cr4 for 4MB page size and global page*/"
                 : 
                 :"m"(k_page_dir), "c" (CR4_PAGE_SIZE_EXT | CR4_PAGE_GLOBAL_ENABLE) );
+}
+
+/*! This phase will removes the unnessary page table entries that is created before enabling paging.
+*/
+void InitKernelPageDirectoryPhase2()
+{
+	/*clear the PTE*/
+	kernel_page_directory[0]=0;
+	/*invalidate the TLB*/
+	asm volatile("invlpg 0");
 }

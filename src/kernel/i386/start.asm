@@ -18,7 +18,8 @@ KSTACK_SIZE             equ 0x2000
 EXTERN _sbss
 EXTERN _ebss
 EXTERN _cmain
-EXTERN _InitKernelPageDirectory
+EXTERN _InitKernelPageDirectoryPhase1
+EXTERN _InitKernelPageDirectoryPhase2
 
 GLOBAL _KernelEntry
 
@@ -54,12 +55,13 @@ _KernelEntry:
 	rep stosb
 	
 	;setup kernel page directory
-	call _InitKernelPageDirectory
+	call _InitKernelPageDirectoryPhase1
+	
 ;init paging
 	mov eax, cr0
 	or eax, 0x80000000
 	mov cr0, eax
-	
+
 	; flush the prefetch-queue
     jmp .1
 .1:
@@ -71,6 +73,10 @@ _KernelEntry:
 
 	;correct stack pointer
 	add esp, (KERNEL_VIRTUAL_ADDRESS - KERNEL_PHYSICAL_ADDRESS)
+	
+	;stack pointer and eip is corrected - remove the 0-4mb page entry
+	call _InitKernelPageDirectoryPhase2
+	
 	;parameters are pushed initially
 	call _cmain
 

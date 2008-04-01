@@ -12,11 +12,33 @@
 #include <heap/slab_allocator.h>
 #include <heap/heap.h>
 
+static SLAB_ALLOCATOR_METADATA slab_alloactor_metadata;
 
-/* Static functions go here */
-static ALLOCATED_SLAB_TREE_PTR CreateNodeAllocatedSlabTree (SLAB_PTR slab_entry);
-int AddSlabToCache (CACHE_PTR cache_entry);
+#define VM_PAGE_SIZE	slab_alloactor_metadata.vm_page_size
+#define VM_ALLOC		slab_alloactor_metadata.VirtualAlloc
+#define VM_FREE			slab_alloactor_metadata.VirtualFree
+#define VM_PROTECT		slab_alloactor_metadata.VirtualProtect
 
+
+#ifdef SLAB_DEBUG_ENABLED
+	#define SLAB_DEBUG_PAD_SIZE	(sizeof(UINT32))
+#endif
+
+#ifdef	SLAB_DEBUG_ENABLED
+	#define BUFFER_SIZE(size)		(size+SLAB_DEBUG_PAD_SIZE)
+#else
+	#define BUFFER_SIZE(size)		(size)
+#endif
+
+void InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size), 
+	void * (*v_free)(void * va, int size),
+	void * (*v_protect)(void * va, int size, int protection)  )
+{
+	VM_PAGE_SIZE = page_size;
+	VM_ALLOC = v_alloc;
+	VM_FREE = v_free;
+	VM_PROTECT = v_protect;
+}
 
 /*!
 	\brief	 Creates an empty cache of specified size.

@@ -27,6 +27,7 @@ typedef unsigned short UINT16;
 
 typedef long INT32;
 typedef unsigned long UINT32;
+typedef UINT32 VADDR;
 
 /*\def STRUCT_ADDRESS_FROM_MEMBER(member_address, struct_name, member_name)
 	calculates a structures head address from given member address of the structure. It is useful if a linklist is in middle of a data structure.

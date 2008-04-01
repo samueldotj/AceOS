@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: 21-Mar-2008 5:13PM
-  			Last modified: 
+  			Last modified: Tue Apr 01, 2008  11:12PM
   \brief	i386 page directory/table related macros
 */
 #include <ace.h>
@@ -12,6 +12,7 @@
 #ifndef __PAGETAB__H
 #define __PAGETAB__H
 
+#define PAGE_SIZE 4192
 #define PAGE_DIRECTORY_ENTRIES		1024
 #define PAGE_TABLE_ENTRIES			1024
 

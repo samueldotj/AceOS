@@ -10,7 +10,7 @@
 */
 #include <ace.h>
 #include <kernel/i386/pagetab.h>
-#include <kernel/vm/vm.h>
+#include <kernel/mm/vm.h>
 #include <kernel/debug.h>
 
 extern UINT32 ebss;

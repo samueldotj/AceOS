@@ -19,6 +19,7 @@ struct avl_tree {
 };
 typedef struct avl_tree  AVL_TREE, *AVL_TREE_PTR;
 
+AVL_TREE_PTR InitAvlTreeNode(AVL_TREE_PTR node, void *compare_function_ptr);
 AVL_TREE_PTR SearchAvlTree(AVL_TREE_PTR start, AVL_TREE_PTR search_node);
 int InsertNodeIntoAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR new_node);
 int RemoveNodeFromAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR node);

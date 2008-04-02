@@ -17,6 +17,9 @@
 #include <ds/list.h>
 #include <kernel/spinlock.h>
 
+/*flags for slab alloc*/
+#define SLAB_ALLOC_NO_SLEEP			1
+
 /* define this macro to enable statistics */
 #define SLAB_STAT_ENABLED
 /* define this macro to debug the slab alloctor */
@@ -25,9 +28,10 @@
 typedef struct slab_allocator_metadata
 {
 	UINT32	vm_page_size;
-	void * (*VirtualAlloc)(int size);
-	void * (*VirtualFree)(void * va, int size);
-	void * (*VirtualProtect)(void * va, int size, int protection);
+	UINT32	vm_page_shift;
+	void * (*virtual_alloc)(int size);
+	void * (*virtual_free)(void * va, int size);
+	void * (*virtual_protect)(void * va, int size, int protection);
 } SLAB_ALLOCATOR_METADATA, * SLAB_ALLOCATOR_METADATA_PTR;
 
 
@@ -62,16 +66,18 @@ typedef struct slab {
 typedef struct cache {
 	SPIN_LOCK	slock;
 
-	int		size; /* size of buffers available from this cache */
-	int		(*constructor)(void * data); /* initializes a given buffer */
-	int		(*destructor)(void * data); /* points to a function which makes the buffer reusable */
+	int			buffer_size; /* size of buffers available from this cache */
+	int			(*constructor)(void * data); /* initializes a given buffer */
+	int			(*destructor)(void * data); /* points to a function which makes the buffer reusable */
 
-	int		min_slabs; /* Minimum no of slabs to be present always */
-	int		max_slabs; /* Maximum no of slabs allowed */
+	int			min_buffers; /* Minimum no of buffers to be present always */
+	int			max_slabs; 	 /* Maximum no of slabs allowed */
 
-	int		free_slabs_threshold; /* Threshold to start VM operation */
-	int		free_slabs_count; /* count of free slabs in the completely free slab list */
+	int			free_slabs_threshold; /* Threshold to start VM operation */
+	int			free_slabs_count; /* count of free slabs in the completely free slab list */
 
+	int 		free_buffer_count;	/*total buffers free in this cache*/
+	
 	SLAB_PTR	in_use_slab_tree_root;
 	/* A tree to store in use slabs, which is used while freeing to
 	 * find a slab for the given address.
@@ -79,7 +85,7 @@ typedef struct cache {
 	SLAB_PTR	completely_free_slab_list;
 	/* List of completely free slabs which can be freed to VM or used again */
 
-	SLAB_PTR partially_free_slab_list;
+	SLAB_PTR 	partially_free_slab_list;
 	/* List of partially free slabs which have some buffers free */
 	
 #ifdef SLAB_STAT_ENABLED
@@ -93,6 +99,11 @@ typedef struct cache {
 	UINT32		max_slabs_used;
 	UINT32		average_slab_usage;
 #endif
+	
+	UINT32		slab_size;				/*size of a slab (including meta data in multiple of page size)*/
+	UINT32		slab_metadata_size;		/*size of a slab's metadata*/
+	UINT32		slab_metadata_offset;	/*where the metadata starts in a slab*/
+	UINT32 		slab_buffer_count;		/*buffers per slab*/
 
 } CACHE, *CACHE_PTR;
 
@@ -103,12 +114,12 @@ void InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size),
        );
 
 /*initializes a cache*/
-int CacheCreate(CACHE_PTR new_cache, UINT32 size, int free_slabs_threshold,
+int CacheInit(CACHE_PTR new_cache, UINT32 size, int free_slabs_threshold,
 		int min_slabs, int max_slabs,
 		int (*constructor)(void *), int (*destructor)(void *));
 
 /*allocates memory from the specified cache*/
-void * CacheAlloc(CACHE_PTR);
+void * CacheAlloc(CACHE_PTR c, UINT32 flag);
 
 /*frees memory to the specified cache*/
 void CacheFree(CACHE_PTR, void *);

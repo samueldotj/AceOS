@@ -43,24 +43,12 @@ typedef struct slab_allocator_metadata
 typedef struct slab {
 	UINT16		used_buffer_count;
 
-	LIST		partially_free_list;
-	/* It is ordered list of slabs which has at least one free buffer 
-	 * and atleast one in use buffer.
-	 * It is used during buffer allocation to find a free buffer in the slab.
-	 */
+	LIST		partially_free_list; /* Ordered list of slabs which has at least one free buffer  and atleast one in use buffer.*/
+	AVL_TREE	in_use_tree;		/* Tree of slabs which has at least one in use buffer. */
 
-	AVL_TREE	in_use_tree;
-	/* It is tree of slabs which has at least one in use buffer. 
-	 * It is used during buffer free, to find the slab to which the buffer belongs to.
-	 */
-
-	LIST		completely_free_list;
-	/* It is a list of completely free slabs (all the buffers within the slab are free). 
-	 * It is used to release the memory pages back to the vm.
-	 */
-
-	UINT32		buffer_usage_bitmap[0];
-	/* If a bit is set, the corresponding buffer is used; else free */
+	LIST		completely_free_list;/* It is a list of completely free slabs (all the buffers within the slab are free). */
+	
+	UINT32		buffer_usage_bitmap[0];	/* If a bit is set, the corresponding buffer is used; else free */
 } SLAB, *SLAB_PTR;
 
 typedef struct cache {
@@ -78,14 +66,14 @@ typedef struct cache {
 
 	int 		free_buffer_count;	/*total buffers free in this cache*/
 	
-	SLAB_PTR	in_use_slab_tree_root;
+	AVL_TREE_PTR	in_use_slab_tree_root;
 	/* A tree to store in use slabs, which is used while freeing to
 	 * find a slab for the given address.
 	 */
-	SLAB_PTR	completely_free_slab_list;
+	SLAB_PTR	completely_free_slab_list_head;
 	/* List of completely free slabs which can be freed to VM or used again */
 
-	SLAB_PTR 	partially_free_slab_list;
+	SLAB_PTR 	partially_free_slab_list_head;
 	/* List of partially free slabs which have some buffers free */
 	
 #ifdef SLAB_STAT_ENABLED

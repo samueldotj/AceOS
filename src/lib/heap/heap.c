@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Sat Mar 22, 2008  06:30PM
-  			Last modified: Mon Mar 24, 2008  11:53PM
+  			Last modified: Sat Apr 05, 2008  01:26AM
   \brief	Maintains heap
 */
 
@@ -70,3 +70,39 @@ CACHE_PTR GetCacheFromBucket(UINT32 size)
 		return NULL;
 	}
 }
+
+
+
+/*!
+	\brief	Allocated VA from Heap. 
+
+	\param
+		size: Minimum size requested for allocation.
+		cache_entry: Double Pointer to cache from which memory is wanted.
+
+	\return	 Free VA.
+*/
+void* malloc(UINT32 size, CACHE_PTR *cache_entry)
+{
+	SLAB_PTR free_slab;
+	UINT32 free_slabs_count;
+	VADDR ret_va;
+
+	if (size > MAX_HEAP_BUCKET_SIZE)
+	{
+		/* Get vm_pages directly from vm subsystem */
+		/* TBD */
+		return (void*)(ret_va);
+	}
+
+	if (!(*cache_entry))
+	{
+		*cache_entry = GetCacheFromBucket(size);
+	}
+
+	assert(*cache_entry); /* (*cache_entry) has to be valid at this point */
+
+	ret_va = (VADDR)GetVAFromCache(*cache_ptr, NULL);
+	return (void*)ret_va;
+}
+

@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  09:04PM
-  			Last modified: Wed Apr 02, 2008  12:26AM
+  			Last modified: Sat Apr 05, 2008  01:10AM
   \brief	This file contains structures and macros to maintain slab_allocator
 */
 
@@ -17,8 +17,8 @@
 #include <ds/list.h>
 #include <kernel/spinlock.h>
 
-/*flags for slab alloc*/
-#define SLAB_ALLOC_NO_SLEEP			1
+/*flags for cache alloc*/
+#define CACHE_ALLOC_NO_SLEEP			1
 
 /* define this macro to enable statistics */
 #define SLAB_STAT_ENABLED
@@ -106,8 +106,9 @@ int CacheInit(CACHE_PTR new_cache, UINT32 size, int free_slabs_threshold,
 		int min_slabs, int max_slabs,
 		int (*constructor)(void *), int (*destructor)(void *));
 
+
 /*allocates memory from the specified cache*/
-void * CacheAlloc(CACHE_PTR c, UINT32 flag);
+void* GetVAFromCache(CACHE_PTR cache_ptr, UINT32 flag);
 
 /*frees memory to the specified cache*/
 void CacheFree(CACHE_PTR, void *);

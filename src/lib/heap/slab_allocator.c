@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Sat Apr 05, 2008  01:20AM
+  			Last modified: Sat Apr 05, 2008  05:05PM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -60,9 +60,17 @@ static SLAB_ALLOCATOR_METADATA slab_alloactor_metadata;
 	RemoveFromList( &(cache_ptr)->partially_free_slab_list_head->partially_free_list );
 
 
+typedef struct search_slab
+{
+	AVL_TREE	tree;
+	VADDR		va_start;
+	UINT32		va_size;
+} SEARCH_SLAB, *SEARCH_SLAB_PTR;
+
+
 static COMPARISION_RESULT slab_inuse_tree_compare(AVL_TREE_PTR a, AVL_TREE_PTR b);
 static int GetSlabMetadataInfo(UINT32 buffer_size, UINT32 * slab_total_size, UINT32 * metadata_size, UINT32 * metadata_offset);
-static void SlabInit(SLAB_PTR s, UINT32 buffer_count);
+static void InitSlab(SLAB_PTR s, UINT32 buffer_count);
 static int AddSlabToCache(CACHE_PTR cache_ptr, int immediate_use);
 static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
 
@@ -120,7 +128,7 @@ static int GetSlabMetadataInfo(UINT32 buffer_size, UINT32 * slab_total_size, UIN
 
 	\return	 void 
 */
-static void SlabInit(SLAB_PTR slab_ptr, UINT32 buffer_count)
+static void InitSlab(SLAB_PTR slab_ptr, UINT32 buffer_count)
 {
 	/*initialize the tree and list */
 	InitList( &(slab_ptr->partially_free_list) );
@@ -174,30 +182,30 @@ void InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size),
 		Success(0) if cache is created.
 		Failure(-1) if cache is not created.
 */
-int CacheInit (CACHE_PTR c, UINT32 size,
+int InitCache(CACHE_PTR new_cache, UINT32 size,
 		int free_slabs_threshold, int min_buffers, int max_slabs,
 		int (*constructor)(void *buffer), 
 		int (*destructor)(void *buffer))
 {
-	InitSpinLock( &c->slock);
+	InitSpinLock( &new_cache->slock);
 
-	c->buffer_size = size;
-	c->constructor = constructor;
-	c->destructor = destructor;
+	new_cache->buffer_size = size;
+	new_cache->constructor = constructor;
+	new_cache->destructor = destructor;
 	
-	c->min_buffers = min_buffers;
-	c->max_slabs = max_slabs;
-	c->free_slabs_threshold = free_slabs_threshold;
+	new_cache->min_buffers = min_buffers;
+	new_cache->max_slabs = max_slabs;
+	new_cache->free_slabs_threshold = free_slabs_threshold;
 	
-	c->partially_free_slab_list_head = NULL;
-	c->in_use_slab_tree_root = NULL;
+	new_cache->partially_free_slab_list_head = NULL;
+	new_cache->in_use_slab_tree_root = NULL;
 	
-	c->completely_free_slab_list_head = NULL;
-	c->free_slabs_count = 0;
+	new_cache->completely_free_slab_list_head = NULL;
+	new_cache->free_slabs_count = 0;
 	
-	c->free_buffer_count = 0;
+	new_cache->free_buffer_count = 0;
 	
-	c->slab_buffer_count = GetSlabMetadataInfo(size, &c->slab_size, &c->slab_metadata_size, &c->slab_metadata_offset);
+	new_cache->slab_buffer_count = GetSlabMetadataInfo(size, &new_cache->slab_size, &new_cache->slab_metadata_size, &new_cache->slab_metadata_offset);
 	
 	return 0;
 }
@@ -298,7 +306,7 @@ static int AddSlabToCache(CACHE_PTR cache_ptr, int immediate_use)
 
 	/*calculate the correct slab meta data and initialize it*/
 	slab_ptr = (SLAB_PTR) (slab_start + cache_ptr->slab_metadata_offset);
-	SlabInit(slab_ptr, cache_ptr->slab_buffer_count);
+	InitSlab(slab_ptr, cache_ptr->slab_buffer_count);
 	
 	/*if this slab will be consumed immediately then for performance add it directly to the used list*/
 	if ( immediate_use )
@@ -356,4 +364,130 @@ static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 	}
 	
 	return ret_va;
+}
+
+
+/*!
+	\brief	 Free A buffer in it's slab. If all buffers in the slab are free, move the slab to completely free slab list.
+
+	\param
+		buffer: Pointer to buffer which is to be freed.
+		cache_ptr:	Pointer to cache which contans the buffer.
+
+	\return
+		0:	Success; If freed successfully.
+		-1:	Failure; If given buffer isn't found in the cache.
+
+	\assumptions	Holds a lock to cache_ptr
+*/
+int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
+{
+	SEARCH_SLAB temp_slab;
+	AVL_TREE tree_ptr;
+	SLAB_PTR slab_ptr;
+	int buffer_index;
+	VADDR va_start;
+
+	/* Find the slab which contains this buffer using in_use_slab_tree */
+
+	/* We have to first build an AVL TREE node */
+	InitAvlTreeNode( &(temp_slab.tree), CompareSlab );
+	temp_slab.va_start = buffer;
+	temp_slab.va_size = cache_ptr->slab_size;
+
+	tree_ptr = SearchAvlTree( cache_ptr->in_use_slab_tree_root, &(temp_slab.tree));
+
+	if( NULL == tree_ptr ) /* Unable to find the buffer in given cache */
+	{
+		return -1;
+	}
+
+	/* Now get the slab pointer from tree pointer */
+	slab_ptr = STRUCT_FROM_MEMBER( SLAB_PTR, in_use_tree, tree_ptr);
+
+	/* Clear the corresponding bit in buffer_usage_bitmap */
+	va_start = SLAB_START(slab_ptr, cache_ptr->slab_metadata_size);
+	buffer_index = ( (buffer - va_start) / (cache_ptr->buffer_size) ) - 1;
+	BIT_ARRAY_CLEAR_BIT( slab_ptr->buffer_usage_bitmap, buffer_index );	
+
+	slab_ptr->used_buffer_count --;
+	cache_ptr->free_buffer_count ++;
+
+	/* If all buffers in the slab are free, move the slab to completely free slab list
+	//TBD.. how to check if all are clear bits in the bit array?
+	
+	RemoveFromList( &(slab_ptr->partially_free_list) );
+	RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
+	AddToList( &(cache_ptr->completely_free_slab_list_head->completely_free_list) , &(slab_ptr->completely_free_list) );
+	cache_ptr->free_slabs_count ++;
+	// If free buffer count is greater than free_slabs_threshold, then start VM operation
+	// TBD
+	*/
+	return 0;
+}
+
+
+
+/*!
+	\brief	Destroy a cache and return the vm_pages t to VM subsystem. 
+
+	\param
+		cache_ptr: Pointer to cache which is to be destroyed.
+
+	\return	void
+*/
+void DestroyCache(CACHE_PTR rem_cache)
+{
+	UINT32 free_slabs;
+	SLAB_PTR rem_slab;
+	VADDR rem_va;
+
+	/* Get a lock to cache */
+	SpinLock( &(rem_cache->slock) );
+
+	/* Before proceeding, make sure this cache is no more used by anybody */
+	assert( NULL==in_use_slab_tree_root && NULL==partially_free_slab_list_head );
+
+	/* Free the vm_pages inside slabs pointed by completely free slab list */
+	free_slabs = rem_cache->free_slabs_count;
+	while( free_slabs )
+	{
+		rem_slab =  rem_cache->completely_free_slab_list_head;
+		rem_cache->completely_free_slab_list_head = STRUCT_FROM_MEMBER( SLAB_PTR, completely_free_list, cache_ptr->completely_free_slab_list_head->completely_free_list.next);
+		RemoveFromList( &(rem_slab->completely_free_list) );
+		
+		/* Now get the starting address of slab */
+		rem_va = SLAB_START( rem_slab, rem_cache->slab_metadata_offset);
+		VM_FREE( (void*)rem_va, rem_cache->slab_size );
+		free_slabs--;
+	}
+	return;
+}
+
+COMPARISON_RESULT CompareSlab( AVL_TREE_PTR node1, AVL_TREE_PTR node2 )
+{
+	VADDR va_in_tree, va_to_search;
+	UINT32 va_size;
+
+	assert( node1 != NULL && node2 != NULL);
+
+	/* Get slab pointers from tree pointers. */
+	
+	va_in_tree = (VADDR) (STRUCT_FROM_MEMBER( SLAB_PTR, in_use_tree, node1));
+	va_to_search = (STRUCT_FROM_MEMBER( SEARCH_SLAB_PTR, tree, node2))->va_start;
+	va_size = (STRUCT_FROM_MEMBER( SEARCH_SLAB_PTR, tree, node2))->va_size;
+
+	/* now find if va_to_search is in the range (va_in_tree) to (va_in_tree + va_size) */
+	if ( va_to_search < va_in_tree )
+	{
+		return LESS_THAN;
+	}
+	else if ( va_to_search > (va_in_tree + va_size) )
+	{
+		return GREATER_THAN;
+	}
+	else 
+	{
+		return EQUAL;
+	}
 }

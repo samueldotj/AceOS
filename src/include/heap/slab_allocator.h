@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  09:04PM
-  			Last modified: Sat Apr 05, 2008  01:10AM
+  			Last modified: Sat Apr 05, 2008  02:15PM
   \brief	This file contains structures and macros to maintain slab_allocator
 */
 
@@ -62,7 +62,7 @@ typedef struct cache {
 	int			max_slabs; 	 /* Maximum no of slabs allowed */
 
 	int			free_slabs_threshold; /* Threshold to start VM operation */
-	int			free_slabs_count; /* count of free slabs in the completely free slab list */
+	UINT32		free_slabs_count; /* count of free slabs in the completely free slab list */
 
 	int 		free_buffer_count;	/*total buffers free in this cache*/
 	
@@ -102,7 +102,7 @@ void InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size),
        );
 
 /*initializes a cache*/
-int CacheInit(CACHE_PTR new_cache, UINT32 size, int free_slabs_threshold,
+int InitCache(CACHE_PTR new_cache, UINT32 size, int free_slabs_threshold,
 		int min_slabs, int max_slabs,
 		int (*constructor)(void *), int (*destructor)(void *));
 
@@ -111,9 +111,9 @@ int CacheInit(CACHE_PTR new_cache, UINT32 size, int free_slabs_threshold,
 void* GetVAFromCache(CACHE_PTR cache_ptr, UINT32 flag);
 
 /*frees memory to the specified cache*/
-void CacheFree(CACHE_PTR, void *);
+void FreeCache(CACHE_PTR, void *);
 
 /*destroys the specified cache*/
-void CacheDestroy(CACHE_PTR);
+void DestroyCache(CACHE_PTR);
 
 #endif

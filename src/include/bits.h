@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: 3:29 PM 07-Apr-08
-  			Last modified: Tue Apr 08, 2008  11:52PM
+  			Last modified: Wed Apr 09, 2008  01:33AM
   \brief	Contains bit manipulation macros.
 */
 
@@ -13,15 +13,15 @@
 
 /*gets the bit value 1 or 0 of the specified index in a bit array - bit_index starts from 0*/
 #define BIT_ARRAY_GET_BIT(bit_array, bit_index) \
-	( (((BYTE *(bit_array))[(bit_index) / BITS_PER_BYTE]) >> ((bit_index) % BITS_PER_BYTE) ) & 1 )
+	( ((((BYTE*)(bit_array))[(bit_index) / BITS_PER_BYTE]) >> ((bit_index) % BITS_PER_BYTE) ) & 1 )
 
 /*sets the bit value to 1 in a bit array for a specified bit_index; bit_index starts from 0*/
 #define BIT_ARRAY_SET_BIT(bit_array, bit_index) \
-	(BYTE * (bit_array))[(bit_index) / BITS_PER_BYTE] |= (1<< ((bit_index) % BITS_PER_BYTE) )
+	((BYTE*)(bit_array))[(bit_index) / BITS_PER_BYTE] |= (1<< ((bit_index) % BITS_PER_BYTE) )
 
 /*resets the bit value to 0 in a bit array for a specified bit_index; bit_index starts from 0*/
 #define BIT_ARRAY_CLEAR_BIT(bit_array, bit_index) \
-	(BYTE * (bit_array))[(bit_index) / BITS_PER_BYTE] &= (~(1<< ((bit_index) % BITS_PER_BYTE) ) )
+	((BYTE*)(bit_array))[(bit_index) / BITS_PER_BYTE] &= (~(1<< ((bit_index) % BITS_PER_BYTE) ) )
 
 /* Finds the first set bit in a bit array
  * If Not found, returns -1
@@ -32,7 +32,7 @@
 		(result) = (length_in_byte);											\
 		for(i=0; i<(length_in_byte) && !found;i++)								\
 		{																		\
-			register BYTE byte = (BYTE * (bit_array))[i];						\
+			register BYTE byte = ((BYTE*)(bit_array))[i];						\
 			if ( byte != 0 )													\
 			{																	\
 				int j;															\
@@ -62,7 +62,7 @@
 		(result) = (length_in_byte);											\
 		for(i=0;i<(length_in_byte) && !found ;i++)								\
 		{																		\
-			register BYTE byte = (BYTE * (bit_array))[i];						\
+			register BYTE byte = ((BYTE*)(bit_array))[i];						\
 			if ( byte != 0xFF )													\
 			{																	\
 				int j;															\

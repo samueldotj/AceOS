@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Sat Apr 05, 2008  05:05PM
+  			Last modified: Mon Apr 07, 2008  01:36PM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -132,7 +132,7 @@ static void InitSlab(SLAB_PTR slab_ptr, UINT32 buffer_count)
 {
 	/*initialize the tree and list */
 	InitList( &(slab_ptr->partially_free_list) );
-	InitAvlTreeNode( &(lab_ptrs->in_use_tree), slab_inuse_tree_compare);
+	InitAvlTreeNode( &(slab_ptrs->in_use_tree), slab_inuse_tree_compare);
 	InitList( &(slab_ptr->completely_free_list) );
 	
 	/*all buffers are free*/
@@ -385,7 +385,7 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	SEARCH_SLAB temp_slab;
 	AVL_TREE tree_ptr;
 	SLAB_PTR slab_ptr;
-	int buffer_index;
+	int buffer_index, first_clear_bit, bit_array_size_in_bytes;
 	VADDR va_start;
 
 	/* Find the slab which contains this buffer using in_use_slab_tree */
@@ -414,14 +414,22 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	cache_ptr->free_buffer_count ++;
 
 	/* If all buffers in the slab are free, move the slab to completely free slab list
-	//TBD.. how to check if all are clear bits in the bit array?
-	
-	RemoveFromList( &(slab_ptr->partially_free_list) );
-	RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
-	AddToList( &(cache_ptr->completely_free_slab_list_head->completely_free_list) , &(slab_ptr->completely_free_list) );
-	cache_ptr->free_slabs_count ++;
-	// If free buffer count is greater than free_slabs_threshold, then start VM operation
-	// TBD
+	bit_array_size_in_bytes = cache_ptr->slab_buffer_count / BITS_PER_BYTE + 1;
+	if ( 0 == (cache_ptr->slab_buffer_count % BITS_PER_BYTE) )
+	{
+		bit_array_size_in_bytes--;
+	}
+
+	BIT_ARRAY_FIND_FIRST_CLEAR_BIT(slab_ptr->buffer_usage_bitmap, bit_array_size_in_bytes, first_clear_bit);
+	if ( -1 != first_clear_bit )
+	{
+		RemoveFromList( &(slab_ptr->partially_free_list) );
+		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
+		AddToList( &(cache_ptr->completely_free_slab_list_head->completely_free_list) , &(slab_ptr->completely_free_list) );
+		cache_ptr->free_slabs_count ++;
+		// If free buffer count is greater than free_slabs_threshold, then start VM operation
+		// TBD
+	}
 	*/
 	return 0;
 }

@@ -4,7 +4,7 @@
 	\author Samuel
 	\date 
 		Created: 04-Feb-2008 18:24
-		Last modified: Wed Mar 05, 2008  03:30PM
+		Last modified: Wed Apr 09, 2008  01:24AM
 */
 
 #ifndef BINARY_TREE__H
@@ -16,7 +16,7 @@ typedef enum
 {
 	LESS_THAN=-1,
 	EQUAL=0,
-	GREATHER_THAN=1
+	GREATER_THAN=1
 }COMPARISION_RESULT;
 
 

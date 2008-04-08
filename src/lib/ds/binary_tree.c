@@ -4,7 +4,7 @@
 	\version 	1.0
 	\date	
   			Created: 04-Feb-2008 18:24
-  			Last modified: Fri Mar 07, 2008  08:13PM
+  			Last modified: Wed Apr 09, 2008  01:25AM
 	\brief	Generic binary tree implementation
 	
 */
@@ -26,7 +26,7 @@
 		case LESS_THAN:											\
 			result_node = TREE_LEFT_NODE(root);					\
 			break;												\
-		case GREATHER_THAN:										\
+		case GREATER_THAN:										\
 			result_node = TREE_RIGHT_NODE(root);				\
 			break;												\
 		default:												\
@@ -102,7 +102,7 @@ BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_no
 
 		/*end of list - node not found*/
 		if ( ( result == LESS_THAN     && IS_TREE_LIST_END(&root->left) ) || 
-			 ( result == GREATHER_THAN && IS_TREE_LIST_END(&root->right) ) )
+			 ( result == GREATER_THAN && IS_TREE_LIST_END(&root->right) ) )
 			return NULL;
 		root = next_node;
 	}
@@ -139,7 +139,7 @@ int InsertNodeIntoBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR new_node)
 		
 		if ( result == LESS_THAN )
 			parent_node_list = &root->left;
-		else if ( result == GREATHER_THAN )
+		else if ( result == GREATER_THAN )
 			parent_node_list = &root->right;
 			
 		//end of list - inser the node here

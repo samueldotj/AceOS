@@ -148,7 +148,7 @@ COMPARISION_RESULT compare_number(struct binary_tree * node1, struct binary_tree
 	n2 = STRUCT_FROM_MEMBER(BT_TEST_PTR, t, node2)->data;
 	
 	if ( n1 < n2 )
-		return GREATHER_THAN;
+		return GREATER_THAN;
 	else if ( n1 > n2 )
 		return LESS_THAN;
 	else 

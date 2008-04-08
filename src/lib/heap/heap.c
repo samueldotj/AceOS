@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Sat Mar 22, 2008  06:30PM
-  			Last modified: Sat Apr 05, 2008  01:26AM
+  			Last modified: Wed Apr 09, 2008  01:02AM
   \brief	Maintains heap
 */
 
@@ -27,43 +27,43 @@ CACHE_PTR GetCacheFromBucket(UINT32 size)
 
 	if (size <= 8)
 	{
-		return my_heap->cache_bucket[INDEX_8];
+		return &(my_heap->cache_bucket[INDEX_8]);
 	}
 	else if (size <= 16)
 	{
-		return my_heap->cache_bucket[INDEX_16];
+		return &(my_heap->cache_bucket[INDEX_16]);
 	}
 	else if (size <= 32)
 	{
-		return my_heap->cache_bucket[INDEX_32];
+		return &(my_heap->cache_bucket[INDEX_32]);
+	}
+	else if (size <= 64)
+	{
+		return &(my_heap->cache_bucket[INDEX_64]);
 	}
 	else if (size <= 128)
 	{
-		return my_heap->cache_bucket[INDEX_128];
+		return &(my_heap->cache_bucket[INDEX_128]);
 	}
 	else if (size <= 256)
 	{
-		return my_heap->cache_bucket[INDEX_256];
+		return &(my_heap->cache_bucket[INDEX_256]);
 	}
 	else if (size <= 512)
 	{
-		return my_heap->cache_bucket[INDEX_512];
+		return &(my_heap->cache_bucket[INDEX_512]);
 	}
 	else if (size <= 1024)
 	{
-		return my_heap->cache_bucket[INDEX_1024];
+		return &(my_heap->cache_bucket[INDEX_1024]);
 	}
 	else if (size <= 2048)
 	{
-		return my_heap->cache_bucket[INDEX_2048];
+		return &(my_heap->cache_bucket[INDEX_2048]);
 	} 
 	else if (size <= 4096)
 	{
-		return my_heap->cache_bucket[INDEX_4096];
-	}
-	else if (size <= 8192)
-	{
-		return my_heap->cache_bucket[INDEX_8192];
+		return &(my_heap->cache_bucket[INDEX_4096]);
 	}
 	else
 	{
@@ -84,8 +84,6 @@ CACHE_PTR GetCacheFromBucket(UINT32 size)
 */
 void* malloc(UINT32 size, CACHE_PTR *cache_entry)
 {
-	SLAB_PTR free_slab;
-	UINT32 free_slabs_count;
 	VADDR ret_va;
 
 	if (size > MAX_HEAP_BUCKET_SIZE)
@@ -102,7 +100,7 @@ void* malloc(UINT32 size, CACHE_PTR *cache_entry)
 
 	assert(*cache_entry); /* (*cache_entry) has to be valid at this point */
 
-	ret_va = (VADDR)GetVAFromCache(*cache_ptr, NULL);
+	ret_va = (VADDR)GetVAFromCache(*cache_entry, NULL);
 	return (void*)ret_va;
 }
 

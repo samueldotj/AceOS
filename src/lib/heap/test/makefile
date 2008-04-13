@@ -21,12 +21,15 @@ clean:
 #how to make target
 testcommon.o:	testcommon.c
 	$(CC) -I $(INCLUDE) -c -o testcommon.o testcommon.c
-	
-testslab:	testcommon.o testslab.c $(OBJ)/libheap.a
-	$(CC) -I $(INCLUDE) -L $(OBJ) -o testslab testslab.c testcommon.o -lheap
 
-testheap:	testcommon.o testheap.c $(OBJ)/libheap.a
-	$(CC) -I $(INCLUDE) -L $(OBJ) -o testheap testheap.c testcommon.o -lheap
+spinlock.o:	spinlock.c
+	$(CC) -I $(INCLUDE) -c -o spinlock.o spinlock.c
+	
+testslab:	testcommon.o spinlock.o testslab.c $(OBJ)/libheap.a
+	$(CC) -I $(INCLUDE) -L $(OBJ) -o testslab testslab.c spinlock.o testcommon.o -lheap -lds
+
+testheap:	testcommon.o spinlock.o testheap.c $(OBJ)/libheap.a
+	$(CC) -I $(INCLUDE) -L $(OBJ) -o testheap testheap.c spinlock.o testcommon.o -lheap -lds
 	
 #create .d files
 -include $(OBJS:.o=.d)

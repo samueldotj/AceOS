@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  09:04PM
-  			Last modified: Sat Apr 05, 2008  02:15PM
+  			Last modified: Tue Apr 15, 2008  12:09AM
   \brief	This file contains structures and macros to maintain slab_allocator
 */
 
@@ -115,5 +115,8 @@ void FreeCache(CACHE_PTR, void *);
 
 /*destroys the specified cache*/
 void DestroyCache(CACHE_PTR);
+
+/* Frees a buffer in it's slab */
+int FreeBuffer(void *buffer, CACHE_PTR cache_ptr);
 
 #endif

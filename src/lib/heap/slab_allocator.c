@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Wed Apr 09, 2008  01:31AM
+  			Last modified: Mon Apr 14, 2008  11:19PM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -154,7 +154,7 @@ void InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size),
 
 	\param
 		new_cache: A static cache created in data segment.
-		size: size of the cache to be created.
+		size: size of the buffers in cache.
 		free_slabs_threshold: Threshold to start VM operation.
 		min_slabs: Minimum no of slabs to be present always.
 		max_slabs: Maximum no of slabs allowed.

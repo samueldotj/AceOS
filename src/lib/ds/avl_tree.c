@@ -80,7 +80,7 @@ int InsertNodeIntoAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR new_node)
 {
 	AVL_TREE_PTR parent, grand_parent;
 
-	if ( InsertNodeIntoBinaryTree( (BINARY_TREE_PTR)(*root), (BINARY_TREE_PTR)new_node)) 
+	if ( InsertNodeIntoBinaryTree( (BINARY_TREE_PTR *)(root), (BINARY_TREE_PTR)new_node)) 
 	{
 		/*Failure: Duplicate value already exists, so return -1 */
 		return -1;

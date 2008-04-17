@@ -21,17 +21,14 @@ int parse_arguments(int argc, char * argv[]);
 extern int verbose_level;
 int main(int argc, char* argv[])
 {
-	BT_TEST first_element;
 	BT_TEST_PTR search_node=NULL;
 	int i, * numbers, total_numbers, * del_numbers, del_number_index;
-	BINARY_TREE_PTR root_ptr = &first_element.t;
+	BINARY_TREE_PTR root_ptr = NULL;
 		
 	if ( parse_arguments(argc, argv) )
-		return;
+		return 1;
 	numbers = init_numbers(&total_numbers, &del_numbers, &del_number_index);
 		
-	InitBT_TestNode( &first_element, numbers[0]);
-	
 	/*insert into list*/
 	if ( verbose_level > 0 ) printf("Inserting %d numbers between 0 to 100\n", total_numbers);
 	for(i=1;i<total_numbers;i++)
@@ -41,15 +38,15 @@ int main(int argc, char* argv[])
 		if ( (new_node = (BT_TEST_PTR ) malloc(sizeof(BT_TEST))) == NULL )
 		{
 			perror("malloc");
-			return -1;
+			return 1;
 		}
 		
 		InitBT_TestNode(new_node, numbers[i]);
 		if ( verbose_level > 1 ) printf("Adding node %p (%d) : ", &new_node->t, numbers[i] );
-		if ( InsertNodeIntoBinaryTree(root_ptr, &new_node->t ) != 0 )
+		if ( InsertNodeIntoBinaryTree(&root_ptr, &new_node->t ) != 0 )
 		{
 			printf("failure\n");
-			return;
+			return 1;
 		}
 		else
 			if ( verbose_level > 1 ) printf("success\n");
@@ -86,7 +83,7 @@ int main(int argc, char* argv[])
 		else
 		{
 			printf("Node (%d) not found while deleting \n", del_node.data);
-			return;
+			return 1;
 		}
 	}
 	if ( verbose_level > 0 ) 

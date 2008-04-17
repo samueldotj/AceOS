@@ -121,13 +121,20 @@ BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_no
 		1) Traverse through the node from root
 		2) Reset the root variable if the code branches to left on "right list" and right on "left list"
 */
-int InsertNodeIntoBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR new_node)
+int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_node)
 {
 	COMPARISION_RESULT result;
-	BINARY_TREE_PTR next_node;
+	BINARY_TREE_PTR root, next_node;
 	
-	assert( root != NULL );
+	assert( root_ptr != NULL );
 	assert( new_node != NULL );
+	
+	if ( *root_ptr == NULL )
+	{
+		*root_ptr = new_node;
+		return 0;
+	}
+	root = *root_ptr;
 	
 	while(1)
 	{

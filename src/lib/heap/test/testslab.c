@@ -4,7 +4,7 @@
   \version      3.0
   \date
  			Created:
- 			Last modified: Mon Apr 14, 2008  11:38PM
+ 			Last modified: Thu Apr 17, 2008  11:27PM
   \brief
 */
 
@@ -45,17 +45,33 @@ int main(int argc, char * argv[])
 	
 	/*intialize slab alloctor*/
 	InitSlabAllocator(PAGE_SIZE, virtual_alloc, virtual_free, virtual_protect );
+	if (verbose_level >= 2)
+	{
+		printf("Initialized Slab allocator\n");
+	}
 	
 	/*intialize  caches*/
 	cache_size = 256;
 	InitCache(&cache1, 256, 6, 8, 16, &cache1_constructor, &cache1_destructor);
+	if (verbose_level >= 2)
+	{
+		printf("Initialized cache\n");
+	}
 	
 	/*FIFO - test*/
 	/*allocate memory*/
 	AllocateMemory(&cache1, (void **)va_array, total_array_elements );
+	if (verbose_level >= 2)
+	{
+		printf("Allocated memory to cache\n");
+	}
 	
 	/*free memory*/
 	FreeMemory(&cache1, (void **)va_array, total_array_elements);
+	if (verbose_level >= 2)
+	{
+		printf("iFreed memory from cache\n");
+	}
 	
 	/*LIFO - test*/
 	
@@ -63,6 +79,10 @@ int main(int argc, char * argv[])
 	
 	
 	DestroyCache( &cache1 );
+	if (verbose_level >= 2)
+	{
+		printf("Cache destroyed\n");
+	}
 	
 	return 0;
 }
@@ -79,7 +99,10 @@ void AllocateMemory(CACHE_PTR c, void * va_array[], int count)
 			printf("GetVAFromCache(%p, 0) failed\n", c);
 			exit(1);
 		}
-		printf("Allocated memory %p\n", va);
+		if (verbose_level >=2)
+		{
+			printf("Allocated memory %p %d\n", va, i);
+		}
 		va_array[i] = va;
 	}
 }
@@ -107,7 +130,11 @@ void * virtual_alloc(int size)
 		printf("size is incorrect %d\n", size);
 		exit(1);
 	}
-	
+	if (verbose_level >=2)
+	{
+		printf("virtual_alloc: size=%d\n", size);
+	}
+
 	va = mmap( 0, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
 	if ( va == MAP_FAILED )
 	{
@@ -132,6 +159,12 @@ int virtual_free(void * va, int size)
 		printf("size is incorrect %d\n", size);
 		exit(1);
 	}
+	
+	if (verbose_level >=2)
+	{
+		printf("virtual_free: size=%d va=%p\n", size, (VADDR*)(va));
+	}
+
 	return munmap(va, size);
 }
 

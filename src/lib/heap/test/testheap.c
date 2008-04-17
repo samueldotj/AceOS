@@ -8,6 +8,6 @@ int parse_arguments(int argc, char * argv[]);
 extern int verbose_level;
 int main(int argc, char * argv[])
 {
-	if ( parse_arguments(argc, argv) )
-		return;
+	parse_arguments(argc, argv); 
+	return 0;
 }

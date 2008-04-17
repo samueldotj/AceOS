@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Mon Apr 14, 2008  11:19PM
+  			Last modified: Fri Apr 18, 2008  12:02AM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -255,7 +255,7 @@ int InitCache(CACHE_PTR new_cache, UINT32 size,
 
 	\param
 		cache_ptr: Pointer to cache from which buffers are wanted.
-		flag: To indicate if this function can sleep or not.
+		flag: To indicate if this function can sleep(0) or not(1).
 
 	\return
 		On Success: Virtual address of a free buffer.
@@ -368,6 +368,9 @@ static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 {
 	VADDR ret_va = SLAB_START(slab_ptr, cache_ptr->slab_metadata_offset);
 	UINT32 free_buffer_index = 0;
+	int bit_array_size_in_bytes;
+
+	printf("GetFreeBufferFromCache: slab_ptr=%p slab_start=%p index_array=%d\n", slab_ptr, (VADDR*)(ret_va), (slab_ptr->buffer_usage_bitmap)[0]);
 	
 	/*atleast one buffer should be free*/
 	assert ( slab_ptr->used_buffer_count < cache_ptr->slab_buffer_count );
@@ -375,13 +378,21 @@ static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 	cache_ptr->free_buffer_count--;
 	
 	/*Find the first free buffer*/
-	BIT_ARRAY_FIND_FIRST_CLEAR_BIT(slab_ptr->buffer_usage_bitmap, cache_ptr->slab_buffer_count, free_buffer_index);
+	bit_array_size_in_bytes = cache_ptr->slab_buffer_count / BITS_PER_BYTE + 1;
+
+	/* Only for buffer counts exactly equal to BITS_PER_BYTE, special care must be taken */
+	if ( 0 == (cache_ptr->slab_buffer_count % BITS_PER_BYTE) )
+	{
+		bit_array_size_in_bytes--;
+	}
+	BIT_ARRAY_FIND_FIRST_CLEAR_BIT(slab_ptr->buffer_usage_bitmap, bit_array_size_in_bytes, free_buffer_index);
 	
 	/* Set the bitmap to indicate the buffer is used */
 	BIT_ARRAY_SET_BIT(slab_ptr->buffer_usage_bitmap, free_buffer_index );
 	
 	/*calculate the virtual address*/
 	ret_va += ( BUFFER_SIZE(cache_ptr->buffer_size) * free_buffer_index);
+	printf("va granted: %p index=%d buf_count=%d\n", (VADDR*)(ret_va), free_buffer_index, cache_ptr->slab_buffer_count);
 	
 	/* If all buffers utilized remove from partialy free list */
 	if ( slab_ptr->used_buffer_count == cache_ptr->slab_buffer_count )

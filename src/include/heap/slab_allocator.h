@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  09:04PM
-  			Last modified: Thu Apr 17, 2008  10:29AM
+  			Last modified: Thu Apr 17, 2008  11:44PM
   \brief	This file contains structures and macros to maintain slab_allocator
 */
 
@@ -23,7 +23,7 @@
 /* define this macro to enable statistics */
 #define SLAB_STAT_ENABLED
 /* define this macro to debug the slab alloctor */
-#define SLAB_DEBUG_ENABLED
+//#define SLAB_DEBUG_ENABLED
 
 typedef struct slab_allocator_metadata
 {

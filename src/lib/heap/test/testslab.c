@@ -24,8 +24,8 @@ extern int verbose_level;
 int parse_arguments(int argc, char * argv[]);
 
 void * virtual_alloc(int size);
-void * virtual_free(void * va, int size);
-void * virtual_protect(void * va, int size, int protection);
+int virtual_free(void * va, int size);
+int virtual_protect(void * va, int size, int protection);
 int cache1_constructor( void *buffer);
 int cache1_destructor( void *buffer);
 void AllocateMemory(CACHE_PTR c, void * va_array[], int count);
@@ -36,11 +36,12 @@ int main(int argc, char * argv[])
 {
 	int cache_size;
 	VADDR va_array[10];
+	int total_array_elements = sizeof(va_array) / sizeof(VADDR);
 
 	CACHE cache1;
 
 	if ( parse_arguments(argc, argv) )
-		return;
+		return 1;
 	
 	/*intialize slab alloctor*/
 	InitSlabAllocator(PAGE_SIZE, virtual_alloc, virtual_free, virtual_protect );
@@ -51,14 +52,19 @@ int main(int argc, char * argv[])
 	
 	/*FIFO - test*/
 	/*allocate memory*/
-	AllocateMemory(&cache1, (void**)(&va_array), 10);
+	AllocateMemory(&cache1, (void **)va_array, total_array_elements );
 	
 	/*free memory*/
-	FreeMemory(&cache1, (void**)(&va_array), 10);
+	FreeMemory(&cache1, (void **)va_array, total_array_elements);
 	
 	/*LIFO - test*/
 	
 	/*random - test*/
+	
+	
+	DestroyCache( &cache1 );
+	
+	return 0;
 }
 
 /*allocate memory from slab and store the va in va_array*/
@@ -68,8 +74,13 @@ void AllocateMemory(CACHE_PTR c, void * va_array[], int count)
 	for(i=0;i<count; i++)
 	{
 		void* va = GetVAFromCache(c, 0);
-		if ( va != NULL )
-			va_array[i] = va;
+		if ( va == NULL )
+		{
+			printf("GetVAFromCache(%p, 0) failed\n", c);
+			exit(1);
+		}
+		printf("Allocated memory %p\n", va);
+		va_array[i] = va;
 	}
 }
 
@@ -79,23 +90,35 @@ void FreeMemory(CACHE_PTR c, void * va_array[], int count)
 	int i;
 	for(i=0;i<count; i++)
 	{
-		FreeBuffer(va_array[i], c);
+		if ( FreeBuffer(va_array[i], c) == -1 )
+		{
+			printf("FreeBuffer(%p, %p) %d failed\n", va_array[i], c, i);
+			exit(1);
+		}
 	}
 }
 
 void * virtual_alloc(int size)
 {
+	void * va;
 	/*size should be greater than 0 and should be a multiple of page size*/
 	if ( size <= 0 || size % PAGE_SIZE )
 	{
 		printf("size is incorrect %d\n", size);
 		exit(1);
 	}
+	
+	va = mmap( 0, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+	if ( va == MAP_FAILED )
+	{
+		perror("mmap ");
+		exit(0);
+	}
 		
-	return mmap( 0, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, 0, 0);
+	return va;
 }
 
-void * virtual_free(void * va, int size)
+int virtual_free(void * va, int size)
 {
 	/*va should be greater than 0 and should be a multiple of page size*/
 	if ( va <= 0 || ((unsigned long)va) % PAGE_SIZE)
@@ -109,10 +132,10 @@ void * virtual_free(void * va, int size)
 		printf("size is incorrect %d\n", size);
 		exit(1);
 	}
-	munmap(va, size);
+	return munmap(va, size);
 }
 
-void * virtual_protect(void * va, int size, int protection)
+int virtual_protect(void * va, int size, int protection)
 {
 	/*va should be greater than 0 and shoul be in page size*/
 	if ( va <= 0 || ((unsigned long)va) % PAGE_SIZE)
@@ -126,15 +149,15 @@ void * virtual_protect(void * va, int size, int protection)
 		printf("size is incorrect %d\n", size);
 		exit(1);
 	}
-	mprotect( va, size, protection );
+	return mprotect( va, size, protection );
 }
 
 int cache1_constructor( void *buffer)
 {
-	
+	return 0;
 }
 
 int cache1_destructor( void *buffer)
 {
-	
+	return 0;
 }

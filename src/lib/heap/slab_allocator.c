@@ -55,17 +55,55 @@ static SLAB_ALLOCATOR_METADATA slab_alloactor_metadata;
 #define REMOVE_FROM_INUSE_TREE(cache_ptr, slab_ptr)	\
 	RemoveNodeFromAvlTree( &(cache_ptr)->in_use_slab_tree_root, &(slab_ptr)->in_use_tree );
 	
-#define ADD_TO_PARTIAL_LIST(cache_ptr, slab_ptr)	\
-	AddToList( &(cache_ptr)->partially_free_slab_list_head->partially_free_list , &(slab_ptr)->partially_free_list );
+static void AddToPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
+{
+	if ( cache_ptr->partially_free_slab_list_head != NULL)
+		AddToList( &cache_ptr->partially_free_slab_list_head->partially_free_list, 
+					&slab_ptr->partially_free_list );
+	else
+		cache_ptr->partially_free_slab_list_head = slab_ptr;
+		
+	cache_ptr->free_buffer_count += cache_ptr->slab_buffer_count;
+}
 
-#define REMOVE_FROM_PARTIAL_LIST(cache_ptr)	\
-	RemoveFromList( &(cache_ptr)->partially_free_slab_list_head->partially_free_list );
+static void RemoveFromPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
+{
+	SLAB_PTR next_slab_ptr = STRUCT_FROM_MEMBER( SLAB_PTR, partially_free_list, (slab_ptr)->partially_free_list.next);
+	if ( slab_ptr == next_slab_ptr )
+		cache_ptr->partially_free_slab_list_head = NULL;
+	else
+		cache_ptr->partially_free_slab_list_head = next_slab_ptr;
+		
+	RemoveFromList( &slab_ptr->partially_free_list );
+}	
 
-#define ADD_TO_COMPLETE_LIST(cache_ptr, slab_ptr)	\
-	AddToList( &(cache_ptr)->completely_free_slab_list_head->completely_free_list , &(slab_ptr)->completely_free_list );
+static void AddToCompleteList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
+{
+	if ( cache_ptr->completely_free_slab_list_head != NULL )
+		AddToList( &cache_ptr->completely_free_slab_list_head->completely_free_list , &slab_ptr->completely_free_list );
+	else
+		cache_ptr->completely_free_slab_list_head = slab_ptr;
+	
+	cache_ptr->free_slabs_count++;
+}
 
-#define REMOVE_FROM_COMPLETE_LIST(cache_ptr)	\
-	RemoveFromList( &(cache_ptr)->completely_free_slab_list_head->completely_free_list );
+static SLAB_PTR RemoveFirstSlabFromCompleteList(CACHE_PTR cache_ptr)
+{
+	SLAB_PTR slab_ptr = cache_ptr->completely_free_slab_list_head;
+	assert( slab_ptr != NULL );
+	
+	/* I am the last slab inside the cache */
+	if ( cache_ptr->free_slabs_count == 1)
+		cache_ptr->completely_free_slab_list_head = NULL;
+	else
+		cache_ptr->completely_free_slab_list_head = STRUCT_FROM_MEMBER( SLAB_PTR, completely_free_list, slab_ptr->completely_free_list.next);
+	
+	cache_ptr->free_slabs_count--;
+	
+	RemoveFromList( &slab_ptr->completely_free_list );
+	
+	return slab_ptr;
+}
 
 static COMPARISION_RESULT slab_inuse_tree_compare(AVL_TREE_PTR node1, AVL_TREE_PTR node2);
 static void InitSlab(SLAB_PTR s, UINT32 buffer_count);
@@ -138,8 +176,8 @@ static void InitSlab(SLAB_PTR slab_ptr, UINT32 buffer_count)
 	\return	 void
 */
 void InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size), 
-	void * (*v_free)(void * va, int size),
-	void * (*v_protect)(void * va, int size, int protection)  )
+	int (*v_free)(void * va, int size),
+	int (*v_protect)(void * va, int size, int protection)  )
 {
 	VM_PAGE_SIZE = page_size;
 	VM_ALLOC = v_alloc;
@@ -250,21 +288,12 @@ void* GetVAFromCache(CACHE_PTR cache_ptr, UINT32 flag)
 		else
 		{	
 			/*allocate a slab from free list*/
-			ADD_TO_INUSE_TREE( cache_ptr, cache_ptr->completely_free_slab_list_head );
-			ADD_TO_PARTIAL_LIST( cache_ptr, cache_ptr->completely_free_slab_list_head );
+			SLAB_PTR free_slab = RemoveFirstSlabFromCompleteList( cache_ptr );
+			
+			ADD_TO_INUSE_TREE( cache_ptr, free_slab );
+			AddToPartialList( cache_ptr, free_slab );
+			
 			cache_ptr->free_buffer_count += cache_ptr->slab_buffer_count;
-
-			if ( 1 == cache_ptr->free_slabs_count )
-			{
-				/* I am the last slab inside the cache */
-				cache_ptr->completely_free_slab_list_head = NULL;
-			}
-			else
-			{
-				cache_ptr->completely_free_slab_list_head = STRUCT_FROM_MEMBER( SLAB_PTR, completely_free_list, cache_ptr->completely_free_slab_list_head->completely_free_list.next);
-				REMOVE_FROM_COMPLETE_LIST( cache_ptr );
-			}
-			cache_ptr->free_slabs_count--;
 		}
 	}
 	/*free buffer should be available now*/
@@ -312,13 +341,11 @@ static int AddSlabToCache(CACHE_PTR cache_ptr, int immediate_use)
 	if ( immediate_use )
 	{
 		InsertNodeIntoAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
-		AddToList( &(cache_ptr->partially_free_slab_list_head->partially_free_list) , &(slab_ptr->partially_free_list) );
-		cache_ptr->free_buffer_count += cache_ptr->slab_buffer_count;
+		AddToPartialList( cache_ptr, slab_ptr );
 	}
 	else
 	{
-		ADD_TO_COMPLETE_LIST( cache_ptr, slab_ptr );
-		cache_ptr->free_slabs_count++;
+		AddToCompleteList( cache_ptr, slab_ptr );
 	}
 	
 	return 0;
@@ -347,20 +374,19 @@ static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 	slab_ptr->used_buffer_count++;
 	cache_ptr->free_buffer_count--;
 	
-	/* TBD. BIT_ARRAY_FIND_FIRST_CLEAR_BIT(slab_ptr->buffer_usage_bitmap, 32, free_buffer_index); */
+	/*Find the first free buffer*/
+	BIT_ARRAY_FIND_FIRST_CLEAR_BIT(slab_ptr->buffer_usage_bitmap, cache_ptr->slab_buffer_count, free_buffer_index);
 	
+	/* Set the bitmap to indicate the buffer is used */
+	BIT_ARRAY_SET_BIT(slab_ptr->buffer_usage_bitmap, free_buffer_index );
+	
+	/*calculate the virtual address*/
 	ret_va += ( BUFFER_SIZE(cache_ptr->buffer_size) * free_buffer_index);
-	
-	/* Set the bitmap to indicate it is used */
-	slab_ptr->buffer_usage_bitmap[ free_buffer_index/sizeof(UINT32) ] |= (1<<(free_buffer_index%sizeof(UINT32)));
-	/* TBD. Replace the above l;ine with below line */
-	/* BIT_ARRAY_SET_BIT( slab_ptr->buffer_usage_bitmap, free_buffer_index ); */
 	
 	/* If all buffers utilized remove from partialy free list */
 	if ( slab_ptr->used_buffer_count == cache_ptr->slab_buffer_count )
 	{
-		cache_ptr->partially_free_slab_list_head = STRUCT_FROM_MEMBER( SLAB_PTR, partially_free_list, slab_ptr->partially_free_list.next);
-		RemoveFromList( &(slab_ptr->partially_free_list) );
+		RemoveFromPartialList( cache_ptr, slab_ptr );
 	}
 	
 	return ret_va;
@@ -388,6 +414,8 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 
 	/* Find the slab which contains this buffer, using in_use_slab_tree */
 	slab_ptr = SearchBufferInTree( (VADDR)(buffer), cache_ptr);
+	if ( slab_ptr == NULL )
+		return -1;
 
 	/* Clear the corresponding bit in buffer_usage_bitmap */
 	va_start = SLAB_START(slab_ptr, cache_ptr->slab_metadata_size);
@@ -411,7 +439,7 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	{
 		RemoveFromList( &(slab_ptr->partially_free_list) );
 		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
-		ADD_TO_COMPLETE_LIST( cache_ptr, slab_ptr );
+		AddToCompleteList( cache_ptr, slab_ptr );
 		cache_ptr->free_slabs_count ++;
 		/* If free buffer count is greater than free_slabs_threshold, then start VM operation */
 		// TBD

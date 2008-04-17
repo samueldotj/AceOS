@@ -29,9 +29,9 @@ typedef struct slab_allocator_metadata
 {
 	UINT32	vm_page_size;
 	UINT32	vm_page_shift;
-	void * (*virtual_alloc)(int size);
-	void * (*virtual_free)(void * va, int size);
-	void * (*virtual_protect)(void * va, int size, int protection);
+	void * 	(*virtual_alloc)(int size);
+	int 	(*virtual_free)(void * va, int size);
+	int 	(*virtual_protect)(void * va, int size, int protection);
 } SLAB_ALLOCATOR_METADATA, * SLAB_ALLOCATOR_METADATA_PTR;
 
 
@@ -66,7 +66,7 @@ typedef struct cache {
 
 	int 		free_buffer_count;	/*total buffers free in this cache*/
 	
-	AVL_TREE_PTR	in_use_slab_tree_root;
+	AVL_TREE_PTR in_use_slab_tree_root;
 	/* A tree to store in use slabs, which is used while freeing to
 	 * find a slab for the given address.
 	 */
@@ -97,8 +97,8 @@ typedef struct cache {
 
 /*initializes the Slab Allocator subsystem*/
 void InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size), 
-		void * (*v_free)(void * va, int size),
-		void * (*v_protect)(void * va, int size, int protection)
+		int (*v_free)(void * va, int size),
+		int (*v_protect)(void * va, int size, int protection)
        );
 
 /*initializes a cache*/

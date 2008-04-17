@@ -11,13 +11,15 @@
 #ifndef _BITS_H_
 #define _BITS_H_
 
+#include <ace.h>
+
 /*gets the bit value 1 or 0 of the specified index in a bit array - bit_index starts from 0*/
 #define BIT_ARRAY_GET_BIT(bit_array, bit_index) \
 	( ((((BYTE*)(bit_array))[(bit_index) / BITS_PER_BYTE]) >> ((bit_index) % BITS_PER_BYTE) ) & 1 )
 
 /*sets the bit value to 1 in a bit array for a specified bit_index; bit_index starts from 0*/
 #define BIT_ARRAY_SET_BIT(bit_array, bit_index) \
-	((BYTE*)(bit_array))[(bit_index) / BITS_PER_BYTE] |= (1<< ((bit_index) % BITS_PER_BYTE) )
+	(((BYTE*)(bit_array))[(bit_index) / BITS_PER_BYTE] |= (1<< ((bit_index) % BITS_PER_BYTE) ))
 
 /*resets the bit value to 0 in a bit array for a specified bit_index; bit_index starts from 0*/
 #define BIT_ARRAY_CLEAR_BIT(bit_array, bit_index) \

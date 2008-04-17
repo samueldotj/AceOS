@@ -15,13 +15,13 @@ KERNEL_VIRTUAL_ADDRESS  equ (0xC0000000 + KERNEL_PHYSICAL_ADDRESS)
 
 KSTACK_SIZE             equ 0x2000
 
-EXTERN _sbss
-EXTERN _ebss
-EXTERN _cmain
-EXTERN _InitKernelPageDirectoryPhase1
-EXTERN _InitKernelPageDirectoryPhase2
+EXTERN sbss
+EXTERN ebss
+EXTERN cmain
+EXTERN InitKernelPageDirectoryPhase1
+EXTERN InitKernelPageDirectoryPhase2
 
-GLOBAL _KernelEntry
+GLOBAL KernelEntry
 
 [SECTION .boot]
 [BITS 32]
@@ -34,12 +34,12 @@ mboot:
 	; fields used if MULTIBOOT_AOUT_KLUDGE is set in MULTIBOOT_HEADER_FLAGS
 	dd mboot - KERNEL_VIRTUAL_ADDRESS + KERNEL_PHYSICAL_ADDRESS			; these are PHYSICAL addresses
 	dd KERNEL_PHYSICAL_ADDRESS											; start of kernel .text (code) section
-	dd _sbss - KERNEL_VIRTUAL_ADDRESS + KERNEL_PHYSICAL_ADDRESS			; end of kernel .data section
-	dd _ebss - KERNEL_VIRTUAL_ADDRESS + KERNEL_PHYSICAL_ADDRESS			; end of kernel BSS
-	dd _KernelEntry - KERNEL_VIRTUAL_ADDRESS + KERNEL_PHYSICAL_ADDRESS	; kernel entry point (initial EIP)
+	dd sbss - KERNEL_VIRTUAL_ADDRESS + KERNEL_PHYSICAL_ADDRESS			; end of kernel .data section
+	dd ebss - KERNEL_VIRTUAL_ADDRESS + KERNEL_PHYSICAL_ADDRESS			; end of kernel BSS
+	dd KernelEntry - KERNEL_VIRTUAL_ADDRESS + KERNEL_PHYSICAL_ADDRESS	; kernel entry point (initial EIP)
 
 align 4
-_KernelEntry:
+KernelEntry:
 	;create kernel stack
 	mov esp, ((kstack+KSTACK_SIZE) - KERNEL_VIRTUAL_ADDRESS) + KERNEL_PHYSICAL_ADDRESS
 
@@ -47,15 +47,15 @@ _KernelEntry:
 	push eax                            ;Push the magic value
 
 	; Zeroing BSS section
-	mov edi, _sbss
-	mov ecx, _ebss
+	mov edi, sbss
+	mov ecx, ebss
 	sub ecx, edi
 	add edi, KERNEL_PHYSICAL_ADDRESS - KERNEL_VIRTUAL_ADDRESS
 	xor eax, eax
 	rep stosb
 	
 	;setup kernel page directory
-	call _InitKernelPageDirectoryPhase1
+	call InitKernelPageDirectoryPhase1
 	
 ;init paging
 	mov eax, cr0
@@ -75,10 +75,10 @@ _KernelEntry:
 	add esp, (KERNEL_VIRTUAL_ADDRESS - KERNEL_PHYSICAL_ADDRESS)
 	
 	;stack pointer and eip is corrected - remove the 0-4mb page entry
-	call _InitKernelPageDirectoryPhase2
+	call InitKernelPageDirectoryPhase2
 	
 	;parameters are pushed initially
-	call _cmain
+	call cmain
 
 	;endless loop should not be reached.
 	jmp $

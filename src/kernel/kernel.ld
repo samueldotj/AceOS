@@ -5,7 +5,7 @@
 kernel_physical_load_address = 0x100000;
 kernel_virtual_address = 0xC0000000 + kernel_physical_load_address;
 
-ENTRY (_KernelEntry)
+ENTRY (KernelEntry)
 
 SECTIONS
 {
@@ -31,18 +31,18 @@ SECTIONS
 		. = ALIGN(4096); 
 	}
 	.bss : 
-	{   _sbss = .;
+	{   sbss = .;
 	
 		/*kernel page directory*/
 		. = ALIGN(4096);
-		_kernel_page_directory = .;
+		kernel_page_directory = .;
 		. += 4096;
 		
 		bss = .;
 		*(.bss)
 		*(COMMON)
 		*(.dynbss)
-		_ebss = .;
+		ebss = .;
 	}
 	. = ALIGN(4096);
 	

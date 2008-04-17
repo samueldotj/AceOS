@@ -10,6 +10,8 @@ include $(ACE_ROOT)/make.conf
 #since we might use different cross compiler for Ace, for testing use the host's default compiler.
 CC = /usr/bin/gcc
 
+CFLAGS =   -W1 -Wno-multichar -funsigned-char -fleading-underscore -I $(INCLUDE)
+
 #phony - all - make target
 all:    testtree testlist testavl
 
@@ -20,16 +22,16 @@ clean:
 
 #how to make target
 testcommon.o:	testcommon.c
-	$(CC) -I $(INCLUDE) -c -o testcommon.o testcommon.c
+	$(CC) $(CFLAGS) -c -o testcommon.o testcommon.c
 	
 testtree:	testcommon.o testtree.c $(OBJ)/libds.a
-	$(CC) -I $(INCLUDE) -L $(OBJ) -o testtree testtree.c testcommon.o -lds
+	$(CC) $(CFLAGS) -L $(OBJ) -o testtree testtree.c testcommon.o -lds
 
 testlist:	testlist.c $(OBJ)/libds.a
-	$(CC) -I $(INCLUDE) -L $(OBJ) -o testlist testlist.c -lds
+	$(CC) $(CFLAGS) -L $(OBJ) -o testlist testlist.c -lds
 	
 testavl:	testcommon.o testavl.c $(OBJ)/libds.a
-	$(CC) -I $(INCLUDE) -L $(OBJ) -o testavl testavl.c testcommon.o -lds
+	$(CC) $(CFLAGS) -L $(OBJ) -o testavl testavl.c testcommon.o -lds
 	
 #create .d files
 -include $(OBJS:.o=.d)

@@ -10,6 +10,8 @@ include $(ACE_ROOT)/make.conf
 #since we might use different cross compiler for Ace, for testing use the host's default compiler.
 CC = /usr/bin/gcc
 
+CFLAGS =   -W1 -Wno-multichar -funsigned-char -fleading-underscore -I $(INCLUDE)
+
 #phony - all - make target
 all:    testslab testheap 
 
@@ -20,16 +22,16 @@ clean:
 
 #how to make target
 testcommon.o:	testcommon.c
-	$(CC) -I $(INCLUDE) -c -o testcommon.o testcommon.c
+	$(CC) $(CFLAGS) -c -o testcommon.o testcommon.c
 
 spinlock.o:	spinlock.c
-	$(CC) -I $(INCLUDE) -c -o spinlock.o spinlock.c
+	$(CC) $(CFLAGS) -c -o spinlock.o spinlock.c
 	
 testslab:	testcommon.o spinlock.o testslab.c $(OBJ)/libheap.a
-	$(CC) -I $(INCLUDE) -L $(OBJ) -o testslab testslab.c spinlock.o testcommon.o -lheap -lds
+	$(CC) $(CFLAGS) -L $(OBJ) -o testslab testslab.c spinlock.o testcommon.o -lheap -lds
 
 testheap:	testcommon.o spinlock.o testheap.c $(OBJ)/libheap.a
-	$(CC) -I $(INCLUDE) -L $(OBJ) -o testheap testheap.c spinlock.o testcommon.o -lheap -lds
+	$(CC) $(CFLAGS) -L $(OBJ) -o testheap testheap.c spinlock.o testcommon.o -lheap -lds
 	
 #create .d files
 -include $(OBJS:.o=.d)

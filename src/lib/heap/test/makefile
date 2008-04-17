@@ -10,7 +10,7 @@ include $(ACE_ROOT)/make.conf
 #since we might use different cross compiler for Ace, for testing use the host's default compiler.
 CC = /usr/bin/gcc
 
-CFLAGS =   -W1 -Wno-multichar -funsigned-char -fno-leading-underscore -I $(INCLUDE)
+CFLAGS =   -Wall -Wno-multichar -funsigned-char -fno-leading-underscore -I $(INCLUDE)
 
 #phony - all - make target
 all:    testslab testheap 

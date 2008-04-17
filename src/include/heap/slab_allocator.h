@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  09:04PM
-  			Last modified: Tue Apr 15, 2008  12:09AM
+  			Last modified: Thu Apr 17, 2008  10:29AM
   \brief	This file contains structures and macros to maintain slab_allocator
 */
 
@@ -36,7 +36,7 @@ typedef struct slab_allocator_metadata
 
 
 #ifdef SLAB_DEBUG_ENABLED
-	UINT32	slab_debug_options = 0;
+	#define	slab_debug_options 0
 #endif
 
 

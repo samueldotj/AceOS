@@ -11,7 +11,7 @@ include $(ACE_ROOT)/make.conf
 ARCH=	i386
 
 #clean dirs 
-CLEAN_DIRS=	generic $(ARCH) $(ARCH)/debug
+CLEAN_DIRS=	generic $(ARCH) $(ARCH)/debug $(ARCH)/mm
 
 #path for the output kernel
 TARGET= $(OBJ)/kernel.sys

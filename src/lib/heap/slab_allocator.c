@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Fri Apr 18, 2008  12:02AM
+  			Last modified: Sat Apr 19, 2008  01:06AM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -13,7 +13,7 @@
 #include <heap/heap.h>
 #include <string.h>
 #include <ds/binary_tree.h>
-#include <bits.h>
+#include <ds/bits.h>
 
 static SLAB_ALLOCATOR_METADATA slab_alloactor_metadata;
 
@@ -368,9 +368,9 @@ static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 {
 	VADDR ret_va = SLAB_START(slab_ptr, cache_ptr->slab_metadata_offset);
 	UINT32 free_buffer_index = 0;
-	int bit_array_size_in_bytes;
+	int ret;
 
-	printf("GetFreeBufferFromCache: slab_ptr=%p slab_start=%p index_array=%d\n", slab_ptr, (VADDR*)(ret_va), (slab_ptr->buffer_usage_bitmap)[0]);
+	printf("GetFreeBufferFromCache: slab_ptr=%p slab_start=%p index_array=%u\n", slab_ptr, (VADDR*)(ret_va), (slab_ptr->buffer_usage_bitmap)[0]);
 	
 	/*atleast one buffer should be free*/
 	assert ( slab_ptr->used_buffer_count < cache_ptr->slab_buffer_count );
@@ -378,17 +378,14 @@ static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 	cache_ptr->free_buffer_count--;
 	
 	/*Find the first free buffer*/
-	bit_array_size_in_bytes = cache_ptr->slab_buffer_count / BITS_PER_BYTE + 1;
-
-	/* Only for buffer counts exactly equal to BITS_PER_BYTE, special care must be taken */
-	if ( 0 == (cache_ptr->slab_buffer_count % BITS_PER_BYTE) )
+	ret = FindFirstClearBitInBitArray((void*)(slab_ptr->buffer_usage_bitmap), cache_ptr->slab_buffer_count, &free_buffer_index);
+	if (ret == -1)
 	{
-		bit_array_size_in_bytes--;
+		return NULL;
 	}
-	BIT_ARRAY_FIND_FIRST_CLEAR_BIT(slab_ptr->buffer_usage_bitmap, bit_array_size_in_bytes, free_buffer_index);
 	
 	/* Set the bitmap to indicate the buffer is used */
-	BIT_ARRAY_SET_BIT(slab_ptr->buffer_usage_bitmap, free_buffer_index );
+	SetBitInBitArray((void*)(slab_ptr->buffer_usage_bitmap), free_buffer_index );
 	
 	/*calculate the virtual address*/
 	ret_va += ( BUFFER_SIZE(cache_ptr->buffer_size) * free_buffer_index);
@@ -420,7 +417,8 @@ static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 {
 	SLAB_PTR slab_ptr;
-	int buffer_index, first_clear_bit, bit_array_size_in_bytes;
+	int buffer_index, ret;
+	UINT32 first_clear_bit;
 	VADDR va_start;
 
 	/* Find the slab which contains this buffer, using in_use_slab_tree */
@@ -429,32 +427,26 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 		return -1;
 
 	/* Clear the corresponding bit in buffer_usage_bitmap */
-	va_start = SLAB_START(slab_ptr, cache_ptr->slab_metadata_size);
+	va_start = SLAB_START(slab_ptr, cache_ptr->slab_metadata_offset);
 	buffer_index = ( ((VADDR)buffer - va_start) / (cache_ptr->buffer_size) ) - 1;
-	BIT_ARRAY_CLEAR_BIT( slab_ptr->buffer_usage_bitmap, buffer_index );	
+	ClearBitInBitArray( (void*)(slab_ptr->buffer_usage_bitmap), buffer_index );	
 
 	slab_ptr->used_buffer_count --;
 	cache_ptr->free_buffer_count ++;
 
 	/* If all buffers in the slab are free, move the slab to completely free slab list */
-	bit_array_size_in_bytes = cache_ptr->slab_buffer_count / BITS_PER_BYTE + 1;
-
-	/* Only for buffer counts exactly equal to BITS_PER_BYTE, special care must be taken */
-	if ( 0 == (cache_ptr->slab_buffer_count % BITS_PER_BYTE) )
+	ret = FindFirstClearBitInBitArray((void*)(slab_ptr->buffer_usage_bitmap), cache_ptr->slab_buffer_count, &first_clear_bit);
+	if ( ret == -1 )
 	{
-		bit_array_size_in_bytes--;
+		return -1;
 	}
 
-	//BIT_ARRAY_FIND_FIRST_CLEAR_BIT(slab_ptr->buffer_usage_bitmap, bit_array_size_in_bytes, first_clear_bit);
-	if ( -1 != first_clear_bit )
-	{
-		RemoveFromList( &(slab_ptr->partially_free_list) );
-		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
-		AddToCompleteList( cache_ptr, slab_ptr );
-		cache_ptr->free_slabs_count ++;
-		/* If free buffer count is greater than free_slabs_threshold, then start VM operation */
-		// TBD
-	}
+	RemoveFromList( &(slab_ptr->partially_free_list) );
+	RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
+	AddToCompleteList( cache_ptr, slab_ptr );
+	cache_ptr->free_slabs_count ++;
+	/* If free buffer count is greater than free_slabs_threshold, then start VM operation */
+	// TBD
 	return 0;
 }
 

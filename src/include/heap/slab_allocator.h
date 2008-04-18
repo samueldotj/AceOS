@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  09:04PM
-  			Last modified: Thu Apr 17, 2008  11:44PM
+  			Last modified: Sat Apr 19, 2008  12:18AM
   \brief	This file contains structures and macros to maintain slab_allocator
 */
 
@@ -48,7 +48,7 @@ typedef struct slab {
 
 	LIST		completely_free_list;/* It is a list of completely free slabs (all the buffers within the slab are free). */
 	
-	UINT32		buffer_usage_bitmap[0];	/* If a bit is set, the corresponding buffer is used; else free */
+	BYTE		buffer_usage_bitmap[0];	/* If a bit is set, the corresponding buffer is used; else free */
 } SLAB, *SLAB_PTR;
 
 typedef struct cache {

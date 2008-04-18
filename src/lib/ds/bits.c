@@ -4,7 +4,7 @@
 	\version 	1.0
 	\date	
   			Created: 18-Apr-2008 15:34
-  			Last modified: 18-Apr-2008 15:34
+  			Last modified: Sat Apr 19, 2008  01:19AM
 	\brief	bit manipulation
 
 */
@@ -50,6 +50,13 @@ inline void ClearBitInBitArray(void * bit_array, UINT32 bit_index)
 inline UINT32 FindFirstSetBitInBitArray(void * bit_array, UINT32 length, UINT32 * result)
 {
 	UINT32 i, length_in_byte = length/BITS_PER_BYTE + 1;
+
+	/* Only for buffer counts exactly equal to BITS_PER_BYTE, special care must be taken */
+	if ( (length % BITS_PER_BYTE) == 0 )
+	{
+		length_in_byte--;
+	}
+
 	for(i=0; i<length_in_byte; i++)
 	{
 		register BYTE byte = ((BYTE*)bit_array)[i];
@@ -76,6 +83,13 @@ inline UINT32 FindFirstSetBitInBitArray(void * bit_array, UINT32 length, UINT32 
 inline UINT32 FindFirstClearBitInBitArray(void * bit_array, UINT32 length, UINT32 * result)
 {
 	UINT32 i, length_in_byte = length/BITS_PER_BYTE + 1;
+
+	/* Only for buffer counts exactly equal to BITS_PER_BYTE, special care must be taken */
+	if ( (length % BITS_PER_BYTE) == 0 )
+	{
+		length_in_byte--;
+	}
+
 	for(i=0;i<length_in_byte;i++)
 	{
 		register BYTE byte = ((BYTE*)bit_array)[i];

@@ -15,7 +15,7 @@
 #include <ace.h>
 #include <ds/avl_tree.h>
 #include <ds/list.h>
-#include <kernel/spinlock.h>
+#include <sync/spinlock.h>
 
 /*flags for cache alloc*/
 #define CACHE_ALLOC_NO_SLEEP			1

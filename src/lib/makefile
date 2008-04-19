@@ -6,7 +6,7 @@
 #	Brief			:	commands supported are: ds string all clean 
 
 include $(ACE_ROOT)/make.conf
-ALL_DIRS=	string ds heap
+ALL_DIRS=	string ds sync heap
 
 all:	always
 	@for dir in $(ALL_DIRS); do make -C $$dir all; done

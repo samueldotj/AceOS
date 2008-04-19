@@ -7,9 +7,6 @@
 
 include $(ACE_ROOT)/make.conf
 
-#this variable should point to the directory for which the compilation is being done
-ARCH=	i386
-
 #clean dirs 
 CLEAN_DIRS=	generic $(ARCH) $(ARCH)/debug $(ARCH)/mm
 

@@ -17,6 +17,12 @@ string:	always
 ds:	always
 	@make -C ds
 
+heap:	always
+	@make -C heap
+
+sync:	always
+	@make -C sync
+
 clean:	always
 	@for dir in $(ALL_DIRS); do make -C $$dir clean; done
 

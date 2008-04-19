@@ -24,14 +24,11 @@ clean:
 testcommon.o:	testcommon.c
 	$(CC) $(CFLAGS) -c -o testcommon.o testcommon.c
 
-spinlock.o:	spinlock.c
-	$(CC) $(CFLAGS) -c -o spinlock.o spinlock.c
-	
-testslab:	testcommon.o spinlock.o testslab.c $(OBJ)/libheap.a
-	$(CC) $(CFLAGS) -L $(OBJ) -o testslab testslab.c spinlock.o testcommon.o -lheap -lds
+testslab:	testcommon.o testslab.c $(OBJ)/libheap.a
+	$(CC) $(CFLAGS) -L $(OBJ) -o testslab testslab.c testcommon.o -lheap -lds -lsync
 
-testheap:	testcommon.o spinlock.o testheap.c $(OBJ)/libheap.a
-	$(CC) $(CFLAGS) -L $(OBJ) -o testheap testheap.c spinlock.o testcommon.o -lheap -lds
+testheap:	testcommon.o testheap.c $(OBJ)/libheap.a
+	$(CC) $(CFLAGS) -L $(OBJ) -o testheap testheap.c testcommon.o -lheap -lds -lsync
 	
 #create .d files
 -include $(OBJS:.o=.d)

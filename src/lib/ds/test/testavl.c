@@ -77,6 +77,11 @@ int main(int argc, char * argv[])
 		{
 			if ( verbose_level > 1 ) printf("found. Deleting it : ");
 			RemoveNodeFromAvlTree( &root, del);
+			if (!root)
+			{
+				printf("Last node deleted and hence no root\n");
+				break;
+			}
 			if ( SearchAvlTree( root, &del_node.t) )
 			{
 				printf("Deleted node still exists(%d)\n", del_number_index);

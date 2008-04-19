@@ -12,7 +12,7 @@
 #ifndef __PAGETAB__H
 #define __PAGETAB__H
 
-#define PAGE_SIZE 4192
+
 #define PAGE_DIRECTORY_ENTRIES		1024
 #define PAGE_TABLE_ENTRIES			1024
 

@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Sat Apr 19, 2008  01:06AM
+  			Last modified: Sun Apr 20, 2008  02:23AM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -87,6 +87,18 @@ static void AddToCompleteList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 	cache_ptr->free_slabs_count++;
 }
 
+static void RemoveFromCompleteList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
+{
+	SLAB_PTR next_slab_ptr = STRUCT_FROM_MEMBER( SLAB_PTR, completely_free_list, (slab_ptr)->completely_free_list.next);
+	if ( slab_ptr == next_slab_ptr )
+		cache_ptr->completely_free_slab_list_head = NULL;
+	else
+		cache_ptr->completely_free_slab_list_head = next_slab_ptr;
+		
+	RemoveFromList( &slab_ptr->completely_free_list );
+	cache_ptr->free_slabs_count--;
+}
+
 static SLAB_PTR RemoveFirstSlabFromCompleteList(CACHE_PTR cache_ptr)
 {
 	SLAB_PTR slab_ptr = cache_ptr->completely_free_slab_list_head;
@@ -145,12 +157,13 @@ static COMPARISION_RESULT slab_inuse_tree_compare(AVL_TREE_PTR node1, AVL_TREE_P
 
 	\param
 		slab_ptr: Pointer to slab that has to be initialized.
-		buffer_count: 
+		buffer_count: count of buffers in this slab. 
 
 	\return	 void 
 */
 static void InitSlab(SLAB_PTR slab_ptr, UINT32 buffer_count)
 {
+	int nbytes;
 	/*initialize the tree and list */
 	InitList( &(slab_ptr->partially_free_list) );
 	InitAvlTreeNode( &(slab_ptr->in_use_tree), slab_inuse_tree_compare);
@@ -158,7 +171,12 @@ static void InitSlab(SLAB_PTR slab_ptr, UINT32 buffer_count)
 	
 	/*all buffers are free*/
 	slab_ptr->used_buffer_count = 0;
-	memset( slab_ptr->buffer_usage_bitmap, 0, buffer_count/BITS_PER_BYTE);
+	nbytes = buffer_count / BITS_PER_BYTE;
+	if ( buffer_count % BITS_PER_BYTE )
+	{
+		nbytes++;
+	}
+	memset( slab_ptr->buffer_usage_bitmap, 0, nbytes);
 	return;
 }
 
@@ -370,7 +388,7 @@ static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 	UINT32 free_buffer_index = 0;
 	int ret;
 
-	printf("GetFreeBufferFromCache: slab_ptr=%p slab_start=%p index_array=%u\n", slab_ptr, (VADDR*)(ret_va), (slab_ptr->buffer_usage_bitmap)[0]);
+	//printf("GetFreeBufferFromCache: slab_ptr=%p slab_start=%p index_array=%u\n", slab_ptr, (VADDR*)(ret_va), (slab_ptr->buffer_usage_bitmap)[0]);
 	
 	/*atleast one buffer should be free*/
 	assert ( slab_ptr->used_buffer_count < cache_ptr->slab_buffer_count );
@@ -389,7 +407,7 @@ static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 	
 	/*calculate the virtual address*/
 	ret_va += ( BUFFER_SIZE(cache_ptr->buffer_size) * free_buffer_index);
-	printf("va granted: %p index=%d buf_count=%d\n", (VADDR*)(ret_va), free_buffer_index, cache_ptr->slab_buffer_count);
+	//printf("va granted: %p index=%d buf_count=%d\n", (VADDR*)(ret_va), free_buffer_index, cache_ptr->slab_buffer_count);
 	
 	/* If all buffers utilized remove from partialy free list */
 	if ( slab_ptr->used_buffer_count == cache_ptr->slab_buffer_count )
@@ -418,7 +436,7 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 {
 	SLAB_PTR slab_ptr;
 	int buffer_index, ret;
-	UINT32 first_clear_bit;
+	UINT32 first_set_bit;
 	VADDR va_start;
 
 	/* Find the slab which contains this buffer, using in_use_slab_tree */
@@ -428,23 +446,22 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 
 	/* Clear the corresponding bit in buffer_usage_bitmap */
 	va_start = SLAB_START(slab_ptr, cache_ptr->slab_metadata_offset);
-	buffer_index = ( ((VADDR)buffer - va_start) / (cache_ptr->buffer_size) ) - 1;
+	buffer_index = ( ((VADDR)buffer - va_start) / (cache_ptr->buffer_size) );
 	ClearBitInBitArray( (void*)(slab_ptr->buffer_usage_bitmap), buffer_index );	
 
 	slab_ptr->used_buffer_count --;
 	cache_ptr->free_buffer_count ++;
 
 	/* If all buffers in the slab are free, move the slab to completely free slab list */
-	ret = FindFirstClearBitInBitArray((void*)(slab_ptr->buffer_usage_bitmap), cache_ptr->slab_buffer_count, &first_clear_bit);
-	if ( ret == -1 )
+	ret = FindFirstSetBitInBitArray((void*)(slab_ptr->buffer_usage_bitmap), cache_ptr->slab_buffer_count, &first_set_bit);
+	if ( ret != -1 ) /* All buffers are not free */
 	{
-		return -1;
+		return 0;
 	}
 
-	RemoveFromList( &(slab_ptr->partially_free_list) );
+	RemoveFromPartialList(cache_ptr, slab_ptr);
 	RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
 	AddToCompleteList( cache_ptr, slab_ptr );
-	cache_ptr->free_slabs_count ++;
 	/* If free buffer count is greater than free_slabs_threshold, then start VM operation */
 	// TBD
 	return 0;
@@ -469,8 +486,19 @@ void DestroyCache(CACHE_PTR rem_cache)
 	/* Get a lock to cache */
 	SpinLock( &(rem_cache->slock) );
 
+	//printf("root of tree = %p\n", rem_cache->in_use_slab_tree_root);
 	/* Before proceeding, make sure this cache is no more used by anybody */
-	assert( NULL==rem_cache->in_use_slab_tree_root && NULL==rem_cache->partially_free_slab_list_head );
+	assert( rem_cache->in_use_slab_tree_root == NULL);
+
+	/* Free all the slabs in cache's partially free slab list */
+	while(1)	
+	{
+		rem_slab = rem_cache->partially_free_slab_list_head;
+		if (rem_slab == NULL)
+			break;
+		RemoveFromPartialList(rem_cache, rem_slab);
+	}
+	
 
 	/* Free the vm_pages inside slabs pointed by completely free slab list */
 	free_slabs = rem_cache->free_slabs_count;
@@ -478,13 +506,14 @@ void DestroyCache(CACHE_PTR rem_cache)
 	{
 		rem_slab =  rem_cache->completely_free_slab_list_head;
 		rem_cache->completely_free_slab_list_head = STRUCT_FROM_MEMBER( SLAB_PTR, completely_free_list, rem_cache->completely_free_slab_list_head->completely_free_list.next);
-		RemoveFromList( &(rem_slab->completely_free_list) );
+		RemoveFromCompleteList( rem_cache, rem_slab );
 		
 		/* Now get the starting address of slab */
 		rem_va = SLAB_START( rem_slab, rem_cache->slab_metadata_offset);
 		VM_FREE( (void*)rem_va, rem_cache->slab_size );
 		free_slabs--;
 	}
+	SpinUnlock( &(rem_cache->slock) );
 	return;
 }
 

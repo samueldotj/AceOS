@@ -4,7 +4,7 @@
   \version      3.0
   \date
  			Created:
- 			Last modified: Thu Apr 17, 2008  11:27PM
+ 			Last modified: Sun Apr 20, 2008  02:15AM
   \brief
 */
 
@@ -70,7 +70,7 @@ int main(int argc, char * argv[])
 	FreeMemory(&cache1, (void **)va_array, total_array_elements);
 	if (verbose_level >= 2)
 	{
-		printf("iFreed memory from cache\n");
+		printf("Freed memory from cache\n");
 	}
 	
 	/*LIFO - test*/
@@ -117,6 +117,10 @@ void FreeMemory(CACHE_PTR c, void * va_array[], int count)
 		{
 			printf("FreeBuffer(%p, %p) %d failed\n", va_array[i], c, i);
 			exit(1);
+		}
+		if (verbose_level >=2)
+		{
+			printf("Freed buffer %p\n", (VADDR*)(va_array[i]));
 		}
 	}
 }

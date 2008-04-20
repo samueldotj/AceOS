@@ -5,7 +5,12 @@ if [ $# -lt 3 ] ; then
 	exit 1
 fi
 
-if [ $OSTYPE = cygwin ] ; then
+if [ ! -n "$OSTYPE" ]
+then
+	OSTYPE="LINUX"
+fi
+
+if [ $OSTYPE = "cygwin" ] ; then
 	WINDOWS_PATH=`cygpath -a -w $1`
 	filedisk /mount 0 $WINDOWS_PATH m:
 	cp $2 m:/$3

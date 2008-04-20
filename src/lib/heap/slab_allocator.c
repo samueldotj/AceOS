@@ -227,6 +227,9 @@ int InitCache(CACHE_PTR new_cache, UINT32 size,
 		int (*destructor)(void *buffer))
 {
 	int buf_count, bitmap_size;
+	
+	if ( size <= 0 )
+		return -1;
 
 	InitSpinLock( &new_cache->slock);
 

@@ -26,63 +26,68 @@ int parse_arguments(int argc, char * argv[]);
 void * virtual_alloc(int size);
 int virtual_free(void * va, int size);
 int virtual_protect(void * va, int size, int protection);
-int cache1_constructor( void *buffer);
-int cache1_destructor( void *buffer);
+int cache_constructor( void *buffer);
+int cache_destructor( void *buffer);
 void AllocateMemory(CACHE_PTR c, void * va_array[], int count);
-void FreeMemory(CACHE_PTR c, void * va_array[], int count);
+void FreeMemoryFifo(CACHE_PTR c, void * va_array[], int count);
+void FreeMemoryLifo(CACHE_PTR c, void * va_array[], int count);
+void FreeMemoryRandom(CACHE_PTR c, void * va_array[], int count);
 
+extern int alloc_count, cache_size, min_slabs, free_slabs_threshold, max_slabs;
+
+#define PRINT(verbose, string)	if( verbose_level >= verbose ) printf(string);
 
 int main(int argc, char * argv[])
 {
-	int cache_size;
-	VADDR va_array[10];
-	int total_array_elements = sizeof(va_array) / sizeof(VADDR);
-
-	CACHE cache1;
+	CACHE cache;
+	VADDR * va_array;
 
 	if ( parse_arguments(argc, argv) )
 		return 1;
 	
+	printf("Slab Allocator Test : alloc_count %d cache_size %d, min_slabs %d, free_slabs_threshold %d, max_slabs %d\n", 
+								alloc_count, cache_size, min_slabs, free_slabs_threshold, max_slabs);
+	va_array = (VADDR *) calloc(alloc_count, sizeof(VADDR));
+	if ( va_array == NULL )
+	{
+		perror("malloc ");
+		return 1;
+	}
 	/*intialize slab alloctor*/
 	InitSlabAllocator(PAGE_SIZE, virtual_alloc, virtual_free, virtual_protect );
-	if (verbose_level >= 2)
+	PRINT( 2, "Initialized Slab allocator\n" );
+	
+	PRINT( 2, "Initializing cache\n");	
+	if ( InitCache(&cache, cache_size, free_slabs_threshold, min_slabs, max_slabs, &cache_constructor, &cache_destructor) == -1 )
 	{
-		printf("Initialized Slab allocator\n");
+		printf(" failed");
+		return 1;
 	}
 	
-	/*intialize  caches*/
-	cache_size = 256;
-	InitCache(&cache1, 256, 6, 8, 16, &cache1_constructor, &cache1_destructor);
-	if (verbose_level >= 2)
-	{
-		printf("Initialized cache\n");
-	}
 	
 	/*FIFO - test*/
-	/*allocate memory*/
-	AllocateMemory(&cache1, (void **)va_array, total_array_elements );
-	if (verbose_level >= 2)
-	{
-		printf("Allocated memory to cache\n");
-	}
+	PRINT( 1, "FIFO Test : allocating memory from cache\n");
+	AllocateMemory(&cache, (void **)va_array, alloc_count );
+	PRINT( 1, "FIFO Test : free buffer\n");
+	FreeMemoryFifo(&cache, (void **)va_array, alloc_count);
 	
-	/*free memory*/
-	FreeMemory(&cache1, (void **)va_array, total_array_elements);
-	if (verbose_level >= 2)
-	{
-		printf("Freed memory from cache\n");
-	}
 	
 	/*LIFO - test*/
+	PRINT( 1, "LIFO Test : allocating memory from cache\n");
+	AllocateMemory(&cache, (void **)va_array, alloc_count );
+	PRINT( 1, "LIFO Test : free buffer\n");
+	FreeMemoryLifo(&cache, (void **)va_array, alloc_count);
 	
 	/*random - test*/
+	PRINT( 1, "Random Test : allocating memory from cache\n");
+	AllocateMemory(&cache, (void **)va_array, alloc_count );
+	PRINT( 1, "Random Test : free buffer\n");
+	FreeMemoryLifo(&cache, (void **)va_array, alloc_count);
 	
+	DestroyCache( &cache );
+	PRINT(2, "Cache destroyed\n");
 	
-	DestroyCache( &cache1 );
-	if (verbose_level >= 2)
-	{
-		printf("Cache destroyed\n");
-	}
+	free(va_array);
 	
 	return 0;
 }
@@ -108,7 +113,7 @@ void AllocateMemory(CACHE_PTR c, void * va_array[], int count)
 }
 
 /*allocate memory from slab and store the va in va_array*/
-void FreeMemory(CACHE_PTR c, void * va_array[], int count)
+void FreeMemoryFifo(CACHE_PTR c, void * va_array[], int count)
 {
 	int i;
 	for(i=0;i<count; i++)
@@ -123,6 +128,47 @@ void FreeMemory(CACHE_PTR c, void * va_array[], int count)
 			printf("Freed buffer %p\n", (VADDR*)(va_array[i]));
 		}
 	}
+}
+void FreeMemoryLifo(CACHE_PTR c, void * va_array[], int count)
+{
+	int i;
+	for(i=count-1;i>=0; i--)
+	{
+		if ( FreeBuffer(va_array[i], c) == -1 )
+		{
+			printf("FreeBuffer(%p, %p) %d failed\n", va_array[i], c, i);
+			exit(1);
+		}
+		if (verbose_level >=2)
+		{
+			printf("Freed buffer %p\n", (VADDR*)(va_array[i]));
+		}
+	}
+}
+void FreeMemoryRandom(CACHE_PTR c, void * va_array[], int count)
+{
+	int i;
+	int * rand_array = (int *)calloc(count, 1);
+	if ( rand_array == NULL )
+	{
+		perror("calloc ");
+		exit(1);
+	}
+	fill_random_numbers( rand_array, count, count );
+	for(i=count-1;i>=0; i--)
+	{
+		int j = rand_array[i];
+		if ( FreeBuffer(va_array[j], c) == -1 )
+		{
+			printf("FreeBuffer(%p, %p) %d %d failed\n", va_array[j], c, i, j);
+			exit(1);
+		}
+		if (verbose_level >=2)
+		{
+			printf("Freed buffer %p\n", (VADDR*)(va_array[j]));
+		}
+	}
+	free(rand_array);
 }
 
 void * virtual_alloc(int size)
@@ -189,12 +235,21 @@ int virtual_protect(void * va, int size, int protection)
 	return mprotect( va, size, protection );
 }
 
-int cache1_constructor( void *buffer)
+int cache_constructor( void *buffer)
 {
+	int i, j;
+	char pattern[]="ERROR ";
+	//fill the repeating pattern in the buffer
+	for(i=0; i<cache_size; i++, j++)
+	{
+		((char *)buffer)[i] = pattern[j];
+		if ( j > sizeof(pattern) )
+			j=0;
+	}
 	return 0;
 }
 
-int cache1_destructor( void *buffer)
+int cache_destructor( void *buffer)
 {
 	return 0;
 }

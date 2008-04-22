@@ -141,11 +141,11 @@ static COMPARISION_RESULT slab_inuse_tree_compare(AVL_TREE_PTR node1, AVL_TREE_P
 {
 		if ( node1 < node2 )
 		{
-			return LESS_THAN;
+			return GREATER_THAN;
 		}
 		else if ( node1 > node2 )
 		{
-			return GREATER_THAN;
+			return LESS_THAN;
 		}
 		else
 		{
@@ -508,17 +508,17 @@ static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr )
 		slab_ptr = STRUCT_FROM_MEMBER( SLAB_PTR, in_use_tree, root);
 		start_va = (VADDR) SLAB_START( slab_ptr, cache_ptr->slab_metadata_offset);
 
-		if ( buffer < start_va )
+		if ( buffer >= start_va && buffer < (start_va + cache_ptr->slab_metadata_offset) )
+		{
+			return slab_ptr;
+		}
+		else if ( buffer < start_va )
 		{
 			root = AVL_TREE_LEFT_NODE(root);
 		}
-		else if ( buffer > (VADDR)slab_ptr)
+		else //if ( buffer > (start_va + cache_ptr->slab_metadata_offset) )
 		{
 			root = AVL_TREE_RIGHT_NODE(root);
-		}
-		else
-		{
-			return slab_ptr;
 		}
 	}
 	return NULL;

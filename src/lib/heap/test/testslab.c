@@ -7,15 +7,13 @@
  			Last modified: Sun Apr 20, 2008  02:15AM
   \brief
 */
-
-
+#include <sys/mman.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <time.h>
 #include <ace.h>
 #include <heap/slab_allocator.h>
-#include <sys/mman.h>
 
 #define PAGE_SIZE	4096
 
@@ -32,6 +30,7 @@ void AllocateMemory(CACHE_PTR c, void * va_array[], int count);
 void FreeMemoryFifo(CACHE_PTR c, void * va_array[], int count);
 void FreeMemoryLifo(CACHE_PTR c, void * va_array[], int count);
 void FreeMemoryRandom(CACHE_PTR c, void * va_array[], int count);
+void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int min_run);
 
 extern int alloc_count, cache_size, min_slabs, free_slabs_threshold, max_slabs;
 
@@ -44,6 +43,8 @@ int main(int argc, char * argv[])
 
 	if ( parse_arguments(argc, argv) )
 		return 1;
+	
+	srand ( time(NULL) );
 	
 	printf("Slab Allocator Test : alloc_count %d cache_size %d, min_slabs %d, free_slabs_threshold %d, max_slabs %d\n", 
 								alloc_count, cache_size, min_slabs, free_slabs_threshold, max_slabs);
@@ -82,7 +83,10 @@ int main(int argc, char * argv[])
 	PRINT( 1, "Random Test : allocating memory from cache\n");
 	AllocateMemory(&cache, (void **)va_array, alloc_count );
 	PRINT( 1, "Random Test : free buffer\n");
-	FreeMemoryLifo(&cache, (void **)va_array, alloc_count);
+	FreeMemoryRandom(&cache, (void **)va_array, alloc_count);
+	
+	/*completely random*/
+	RandomMemoryAllocFree(&cache, (void **)va_array, alloc_count, alloc_count);
 	
 	DestroyCache( &cache );
 	PRINT(2, "Cache destroyed\n");
@@ -171,6 +175,45 @@ void FreeMemoryRandom(CACHE_PTR c, void * va_array[], int count)
 	free(rand_array);
 }
 
+void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int min_run)
+{
+	int i, not_freed=0;
+	for(i=0; i<min_run; i++)
+	{
+		int allocate_count = rand() % array_size;
+		int free_count = rand() % (not_freed + allocate_count);
+		int j, * free_index_array = calloc(free_count, sizeof(int));
+		if ( free_index_array == NULL )
+		{
+			perror("calloc ");
+			exit(1);
+		}
+		//allocate memory
+		AllocateMemory(c, &va_array[not_freed+1], allocate_count);
+		
+		//free memory
+		fill_random_numbers( free_index_array, free_count, free_count);
+		for(j=0; j<free_count; j++)
+		{
+			if ( FreeBuffer(va_array[free_index_array[j]], c) == -1 )
+			{
+				printf("FreeBuffer(%p, %p) %d %d failed\n", va_array[j], c, i, j);
+				exit(1);
+			}
+			va_array[free_index_array[j]] = 0;
+		}
+		
+		//rearrange and resize the va_array
+		not_freed = allocate_count;
+		for(j=0; j<free_count; j++)
+		{
+			va_array[free_index_array[j]] = va_array[allocate_count];
+			not_freed--;
+		}
+		
+		free(free_index_array);
+	}
+}
 void * virtual_alloc(int size)
 {
 	void * va;

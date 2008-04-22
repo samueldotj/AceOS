@@ -96,7 +96,7 @@ typedef struct cache {
 } CACHE, *CACHE_PTR;
 
 /*initializes the Slab Allocator subsystem*/
-void InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size), 
+int InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size), 
 		int (*v_free)(void * va, int size),
 		int (*v_protect)(void * va, int size, int protection)
        );

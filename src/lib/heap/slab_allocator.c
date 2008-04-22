@@ -14,6 +14,7 @@
 #include <string.h>
 #include <ds/binary_tree.h>
 #include <ds/bits.h>
+#include <ds/align.h>
 
 static SLAB_ALLOCATOR_METADATA slab_alloactor_metadata;
 
@@ -22,9 +23,6 @@ static SLAB_ALLOCATOR_METADATA slab_alloactor_metadata;
 #define VM_ALLOC		slab_alloactor_metadata.virtual_alloc
 #define VM_FREE			slab_alloactor_metadata.virtual_free
 #define VM_PROTECT		slab_alloactor_metadata.virtual_protect
-
-#define VM_PAGE_ALIGN(addr)		((UINT32)(addr) & -VM_PAGE_SIZE)
-#define VM_PAGE_ALIGN_UP(addr)	((UINT32)((addr) + VM_PAGE_SIZE - 1) & -VM_PAGE_SIZE)
 
 #ifdef SLAB_DEBUG_ENABLED
 	#define SLAB_DEBUG_PAD_SIZE	(sizeof(UINT32))
@@ -42,7 +40,7 @@ static SLAB_ALLOCATOR_METADATA slab_alloactor_metadata;
 		a) size of the the slab structure
 		b) size of the bitmap at the end of the slab strucutre
 */
-#define SLAB_SIZE(buffer_size)		(VM_PAGE_ALIGN_UP( ((buffer_size) << 3)+sizeof(SLAB)+1 ) )
+#define SLAB_SIZE(buffer_size)		(ALIGN_UP( ((buffer_size) << 3)+sizeof(SLAB)+1 ,  VM_PAGE_SHIFT) )
 /*max number of pages in the slab*/
 #define SLAB_PAGES(buffer_size)		( (SLAB_SIZE(buffer_size)) >> VM_PAGE_SHIFT )
 /*get the start of slab from slab metadata addresss*/
@@ -54,7 +52,20 @@ static SLAB_ALLOCATOR_METADATA slab_alloactor_metadata;
 	
 #define REMOVE_FROM_INUSE_TREE(cache_ptr, slab_ptr)	\
 	RemoveNodeFromAvlTree( &(cache_ptr)->in_use_slab_tree_root, &(slab_ptr)->in_use_tree );
-	
+
+static void InitSlab(SLAB_PTR s, UINT32 buffer_count);
+static int AddSlabToCache(CACHE_PTR cache_ptr, int immediate_use);
+static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
+static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr );
+
+/*list/tree management static functions*/
+static COMPARISION_RESULT slab_inuse_tree_compare(AVL_TREE_PTR node1, AVL_TREE_PTR node2);
+static void AddToPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
+static void RemoveFromPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
+static void AddToCompleteList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
+static void RemoveFromCompleteList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
+static SLAB_PTR RemoveFirstSlabFromCompleteList(CACHE_PTR cache_ptr);
+
 static void AddToPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 {
 	if ( cache_ptr->partially_free_slab_list_head != NULL)
@@ -117,20 +128,10 @@ static SLAB_PTR RemoveFirstSlabFromCompleteList(CACHE_PTR cache_ptr)
 	return slab_ptr;
 }
 
-static COMPARISION_RESULT slab_inuse_tree_compare(AVL_TREE_PTR node1, AVL_TREE_PTR node2);
-static void InitSlab(SLAB_PTR s, UINT32 buffer_count);
-static int AddSlabToCache(CACHE_PTR cache_ptr, int immediate_use);
-static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
-static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr );
-
-
 /*!
 	\brief	 Compares the addresses and returns if greater-than/lesser-than or equal to accordingly.
-
-	\param
-		node1: Pointer to an AVL Tree node
-		node2: Pointer to an AVL Tree node
-
+	\param	node1 - Pointer to an AVL Tree node
+	\param	node2 - Pointer to an AVL Tree node
 	\return
 		LESS_THAN:	If virtual address of node1 < node2
 		GREATER_THAN: If virtual address of node1 > node2
@@ -154,11 +155,8 @@ static COMPARISION_RESULT slab_inuse_tree_compare(AVL_TREE_PTR node1, AVL_TREE_P
 
 /*!
 	\brief	Initializes the contents of a slab.
-
-	\param
-		slab_ptr: Pointer to slab that has to be initialized.
-		buffer_count: count of buffers in this slab. 
-
+	\param	slab_ptr - Pointer to slab that has to be initialized.
+	\param	buffer_count - count of buffers in this slab. 
 	\return	 void 
 */
 static void InitSlab(SLAB_PTR slab_ptr, UINT32 buffer_count)
@@ -180,43 +178,37 @@ static void InitSlab(SLAB_PTR slab_ptr, UINT32 buffer_count)
 	return;
 }
 
-
-
 /*!
-	\brief: Initializes a slab allocator. This is an 1 time operation.
-
-	\param
-		page_size: Size of virtual page.
-		v_alloc: Function Pointer to virtual alloc.
-		v_free:	Function pointer to virtual free.
-		v_protect:	Function pointer to virtual protect.
-
-	\return	 void
+	\brief	Initializes a slab allocator. This is an 1 time operation.
+	\param	page_size -  Size of virtual page.
+	\param	v_alloc - Function Pointer to virtual alloc.
+	\param	v_free - Function pointer to virtual free.
+	\param 	v_protect -	Function pointer to virtual protect.
+	\return	 0 on sucess and -1 on failure
 */
-void InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size), 
+int InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size), 
 	int (*v_free)(void * va, int size),
 	int (*v_protect)(void * va, int size, int protection)  )
 {
 	VM_PAGE_SIZE = page_size;
+	if ( FindFirstSetBitInBitArray( &VM_PAGE_SIZE, sizeof(VM_PAGE_SIZE) * BITS_PER_BYTE, &VM_PAGE_SHIFT) == -1 )
+		return -1;
 	VM_ALLOC = v_alloc;
 	VM_FREE = v_free;
 	VM_PROTECT = v_protect;
-	return;
+	return 0;
 }
 
 
 /*!
 	\brief	 Initializes an empty cache of specified buffer size.
-
-	\param
-		new_cache: A static cache created in data segment.
-		size: size of the buffers in cache.
-		free_slabs_threshold: Threshold to start VM operation.
-		min_slabs: Minimum no of slabs to be present always.
-		max_slabs: Maximum no of slabs allowed.
-		constructor: Function pointer which initializes the newly created slab.
-		destructor: Function pointer which reuses a slab.
-
+	\param	new_cache - A static cache created in data segment.
+	\param	size - size of the buffers in cache.
+	\param	free_slabs_threshold - Threshold to start VM operation.
+	\param	min_slabs - Minimum no of slabs to be present always.
+	\param	max_slabs - Maximum no of slabs allowed.
+	\param	constructor - Function pointer which initializes the newly created slab.
+	\param	destructor - Function pointer which reuses a slab.
 	\return	
 		Success(0) if cache is created.
 		Failure(-1) if cache is not created.
@@ -246,38 +238,27 @@ int InitCache(CACHE_PTR new_cache, UINT32 size,
 	
 	new_cache->completely_free_slab_list_head = NULL;
 	new_cache->free_slabs_count = 0;
-	
 	new_cache->free_buffer_count = 0;
-	
-
-	/* Total slab size including metadata */
+		
 	new_cache->slab_size = SLAB_SIZE(size);
-	/*total buffer count*/
 	buf_count = (new_cache->slab_size - sizeof(SLAB)) / size;
-	/*size of the bitmap in bytes*/
 	bitmap_size = buf_count / BITS_PER_BYTE;
 	/*recalcualte the buffer count*/
 	buf_count = (new_cache->slab_size - sizeof(SLAB) - bitmap_size) / size;
 	
-	/*caclulate the metadata size*/
 	new_cache->slab_metadata_size = sizeof(SLAB) + buf_count/BITS_PER_BYTE;
-	
+	//align the size
+	new_cache->slab_metadata_size = ALIGN_UP(new_cache->slab_metadata_size, 2);
 	new_cache->slab_metadata_offset  = new_cache->slab_size - new_cache->slab_metadata_size;
-	
 	new_cache->slab_buffer_count = buf_count;
 	
 	return 0;
 }
 
-
-
 /*!
 	\brief	Gets a free buffer from cache. 
-
-	\param
-		cache_ptr: Pointer to cache from which buffers are wanted.
-		flag: To indicate if this function can sleep(0) or not(1).
-
+	\param	cache_ptr - Pointer to cache from which buffers are wanted.
+	\param 	flag - To indicate if this function can sleep(0) or not(1).
 	\return
 		On Success: Virtual address of a free buffer.
 		On Failure: NULL
@@ -331,16 +312,12 @@ FINDING_BUFFER_DONE:
 
 /*!
 	\brief	 Adds slabs to cache by requesting memory from VM.
-
-	\param
-		cache_ptr: Pointer to my cache entry.
-		immediate_use: Are you using a free buffer from the new slab immediately?
-
+	\param	cache_ptr - Pointer to my cache entry.
+	\param	immediate_use- Are you using a free buffer from the new slab immediately?
 	\return
 		0	if successfully fetched from VM 
 		-1 	if failure.
-
-	\assumptions: Holds a lock to cache pointer.
+	\note 	Holds a lock to cache pointer.
 */
 static int AddSlabToCache(CACHE_PTR cache_ptr, int immediate_use)
 {
@@ -372,18 +349,12 @@ static int AddSlabToCache(CACHE_PTR cache_ptr, int immediate_use)
 	return 0;
 }
 
-
-
 /*!
 	\brief	Gets a free Buffer from the given slab.
-
-	\param
-		slab_ptr: Pointer to the slab from which a free buffer is wanted.
-		cache_ptr: Pointer to cache which has the free buffer.
-
+	\param	slab_ptr - Pointer to the slab from which a free buffer is wanted.
+	\param	cache_ptr - Pointer to cache which has the free buffer.
 	\return	 Virtual address of the free buffer.
-	
-	\assumptions: Hold a lock to cache pointer.
+	\note		Hold a lock to cache pointer.
 */
 static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 {
@@ -421,19 +392,14 @@ static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 	return ret_va;
 }
 
-
 /*!
 	\brief	 Free A buffer in it's slab. If all buffers in the slab are free, move the slab to completely free slab list.
-
-	\param
-		buffer: Pointer to buffer which is to be freed.
-		cache_ptr:	Pointer to cache which contans the buffer.
-
+	\param	buffer - Pointer to buffer which is to be freed.
+	\param	cache_ptr-	Pointer to cache which contans the buffer.
 	\return
 		0:	Success; If freed successfully.
 		-1:	Failure; If given buffer isn't found in the cache.
-
-	\assumptions	Holds a lock to cache_ptr
+	\note		Holds a lock to cache_ptr
 */
 int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 {
@@ -470,14 +436,9 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	return 0;
 }
 
-
-
 /*!
 	\brief	Destroy a cache and return the vm_pages t to VM subsystem. 
-
-	\param
-		cache_ptr: Pointer to cache which is to be destroyed.
-
+	\param	cache_ptr: Pointer to cache which is to be destroyed.
 	\return	void
 */
 void DestroyCache(CACHE_PTR rem_cache)
@@ -520,14 +481,10 @@ void DestroyCache(CACHE_PTR rem_cache)
 	return;
 }
 
-
 /*!
 	\brief	 Finds the slab in tree, which contains the given buffer.
-
-	\param
-		buffer: The Free memory that has to be released to it's slab.
-		cache_ptr: Pointer to cache which contains the given buffer.
-
+	\param	buffer - The Free memory that has to be released to it's slab.
+			cache_ptr - Pointer to cache which contains the given buffer.
 	\return
    		On SUCCESS: Returns the slab pointer which contains the buffer.
 		On Failure: Returns NULL.

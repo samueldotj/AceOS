@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Sun Apr 20, 2008  02:23AM
+  			Last modified: Thu Apr 24, 2008  04:05PM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -404,8 +404,7 @@ static VADDR GetFreeBufferFromSlab(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 {
 	SLAB_PTR slab_ptr;
-	int buffer_index, ret;
-	UINT32 first_set_bit;
+	int buffer_index;
 	VADDR va_start;
 
 	/* Find the slab which contains this buffer, using in_use_slab_tree */
@@ -417,14 +416,19 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	va_start = SLAB_START(slab_ptr, cache_ptr->slab_metadata_offset);
 	buffer_index = ( ((VADDR)buffer - va_start) / (cache_ptr->buffer_size) );
 	ClearBitInBitArray( (void*)(slab_ptr->buffer_usage_bitmap), buffer_index );	
+	
+	if (slab_ptr->used_buffer_count == cache_ptr->slab_buffer_count)
+	{
+		RemoveFromCompleteList(cache_ptr, slab_ptr);
+		AddToPartialList( cache_ptr, slab_ptr );
+	}
 
 	slab_ptr->used_buffer_count --;
 	cache_ptr->free_buffer_count ++;
-
-	/* If all buffers in the slab are free, move the slab to completely free slab list */
-	ret = FindFirstSetBitInBitArray((void*)(slab_ptr->buffer_usage_bitmap), cache_ptr->slab_buffer_count, &first_set_bit);
-	if ( ret != -1 ) /* All buffers are not free */
+	
+	if ( slab_ptr->used_buffer_count != 0 ) /* All buffers are not free */
 	{
+	/* If all buffers in the slab are free, move the slab to completely free slab list */
 		return 0;
 	}
 

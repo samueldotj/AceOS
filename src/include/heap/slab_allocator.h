@@ -25,6 +25,13 @@
 /* define this macro to debug the slab alloctor */
 //#define SLAB_DEBUG_ENABLED
 
+typedef enum 
+{
+	SLAB_STATE_FREE=0,
+	SLAB_STATE_MIXED,
+	SLAB_STATE_USED
+}SLAB_STATE;
+
 typedef struct slab_allocator_metadata
 {
 	UINT32	vm_page_size;

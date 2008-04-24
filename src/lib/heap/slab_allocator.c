@@ -66,6 +66,44 @@ static void AddToCompleteList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
 static void RemoveFromCompleteList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
 static SLAB_PTR RemoveFirstSlabFromCompleteList(CACHE_PTR cache_ptr);
 
+static inline SLAB_STATE GetSlabState(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
+{
+	if ( slab_ptr->used_buffer_count == 0 ) 
+		return SLAB_STATE_FREE;
+	else if ( slab_ptr->used_buffer_count == cache_ptr->slab_buffer_count )
+		return SLAB_STATE_USED;
+	else
+		return SLAB_STATE_MIXED;
+
+}
+static void ManageSlabStateTransition(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr, SLAB_STATE old_state, SLAB_STATE new_state)
+{
+	//free to mixed
+	if ( old_state == SLAB_STATE_FREE && new_state == SLAB_STATE_MIXED )
+	{
+		AddToPartialList(cache_ptr, slab_ptr);
+		RemoveFromCompleteList(cache_ptr, slab_ptr);
+		ADD_TO_INUSE_TREE(cache_ptr, slab_ptr);
+	}
+	//mixed to free
+	else if ( old_state == SLAB_STATE_MIXED && new_state == SLAB_STATE_FREE )
+	{
+		RemoveFromPartialList(cache_ptr, slab_ptr);
+		AddToCompleteList(cache_ptr, slab_ptr);
+		REMOVE_FROM_INUSE_TREE(cache_ptr, slab_ptr);
+	}
+	//mixed to used
+	else if ( old_state == SLAB_STATE_MIXED && new_state == SLAB_STATE_USED )
+	{
+		RemoveFromPartialList(cache_ptr, slab_ptr);
+	}
+	//used to mixed
+	else if ( old_state == SLAB_STATE_USED && new_state == SLAB_STATE_MIXED )
+	{
+		AddToPartialList(cache_ptr, slab_ptr);
+	}
+}
+
 static void AddToPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 {
 	if ( cache_ptr->partially_free_slab_list_head != NULL)
@@ -426,15 +464,13 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	slab_ptr->used_buffer_count --;
 	cache_ptr->free_buffer_count ++;
 	
-	if ( slab_ptr->used_buffer_count != 0 ) /* All buffers are not free */
+	if ( slab_ptr->used_buffer_count == 0 ) /* All buffers are free */
 	{
-	/* If all buffers in the slab are free, move the slab to completely free slab list */
-		return 0;
+		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
+		RemoveFromPartialList(cache_ptr, slab_ptr);
+		AddToCompleteList( cache_ptr, slab_ptr );
 	}
 
-	RemoveFromPartialList(cache_ptr, slab_ptr);
-	RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
-	AddToCompleteList( cache_ptr, slab_ptr );
 	/* If free buffer count is greater than free_slabs_threshold, then start VM operation */
 	// TBD
 	return 0;

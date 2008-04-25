@@ -56,10 +56,8 @@ int RemoveNodeFromAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR node)
 {
 	AVL_TREE_PTR parent;
 	RemoveNodeFromBinaryTree((BINARY_TREE_PTR)node, (BINARY_TREE_PTR*)(&parent), (BINARY_TREE_PTR*)root);
-//	printf("removed from binary tree node=%p parent=%x\n", node, parent);
 	if (!parent) /* parent is null means I just removed root! */
 	{
-		*root = NULL;
 		return 0;
 	}
 	/*update the height of this node*/

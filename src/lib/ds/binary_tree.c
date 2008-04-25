@@ -4,7 +4,7 @@
 	\version 	1.0
 	\date	
   			Created: 04-Feb-2008 18:24
-  			Last modified: Wed Apr 09, 2008  01:25AM
+  			Last modified: Fri Apr 25, 2008  03:19PM
 	\brief	Generic binary tree implementation
 	
 */
@@ -194,11 +194,21 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 	
 	is_left_end = IS_END_OF_LEFT_LIST(node);
 	is_right_end = IS_END_OF_RIGHT_LIST(node);
-	
+
+	if (is_left_end && is_right_end && parent_node == NULL)
+	{ /* Special case when only 1 node exists in the tree, which is the root node */
+		*root_ptr = NULL;
+		if (leaf_node)
+		{
+			*leaf_node = NULL;
+		}
+		return; /*SUCCESS*/
+	}
+
 	//case 1, 2 or 3
 	if ( is_left_end || is_right_end )
 	{
-		//root
+		//leaf node
 		if ( in_list_type == NO_LIST )
 		{
 			if ( !is_left_end )

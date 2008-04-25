@@ -24,10 +24,10 @@ clean:
 testcommon.o:	testcommon.c
 	$(CC) $(CFLAGS) -c -o testcommon.o testcommon.c
 
-testslab:	testcommon.o testslab.c $(OBJ)/libheap.a
+testslab:	testcommon.o testslab.c $(OBJ)/libheap.a $(OBJ)/libds.a $(OBJ)/libsync.a
 	$(CC) $(CFLAGS) -L $(OBJ) -o testslab testslab.c testcommon.o -lheap -lds -lsync
 
-testheap:	testcommon.o testheap.c $(OBJ)/libheap.a
+testheap:	testcommon.o testheap.c $(OBJ)/libheap.a $(OBJ)/libds.a $(OBJ)/libsync.a
 	$(CC) $(CFLAGS) -L $(OBJ) -o testheap testheap.c testcommon.o -lheap -lds -lsync
 	
 #create .d files

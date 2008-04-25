@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Fri Apr 25, 2008  03:52PM
+  			Last modified: Sat Apr 26, 2008  12:00AM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -419,11 +419,19 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	int buffer_index;
 	VADDR va_start;
 	SLAB_STATE old_state, new_state;
-	
+
+	if (buffer == NULL || cache_ptr == NULL)
+	{
+		return -1;
+	}
+
 	/* Find the slab which contains this buffer, using in_use_slab_tree */
 	slab_ptr = SearchBufferInTree( (VADDR)(buffer), cache_ptr);
 	if ( slab_ptr == NULL )
+	{
+		printf("slab not found in tree\n");
 		return -1;
+	}
 
 	/* Clear the corresponding bit in buffer_usage_bitmap */
 	va_start = SLAB_START(slab_ptr, cache_ptr);

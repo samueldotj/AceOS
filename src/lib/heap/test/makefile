@@ -17,7 +17,7 @@ all:    testslab testheap
 
 #phony - clean - clean all object files
 clean:
-	@rm -f *.d *.o
+	@rm -f *.d *.o testslab testheap
 	@rm -f *.exe
 
 #how to make target

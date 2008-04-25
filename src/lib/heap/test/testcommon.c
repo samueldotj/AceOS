@@ -97,7 +97,7 @@ void fill_random_numbers(int * number_array, int capacity, int max_number)
 	int i;
 	//fill in ascending order
 	for(i=0;i<capacity;i++)
-		number_array[i] = i+1;
+		number_array[i] = i;
 	
 	//randomize
 	for(i=0;i<capacity;i++)

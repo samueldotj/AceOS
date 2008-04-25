@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Thu Apr 24, 2008  04:05PM
+  			Last modified: Fri Apr 25, 2008  10:49AM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -62,8 +62,8 @@ static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr );
 static COMPARISION_RESULT slab_inuse_tree_compare(AVL_TREE_PTR node1, AVL_TREE_PTR node2);
 static void AddToPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
 static void RemoveFromPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
-static void AddToCompleteList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
-static void RemoveFromCompleteList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
+static void AddToCompletelyFreeList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
+static void RemoveFromCompletelyFreeList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
 static SLAB_PTR RemoveFirstSlabFromCompleteList(CACHE_PTR cache_ptr);
 
 static inline SLAB_STATE GetSlabState(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
@@ -82,14 +82,14 @@ static void ManageSlabStateTransition(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr, SL
 	if ( old_state == SLAB_STATE_FREE && new_state == SLAB_STATE_MIXED )
 	{
 		AddToPartialList(cache_ptr, slab_ptr);
-		RemoveFromCompleteList(cache_ptr, slab_ptr);
+		RemoveFromCompletelyFreeList(cache_ptr, slab_ptr);
 		ADD_TO_INUSE_TREE(cache_ptr, slab_ptr);
 	}
 	//mixed to free
 	else if ( old_state == SLAB_STATE_MIXED && new_state == SLAB_STATE_FREE )
 	{
 		RemoveFromPartialList(cache_ptr, slab_ptr);
-		AddToCompleteList(cache_ptr, slab_ptr);
+		AddToCompletelyFreeList(cache_ptr, slab_ptr);
 		REMOVE_FROM_INUSE_TREE(cache_ptr, slab_ptr);
 	}
 	//mixed to used
@@ -111,8 +111,6 @@ static void AddToPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 					&slab_ptr->partially_free_list );
 	else
 		cache_ptr->partially_free_slab_list_head = slab_ptr;
-		
-	cache_ptr->free_buffer_count += cache_ptr->slab_buffer_count;
 }
 
 static void RemoveFromPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
@@ -126,7 +124,7 @@ static void RemoveFromPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 	RemoveFromList( &slab_ptr->partially_free_list );
 }	
 
-static void AddToCompleteList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
+static void AddToCompletelyFreeList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 {
 	if ( cache_ptr->completely_free_slab_list_head != NULL )
 		AddToList( &cache_ptr->completely_free_slab_list_head->completely_free_list , &slab_ptr->completely_free_list );
@@ -136,7 +134,7 @@ static void AddToCompleteList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 	cache_ptr->free_slabs_count++;
 }
 
-static void RemoveFromCompleteList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
+static void RemoveFromCompletelyFreeList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 {
 	SLAB_PTR next_slab_ptr = STRUCT_FROM_MEMBER( SLAB_PTR, completely_free_list, (slab_ptr)->completely_free_list.next);
 	if ( slab_ptr == next_slab_ptr )
@@ -378,10 +376,11 @@ static int AddSlabToCache(CACHE_PTR cache_ptr, int immediate_use)
 	{
 		InsertNodeIntoAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
 		AddToPartialList( cache_ptr, slab_ptr );
+		cache_ptr->free_buffer_count += cache_ptr->slab_buffer_count;
 	}
 	else
 	{
-		AddToCompleteList( cache_ptr, slab_ptr );
+		AddToCompletelyFreeList( cache_ptr, slab_ptr );
 	}
 	
 	return 0;
@@ -457,7 +456,6 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	
 	if (slab_ptr->used_buffer_count == cache_ptr->slab_buffer_count)
 	{
-		RemoveFromCompleteList(cache_ptr, slab_ptr);
 		AddToPartialList( cache_ptr, slab_ptr );
 	}
 
@@ -468,7 +466,7 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	{
 		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
 		RemoveFromPartialList(cache_ptr, slab_ptr);
-		AddToCompleteList( cache_ptr, slab_ptr );
+		AddToCompletelyFreeList( cache_ptr, slab_ptr );
 	}
 
 	/* If free buffer count is greater than free_slabs_threshold, then start VM operation */
@@ -510,7 +508,7 @@ void DestroyCache(CACHE_PTR rem_cache)
 	{
 		rem_slab =  rem_cache->completely_free_slab_list_head;
 		rem_cache->completely_free_slab_list_head = STRUCT_FROM_MEMBER( SLAB_PTR, completely_free_list, rem_cache->completely_free_slab_list_head->completely_free_list.next);
-		RemoveFromCompleteList( rem_cache, rem_slab );
+		RemoveFromCompletelyFreeList( rem_cache, rem_slab );
 		
 		/* Now get the starting address of slab */
 		rem_va = SLAB_START( rem_slab, rem_cache->slab_metadata_offset);

@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Fri Apr 25, 2008  10:49AM
+  			Last modified: Fri Apr 25, 2008  03:52PM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -89,7 +89,6 @@ static int ManageSlabStateTransition(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr, SLA
 		AddToPartialList(cache_ptr, slab_ptr);
 		RemoveFromCompletelyFreeList(cache_ptr, slab_ptr);
 		InsertNodeIntoAvlTree( &(cache_ptr)->in_use_slab_tree_root, &(slab_ptr)->in_use_tree );
-		
 		cache_ptr->free_buffer_count += cache_ptr->slab_buffer_count;
 	}
 	//mixed to free
@@ -98,6 +97,7 @@ static int ManageSlabStateTransition(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr, SLA
 		RemoveFromPartialList(cache_ptr, slab_ptr);
 		AddToCompletelyFreeList(cache_ptr, slab_ptr);
 		RemoveNodeFromAvlTree( &(cache_ptr)->in_use_slab_tree_root, &(slab_ptr)->in_use_tree );
+		cache_ptr->free_buffer_count -= cache_ptr->slab_buffer_count;
 	}
 	//mixed to used
 	else if ( old_state == SLAB_STATE_MIXED && new_state == SLAB_STATE_USED )
@@ -432,11 +432,10 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	
 	old_state = GetSlabState( cache_ptr, slab_ptr);
 	slab_ptr->used_buffer_count --;
+	cache_ptr->free_buffer_count ++;
 	new_state = GetSlabState( cache_ptr, slab_ptr);
 	
 	ManageSlabStateTransition( cache_ptr, slab_ptr, old_state, new_state );
-	
-	cache_ptr->free_buffer_count ++;
 	
 	/* If free buffer count is greater than free_slabs_threshold, then start VM operation */
 	// TBD

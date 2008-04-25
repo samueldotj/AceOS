@@ -58,10 +58,9 @@ int main(int argc, char * argv[])
 	InitSlabAllocator(PAGE_SIZE, virtual_alloc, virtual_free, virtual_protect );
 	PRINT( 2, "Initialized Slab allocator\n" );
 	
-	PRINT( 2, "Initializing cache\n");	
 	if ( InitCache(&cache, cache_size, free_slabs_threshold, min_slabs, max_slabs, &cache_constructor, &cache_destructor) == -1 )
 	{
-		printf(" failed");
+		printf("Initializing cache failed");
 		return 1;
 	}
 	
@@ -205,10 +204,19 @@ void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int m
 		
 		//rearrange and resize the va_array
 		not_freed = allocate_count;
-		for(j=0; j<free_count; j++)
-		{
-			va_array[free_index_array[j]] = va_array[allocate_count];
+		while( va_array[not_freed] == NULL )
 			not_freed--;
+		for(j=0; j<not_freed; j++)
+		{
+			//if va is freed; move last element to this place
+			if ( va_array[j] == 0 )
+			{
+				//swap
+				va_array[j] = va_array[not_freed];
+				va_array[not_freed] = 0;
+				
+				not_freed--;
+			}
 		}
 		
 		free(free_index_array);

@@ -13,7 +13,7 @@ int alloc_count, cache_size, min_slabs, free_slabs_threshold, max_slabs;
 
 static void print_usage(char * exe)
 {
-	printf("Usage : %s /r /v /cache_size\n", exe);
+	printf("Usage : %s /cache_size <N> /min_slabs <N> /max_slabs <N> /free_slabs_threshold <N> /v<N> \n", exe);
 }
 int parse_arguments(int argc, char * argv[])
 {

@@ -4,7 +4,7 @@
 	\version 	1.0
 	\date	
   			Created: 04-Feb-2008 18:24
-  			Last modified: Fri Apr 25, 2008  03:19PM
+  			Last modified: Mon Apr 28, 2008  03:11PM
 	\brief	Generic binary tree implementation
 	
 */
@@ -434,6 +434,9 @@ static void ReplaceTreeListNode(LIST_PTR old_node, LIST_PTR new_node)
 	next_node->prev = new_node;
 	new_node->next = next_node;
 	
+	old_node->prev = old_node->next = old_node;
+	MARK_TREELIST_END( old_node );
+
 	if( is_tail )
 		MARK_TREELIST_END( new_node );
 		

@@ -40,5 +40,12 @@ typedef UINT32 VADDR;
 */
 #define MAX(a,b) (((a) > (b)) ? (a):(b))
 
+typedef enum 
+{
+	LESS_THAN=-1,
+	EQUAL=0,
+	GREATER_THAN=1
+}COMPARISION_RESULT;
+
 #endif
 

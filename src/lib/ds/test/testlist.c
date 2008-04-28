@@ -1,5 +1,12 @@
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include <malloc.h>
 #include <ds/list.h>
+
+void exit(int status);
+
 struct ListTest
 {
 	LIST list;

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <malloc.h>
 #include <ds/avl_tree.h>
 struct bt_test
 {
@@ -22,12 +23,11 @@ int main(int argc, char * argv[])
 {
 	BT_TEST first_element;
 	AVL_TREE_PTR root=&first_element.t;
-	BT_TEST_PTR search_node=NULL;
 	int i, * numbers, total_numbers, * del_numbers, del_number_index;
 	
 	
 	if ( parse_arguments(argc, argv) )
-		return;
+		return 1;
 	numbers = init_numbers(&total_numbers, &del_numbers, &del_number_index);
 	
 	InitBT_TestNode( &first_element, numbers[0]);
@@ -49,7 +49,7 @@ int main(int argc, char * argv[])
 		if ( InsertNodeIntoAvlTree( &root, &new_node->t ) != 0 )
 		{
 			printf("failure\n");
-			return;
+			return 1;
 		}
 		else
 			if ( verbose_level > 1 ) printf("success\n");
@@ -67,7 +67,6 @@ int main(int argc, char * argv[])
 	del_number_index--;
 	for(;del_number_index>=0;del_number_index--)
 	{
-		int result;
 		BT_TEST del_node;
 		InitBT_TestNode(&del_node, del_numbers[del_number_index]);
 		
@@ -118,7 +117,7 @@ BT_TEST_PTR InitBT_TestNode(BT_TEST_PTR node, int data)
 
 void print_tree(AVL_TREE_PTR avl_node)
 {
-	static int i=0, level=0;
+	static int level=0;
 	BINARY_TREE_PTR node = &avl_node->bintree;
 	int len = printf("%02d(%d)", STRUCT_FROM_MEMBER(BT_TEST_PTR, t, node)->data, avl_node->height )+1;
 	if (! IS_TREE_LIST_END(&node->right) )

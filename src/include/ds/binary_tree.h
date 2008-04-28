@@ -11,14 +11,7 @@
 #define BINARY_TREE__H
 
 #include "list.h"
-
-typedef enum 
-{
-	LESS_THAN=-1,
-	EQUAL=0,
-	GREATER_THAN=1
-}COMPARISION_RESULT;
-
+#include "ace.h"
 
 typedef enum 
 {

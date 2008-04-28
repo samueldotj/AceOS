@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <malloc.h>
 #include <ds/binary_tree.h>
 
 struct bt_test
@@ -21,7 +22,6 @@ int parse_arguments(int argc, char * argv[]);
 extern int verbose_level;
 int main(int argc, char* argv[])
 {
-	BT_TEST_PTR search_node=NULL;
 	int i, * numbers, total_numbers, * del_numbers, del_number_index;
 	BINARY_TREE_PTR root_ptr = NULL;
 		
@@ -61,7 +61,6 @@ int main(int argc, char* argv[])
 	del_number_index--;
 	for(;del_number_index>=0;del_number_index--)
 	{
-		int result;
 		BT_TEST del_node;
 		InitBT_TestNode(&del_node, del_numbers[del_number_index]);
 		
@@ -125,7 +124,7 @@ COMPARISION_RESULT compare_number(struct binary_tree * node1, struct binary_tree
 
 void print_tree(BINARY_TREE_PTR node)
 {
-	static int i=0, level=0;
+	static int level=0;
 	int len = printf("%02d", STRUCT_FROM_MEMBER(BT_TEST_PTR, t, node)->data )+1;
 	if (! IS_TREE_LIST_END(&node->right) )
 	{

@@ -7,6 +7,10 @@
 #include <stdlib.h>
 #include <time.h>
 
+int rand();
+void srand(unsigned int seed);
+void exit(int status);
+
 int random_number_test=0;
 int use_predefined_numbers=0;
 int use_ascending_order=0;

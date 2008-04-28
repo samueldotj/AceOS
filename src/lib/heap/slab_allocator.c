@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Sat Apr 26, 2008  12:00AM
+  			Last modified: Mon Apr 28, 2008  12:20PM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -88,7 +88,7 @@ static int ManageSlabStateTransition(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr, SLA
 	{
 		AddToPartialList(cache_ptr, slab_ptr);
 		RemoveFromCompletelyFreeList(cache_ptr, slab_ptr);
-		InsertNodeIntoAvlTree( &(cache_ptr)->in_use_slab_tree_root, &(slab_ptr)->in_use_tree );
+		InsertNodeIntoAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
 		cache_ptr->free_buffer_count += cache_ptr->slab_buffer_count;
 	}
 	//mixed to free
@@ -96,7 +96,7 @@ static int ManageSlabStateTransition(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr, SLA
 	{
 		RemoveFromPartialList(cache_ptr, slab_ptr);
 		AddToCompletelyFreeList(cache_ptr, slab_ptr);
-		RemoveNodeFromAvlTree( &(cache_ptr)->in_use_slab_tree_root, &(slab_ptr)->in_use_tree );
+		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
 		cache_ptr->free_buffer_count -= cache_ptr->slab_buffer_count;
 	}
 	//mixed to used

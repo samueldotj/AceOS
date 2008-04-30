@@ -49,6 +49,9 @@ char* strstr(const char *s, const char *find);
 char* strtok(char *s, const char *delim);
 size_t strxfrm(char *dst, char *src, size_t n);
 
+long strtol(const char *src, char **endptr, int base);
+unsigned long strtoul(const char *src, char **endptr, int base);
+
 #ifdef __cplusplus
 	}
 #endif

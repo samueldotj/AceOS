@@ -20,7 +20,7 @@ static void swap(char * data_array, int pos1, int pos2, char * temp, int data_si
 	\param data_size - size of a single data structure
 	\param total_elements - total_elements in the array
 */
-void Sort(char * data_array, char * temp_data, int data_size, int total_elements, COMPARISION_RESULT (*compare_data)(char * data1, char * data2) )
+void SortArray(char * data_array, char * temp_data, int data_size, int total_elements, COMPARISION_RESULT (*compare_data)(char * data1, char * data2) )
 {
 	int i;
 	

@@ -16,7 +16,7 @@
     extern "C" {
 #endif
 
-void Sort(char * data_array, char * temp_data, int data_size, int total_elements, COMPARISION_RESULT (*compare_data)(char * data1, char * data2) );
+void SortArray(char * data_array, char * temp_data, int data_size, int total_elements, COMPARISION_RESULT (*compare_data)(char * data1, char * data2) );
 
 #ifdef __cplusplus
 	}

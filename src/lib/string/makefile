@@ -1,4 +1,4 @@
-#	File			:	generic/strig makefile
+#	File			:	lib/strig makefile
 #   Author			:	Samuel Jacob
 #  	Version			:	3.0
 #  	Created 		:	20-Sep-2007 18:23
@@ -6,6 +6,8 @@
 #	Brief			:	commands supported are: all clean 
 
 include $(ACE_ROOT)/make.conf
+
+#CC = /usr/bin/gcc
 
 #objects for this library
 OBJS = $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.asm,%.o,$(wildcard *.asm))

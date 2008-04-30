@@ -1,5 +1,5 @@
 #! /bin/sh
-USAGE="Usage: `basename $0` <image_file> <local_file> <image_path>"
+USAGE="Usage: `basename $0` <image> <image_file_to_copy> <local_path>"
 if [ $# -lt 3 ] ; then
 	echo "$USAGE"
 	exit 1
@@ -13,7 +13,7 @@ fi
 if [ $OSTYPE = "cygwin" ] ; then
 	WINDOWS_PATH=`cygpath -a -w $1`
 	filedisk /mount 0 $WINDOWS_PATH m:
-	cp -f $2 m:/$3
+	cp -u m:/$2 $3 
 	filedisk /umount m:
 else
 	free_loop=`losetup -f`
@@ -22,7 +22,7 @@ else
 	mkdir $ACE_ROOT/temp
 	mount $free_loop $ACE_ROOT/temp
 
-	cp -f $2 $ACE_ROOT/temp/$3
+	cp -u $ACE_ROOT/temp/$2 $3
 
 	umount $ACE_ROOT/temp
 	rm -rf $ACE_ROOT/temp

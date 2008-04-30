@@ -77,7 +77,13 @@ KernelEntry:
 	;stack pointer and eip is corrected - remove the 0-4mb page entry
 	call InitKernelPageDirectoryPhase2
 	
-	;parameters are pushed initially
+	;correct multiboot info pointer
+	pop eax
+	pop ebx
+	add ebx, (KERNEL_VIRTUAL_ADDRESS- KERNEL_PHYSICAL_ADDRESS)
+	push ebx
+	push eax
+		
 	call cmain
 
 	;endless loop should not be reached.

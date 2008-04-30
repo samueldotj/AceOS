@@ -14,7 +14,7 @@ CLEAN_DIRS=	generic $(ARCH) $(ARCH)/debug $(ARCH)/mm
 TARGET= $(OBJ)/kernel.sys
 
 #libiraries needed to included in kernel linking
-LIBS= $(ACE_ROOT)/obj/libstring.a
+LIBS= $(ACE_ROOT)/obj/libds.a $(ACE_ROOT)/obj/libstring.a
 
 #kernel object files
 DEBUG_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/debug/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/debug/*.asm))

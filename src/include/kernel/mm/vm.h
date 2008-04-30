@@ -25,6 +25,8 @@
 
 #define NUMBER_OF_PAGES(size)		(PAGE_ALIGN_UP(size) >> PAGE_SHIFT)
 
+#define BOOT_TO_KERNEL_ADDRESS(addr)	(((UINT32)addr + KERNEL_VIRTUAL_ADDRESS_TEXT_START)-KERNEL_PHYSICAL_ADDRESS_LOAD )
+
 #ifdef __cplusplus
     extern "C" {
 #endif

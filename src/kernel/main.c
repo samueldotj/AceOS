@@ -9,14 +9,38 @@
 */
 #include <version.h>
 #include <kernel/arch.h>
+#include <kernel/parameter.h>
 #include <kernel/debug.h>
+#include <kernel/gdb.h>
+#include <kernel/multiboot.h>
 
 /*! first C function which gets control from assembly
 */
-void cmain()
+void cmain(unsigned long magic, multiboot_info_t * mbi)
 {
 	int a=0, b=1;
-	ArchInit();
+	
+	
+	/*initialize architecture depend parts*/
+	ArchInit(mbi);
+	
+	/*boot error*/
+	if ( magic != MULTIBOOT_BOOTLOADER_MAGIC )
+	{
+		kprintf("Boot loader error (%x). Magic != %x", magic, MULTIBOOT_BOOTLOADER_MAGIC);
+		while(1);
+	}
 	kprintf( ACE_NAME" Version %d.%d Build%s\n", ACE_MAJOR, ACE_MINOR, ACE_BUILD);
+	
+	/*initialize kernel parameters and parse boot parameters*/
+	InitKernelParameters();
+	ParaseBootParameters();
+	
+	/*start gdb as soon as possible*/
+	if ( sys_gdb_port )
+		InitGdb();
+
+	//for now generate exception
 	a = b/a;
+	
 }

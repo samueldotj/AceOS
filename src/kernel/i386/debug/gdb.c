@@ -11,7 +11,7 @@
 #include <kernel/i386/idt.h>
 
 /*! This port can be configured through kernel boot parameters*/
-UINT32 sys_gdb_port = 0x3F8;
+UINT32 sys_gdb_port = 0;
 
 void InitGdb()
 {

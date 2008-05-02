@@ -38,7 +38,7 @@ int main()
 	}	
 		
 	//perform heap sort on array
-	Sort((char *)numbers, (char *)&temp, sizeof(int), sizeof(numbers)/sizeof(int), compare_int);
+	SortArray((char *)numbers, (char *)&temp, sizeof(int), sizeof(numbers)/sizeof(int), compare_int);
 
 	printf("\n Sort result : \n");
 

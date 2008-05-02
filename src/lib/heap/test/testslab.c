@@ -4,7 +4,7 @@
   \version      3.0
   \date
  			Created:
- 			Last modified: Sun Apr 20, 2008  02:15AM
+ 			Last modified: Fri May 02, 2008  02:01PM
   \brief
 */
 #include <sys/mman.h>
@@ -45,7 +45,7 @@ int main(int argc, char * argv[])
 		return 1;
 	
 	srand ( time(NULL) );
-	
+
 	printf("Slab Allocator Test : alloc_count %d cache_size %d, min_slabs %d, free_slabs_threshold %d, max_slabs %d\n", 
 								alloc_count, cache_size, min_slabs, free_slabs_threshold, max_slabs);
 	va_array = (VADDR *) calloc(alloc_count, sizeof(VADDR));
@@ -71,7 +71,6 @@ int main(int argc, char * argv[])
 	PRINT( 1, "FIFO Test : free buffer\n");
 	FreeMemoryFifo(&cache, (void **)va_array, alloc_count);
 	
-	
 	/*LIFO - test*/
 	PRINT( 1, "LIFO Test : allocating memory from cache\n");
 	AllocateMemory(&cache, (void **)va_array, alloc_count );
@@ -83,15 +82,14 @@ int main(int argc, char * argv[])
 	AllocateMemory(&cache, (void **)va_array, alloc_count );
 	PRINT( 1, "Random Test : free buffer\n");
 	FreeMemoryRandom(&cache, (void **)va_array, alloc_count);
-	
+
 	/*completely random*/
-	RandomMemoryAllocFree(&cache, (void **)va_array, alloc_count, alloc_count);
+//	PRINT( 1, "Complete Random Test.....\n");
+//	RandomMemoryAllocFree(&cache, (void **)va_array, alloc_count, alloc_count);
 	
 	DestroyCache( &cache );
-	PRINT(2, "Cache destroyed\n");
-	
+	PRINT(1, "Cache destroyed\n");
 	free(va_array);
-	
 	return 0;
 }
 
@@ -128,10 +126,11 @@ void FreeMemoryFifo(CACHE_PTR c, void * va_array[], int count)
 		}
 		if (verbose_level >=2)
 		{
-			printf("Freed buffer %p\n", (VADDR*)(va_array[i]));
+			printf("Freed buffer %p, %d\n", (VADDR*)(va_array[i]), i);
 		}
 	}
 }
+
 void FreeMemoryLifo(CACHE_PTR c, void * va_array[], int count)
 {
 	int i;
@@ -144,14 +143,15 @@ void FreeMemoryLifo(CACHE_PTR c, void * va_array[], int count)
 		}
 		if (verbose_level >=2)
 		{
-			printf("Freed buffer %p\n", (VADDR*)(va_array[i]));
+			printf("Freed buffer %p %d\n", (VADDR*)(va_array[i]), i);
 		}
 	}
 }
+
 void FreeMemoryRandom(CACHE_PTR c, void * va_array[], int count)
 {
 	int i;
-	int * rand_array = (int *)calloc(count, 1);
+	int * rand_array = (int *)calloc(count, sizeof(int));
 	if ( rand_array == NULL )
 	{
 		perror("calloc ");
@@ -168,7 +168,7 @@ void FreeMemoryRandom(CACHE_PTR c, void * va_array[], int count)
 		}
 		if (verbose_level >=2)
 		{
-			printf("Freed buffer %p\n", (VADDR*)(va_array[j]));
+			printf("Freed buffer %p %d\n", (VADDR*)(va_array[j]), i);
 		}
 	}
 	free(rand_array);
@@ -222,6 +222,7 @@ void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int m
 		free(free_index_array);
 	}
 }
+
 void * virtual_alloc(int size)
 {
 	void * va;

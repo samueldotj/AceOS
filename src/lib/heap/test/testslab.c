@@ -20,6 +20,12 @@
 extern int verbose_level;
 
 int parse_arguments(int argc, char * argv[]);
+void fill_random_numbers(int * number_array, int capacity, int max_number);
+int rand();
+void srand(unsigned int seed);
+void exit(int status);
+void * calloc(int, int);
+void free(void *);
 
 void * virtual_alloc(int size);
 int virtual_free(void * va, int size);
@@ -84,8 +90,8 @@ int main(int argc, char * argv[])
 	FreeMemoryRandom(&cache, (void **)va_array, alloc_count);
 
 	/*completely random*/
-//	PRINT( 1, "Complete Random Test.....\n");
-//	RandomMemoryAllocFree(&cache, (void **)va_array, alloc_count, alloc_count);
+	PRINT( 1, "Random Alloc & Free Test : \n");
+	RandomMemoryAllocFree(&cache, (void **)va_array, alloc_count, 2+(rand()%20) );
 	
 	DestroyCache( &cache );
 	PRINT(1, "Cache destroyed\n");
@@ -179,47 +185,66 @@ void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int m
 	int i, not_freed=0;
 	for(i=0; i<min_run; i++)
 	{
-		int allocate_count = rand() % array_size;
-		int free_count = rand() % (not_freed + allocate_count);
-		int j, * free_index_array = calloc(free_count, sizeof(int));
+		int allocate_count;
+		int free_count;
+		int j, * free_index_array;
+		
+		/*randomly select a allocate count*/
+		allocate_count = rand() % (array_size-not_freed);
+		
+		//allocate memory
+		AllocateMemory(c, &va_array[not_freed], allocate_count);
+		
+		/*recalculate not freed count*/
+		not_freed+= allocate_count;
+		
+		/*randomly select a allocate count*/
+		free_count = rand() % not_freed;
+
+		assert( not_freed > 0 );
+		assert( allocate_count < array_size );
+		assert( not_freed < array_size );
+		assert( free_count < not_freed );
+		
+		//prepare random free
+		free_index_array = calloc(not_freed, sizeof(int));
 		if ( free_index_array == NULL )
 		{
 			perror("calloc ");
 			exit(1);
 		}
-		//allocate memory
-		AllocateMemory(c, &va_array[not_freed+1], allocate_count);
+		fill_random_numbers(free_index_array, not_freed, not_freed );
 		
-		//free memory
-		fill_random_numbers( free_index_array, free_count, free_count);
+		//free memory based on random index
 		for(j=0; j<free_count; j++)
 		{
+			if ( verbose_level >= 2 ) printf("Freeing VA %p : ",va_array[free_index_array[j]]);
 			if ( FreeBuffer(va_array[free_index_array[j]], c) == -1 )
 			{
 				printf("FreeBuffer(%p, %p) %d %d failed\n", va_array[j], c, i, j);
 				exit(1);
 			}
-			va_array[free_index_array[j]] = 0;
+			if ( verbose_level >= 2 ) printf("ok\n");
+			va_array[free_index_array[j]] = NULL;
+			
 		}
+		free(free_index_array);
 		
-		//rearrange and resize the va_array
-		not_freed = allocate_count;
-		while( va_array[not_freed] == NULL )
-			not_freed--;
-		for(j=0; j<not_freed; j++)
+		//rearrange(move the freed elements to the end) and resize(decrease not_freed count) the va_array
+		for(j=0; j<not_freed ; j++)
 		{
-			//if va is freed; move last element to this place
-			if ( va_array[j] == 0 )
-			{
-				//swap
-				va_array[j] = va_array[not_freed];
-				va_array[not_freed] = 0;
-				
+			while( not_freed>0 && va_array[not_freed] == NULL )
 				not_freed--;
+			if ( j < not_freed )
+			{
+				//if va is freed; move last element to this place
+				if ( va_array[j] == NULL )
+				{
+					va_array[j] = va_array[not_freed];
+					va_array[not_freed] = 0;
+				}
 			}
 		}
-		
-		free(free_index_array);
 	}
 }
 

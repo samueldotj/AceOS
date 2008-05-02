@@ -11,6 +11,11 @@ int print_stat = 0;
 
 int alloc_count, cache_size, min_slabs, free_slabs_threshold, max_slabs;
 
+int rand();
+void srand(unsigned int seed);
+void exit(int status);
+
+
 static void print_usage(char * exe)
 {
 	printf("Usage : %s /cache_size <N> /min_slabs <N> /max_slabs <N> /free_slabs_threshold <N> /v<N> \n", exe);

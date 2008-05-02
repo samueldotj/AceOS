@@ -14,6 +14,7 @@
 #include <time.h>
 #include <ace.h>
 #include <heap/slab_allocator.h>
+#include "leak_detector_c.h"
 
 #define PAGE_SIZE	4096
 
@@ -24,7 +25,7 @@ void fill_random_numbers(int * number_array, int capacity, int max_number);
 int rand();
 void srand(unsigned int seed);
 void exit(int status);
-void * calloc(int, int);
+
 void free(void *);
 
 void * virtual_alloc(int size);
@@ -51,6 +52,7 @@ int main(int argc, char * argv[])
 		return 1;
 	
 	srand ( time(NULL) );
+	atexit(report_mem_leak);
 
 	printf("Slab Allocator Test : alloc_count %d cache_size %d, min_slabs %d, free_slabs_threshold %d, max_slabs %d\n", 
 								alloc_count, cache_size, min_slabs, free_slabs_threshold, max_slabs);

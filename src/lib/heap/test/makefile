@@ -24,11 +24,14 @@ clean:
 testcommon.o:	testcommon.c
 	$(CC) $(CFLAGS) -c -o testcommon.o testcommon.c
 
-testslab:	testcommon.o testslab.c $(OBJ)/libheap.a $(OBJ)/libds.a $(OBJ)/libsync.a
-	$(CC) $(CFLAGS) -L $(OBJ) -o testslab testslab.c testcommon.o -lheap -lds -lsync
+leak_detector_c.o:	leak_detector_c.c
+	$(CC) $(CFLAGS) -c -o leak_detector_c.o leak_detector_c.c
+	
+testslab:	leak_detector_c.o  testcommon.o testslab.c $(OBJ)/libheap.a $(OBJ)/libds.a $(OBJ)/libsync.a
+	$(CC) $(CFLAGS) -L $(OBJ) -o testslab testslab.c testcommon.o leak_detector_c.o -lheap -lds -lsync
 
-testheap:	testcommon.o testheap.c $(OBJ)/libheap.a $(OBJ)/libds.a $(OBJ)/libsync.a
-	$(CC) $(CFLAGS) -L $(OBJ) -o testheap testheap.c testcommon.o -lheap -lds -lsync
+testheap:	leak_detector_c.o testcommon.o testheap.c $(OBJ)/libheap.a $(OBJ)/libds.a $(OBJ)/libsync.a
+	$(CC) $(CFLAGS) -L $(OBJ) -o testheap testheap.c testcommon.o leak_detector_c.o -lheap -lds -lsync
 	
 #create .d files
 -include $(OBJS:.o=.d)

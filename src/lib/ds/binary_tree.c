@@ -4,12 +4,13 @@
 	\version 	1.0
 	\date	
   			Created: 04-Feb-2008 18:24
-  			Last modified: Mon Apr 28, 2008  03:11PM
+  			Last modified: Fri May 02, 2008  11:21AM
 	\brief	Generic binary tree implementation
 	
 */
 
 #include <ds/binary_tree.h>
+#include <stdio.h>
 
 #define MARK_TREELIST_END(list)		(list)->next = (LIST_PTR) (((unsigned long)(list)->next ) | 1);
 
@@ -262,7 +263,7 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 	*/
 	//find right_most_node
 	right_most_node = TREE_RIGHT_PARENT( left_node );
-	
+
 	//remove right_most_node
 	RemoveNodeFromBinaryTree(right_most_node, leaf_node, root_ptr);
 	if (leaf_node && *leaf_node == node)
@@ -424,23 +425,27 @@ static void ReplaceTreeListNode(LIST_PTR old_node, LIST_PTR new_node)
 		REMOVE_END_MARK( old_node );
 	if ( is_head )
 		REMOVE_END_MARK( old_node->prev );
+
+	if (old_node != old_node->prev) /* More than 1 node exists, so modify the list */
+	{
+		prev_node = old_node->prev;
+		next_node = old_node->next;
+
+		prev_node->next = new_node;
+		new_node->prev = prev_node;
+
+		next_node->prev = new_node;
+		new_node->next = next_node;
+
+		old_node->prev = old_node->next = old_node;
 	
-	prev_node = old_node->prev;
-	next_node = old_node->next;
-	
-	prev_node->next = new_node;
-	new_node->prev = prev_node;
-	
-	next_node->prev = new_node;
-	new_node->next = next_node;
-	
-	old_node->prev = old_node->next = old_node;
+		if ( is_head )
+			MARK_TREELIST_END( prev_node );
+	}
+
 	MARK_TREELIST_END( old_node );
 
 	if( is_tail )
 		MARK_TREELIST_END( new_node );
-		
-	if ( is_head )
-		MARK_TREELIST_END( prev_node );
 }
 

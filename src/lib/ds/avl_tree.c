@@ -55,6 +55,7 @@ AVL_TREE_PTR SearchAvlTree(AVL_TREE_PTR start, AVL_TREE_PTR search_node)
 int RemoveNodeFromAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR node)
 {
 	AVL_TREE_PTR parent;
+	//printf("removing node %p from root=%p\n", node, root);
 	RemoveNodeFromBinaryTree((BINARY_TREE_PTR)node, (BINARY_TREE_PTR*)(&parent), (BINARY_TREE_PTR*)root);
 	node->height = 0;
 	if (!parent) /* parent is null means I just removed root! */
@@ -62,9 +63,12 @@ int RemoveNodeFromAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR node)
 		return 0;
 	}
 	/*update the height of this node*/
+	//printf("before: parent=%p parent height=%d\n", parent, parent->height);
 	RECALCULATE_HEIGHT(parent);
+	//printf("after: parent=%p parent height=%d\n", parent, parent->height);
 
 	/*now check the balance_factor*/
+	//printf("go to balance tree %p\n", parent);
 	return BalanceAvlTree(parent, root);
 }
 
@@ -81,12 +85,13 @@ int InsertNodeIntoAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR new_node)
 {
 	AVL_TREE_PTR parent, grand_parent;
 
+	new_node->height=0;
 	if ( InsertNodeIntoBinaryTree( (BINARY_TREE_PTR *)(root), (BINARY_TREE_PTR)new_node)) 
 	{
 		/*Failure: Duplicate value already exists, so return -1 */
 		return -1;
 	}
-	//printf("node inserted\n");
+	//printf("node %p inserted\n", new_node);
 
 	if (new_node == *root) {
 		return 0;
@@ -150,11 +155,11 @@ static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr)
 {
 	int balance_factor;
 	AVL_TREE_PTR parent;
-	//printf("inside balance avl tree for node %p\n", start_node);
+
+	//printf("balance_tree: start_node = %p\n", start_node);
 	assert(start_node != NULL);
 
 	RECALCULATE_HEIGHT(start_node);
-	//printf("recalculated height = %d\n", start_node->height);
 	balance_factor = GetAvlTreeBalanceFactor(start_node);
 	assert( balance_factor >= -2 &&  balance_factor <= 2 );
 
@@ -163,14 +168,11 @@ static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr)
 		case 0:
 		case 1:
 		case -1: /*tree is balanced*/
-			//printf("tree is balanced\n");
 			break;
 		case 2: /*heavy on right*/
-			//printf("left rotating at node\n");
 			LeftRotateAvlTree(start_node, root_ptr);
 			break;
 		case -2: /*heavy on left*/
-			//printf("Right rotating at node\n");
 			RightRotateAvlTree(start_node, root_ptr);
 			break;
 	}
@@ -179,11 +181,9 @@ static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr)
 		return 0;
 	}
 
-	//printf("getting parent node\n");
 	parent = AVL_TREE_PARENT_NODE(start_node);
 	/* start_node is now a child and hence it's parent is also balanced*/
 	/* continue recursion till root */
-	//printf("recursive call....\n");
 	BalanceAvlTree(parent, root_ptr);
 	return 0;
 }

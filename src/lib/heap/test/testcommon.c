@@ -3,22 +3,25 @@
 #include <stdlib.h>
 #include <time.h>
 
-int test_random_free = 0;
-int test_first_alloc_last_free = 0;
+#define TEST_TYPE_FIFO			1
+#define TEST_TYPE_LIFO			2
+#define TEST_TYPE_FREE_RAND		4
+#define TEST_TYPE_ALL_RAND		8
 
-int verbose_level=1;
+int verbose_level=0;
 int print_stat = 0;
 
 int alloc_count, cache_size, min_slabs, free_slabs_threshold, max_slabs;
+
+int test_type = 0;
 
 int rand();
 void srand(unsigned int seed);
 void exit(int status);
 
-
 static void print_usage(char * exe)
 {
-	printf("Usage : %s /cache_size <N> /min_slabs <N> /max_slabs <N> /free_slabs_threshold <N> /v<N> \n", exe);
+	printf("Usage : %s [/fifo] [/lifo] [/free_random] [/all_random] [/verbose <N>] /cache_size <N> /min_slabs <N> /max_slabs <N> /free_slabs_threshold <N> \n", exe);
 }
 int parse_arguments(int argc, char * argv[])
 {
@@ -30,50 +33,63 @@ int parse_arguments(int argc, char * argv[])
 		{
 			if ( argv[i][0] == '/' || argv[i][0] == '-')
 			{
-				switch( argv[i][1] )
+				if ( !strcmp( &argv[i][1], "fifo") )
 				{
-					case 'r':
-						test_random_free = 1;
-						break;
-					case 'v':
-						verbose_level = argv[i][2]-'0';
-						break;
-					default:
-						if ( !strcmp( &argv[i][1], "alloc_count") && (i+1) < argc)
-						{
-							i++;
-							alloc_count = atoi( argv[i] );
-						}
-						else if ( !strcmp( &argv[i][1], "cache_size") && (i+1) < argc)
-						{
-							i++;
-							cache_size = atoi( argv[i] );
-						}
-						else if ( !strcmp( &argv[i][1], "min_slabs") && (i+1) < argc)
-						{
-							i++;
-							min_slabs = atoi( argv[i] );
-						}
-						else if ( !strcmp( &argv[i][1], "max_slabs") && (i+1) < argc)
-						{
-							i++;
-							max_slabs = atoi( argv[i] );
-						}
-						else if ( !strcmp( &argv[i][1], "free_slabs_threshold") && (i+1) < argc)
-						{
-							i++;
-							free_slabs_threshold = atoi( argv[i] );
-						}
-						else
-						{
-							print_usage( argv[0] );
-							return 1;
-						}
+					test_type |= TEST_TYPE_FIFO;
+				}
+				else if ( !strcmp( &argv[i][1], "lifo") )
+				{
+					test_type |= TEST_TYPE_LIFO;
+				}
+				else if ( !strcmp( &argv[i][1], "free_random") )
+				{
+					test_type |= TEST_TYPE_FREE_RAND;
+				}
+				else if ( !strcmp( &argv[i][1], "all_random") )
+				{
+					test_type |= TEST_TYPE_ALL_RAND;
+				}
+				else if ( !strcmp( &argv[i][1], "verbose") && (i+1) < argc)
+				{
+					i++;
+					verbose_level = atoi( argv[i] );
+				}
+				else if ( !strcmp( &argv[i][1], "alloc_count") && (i+1) < argc)
+				{
+					i++;
+					alloc_count = atoi( argv[i] );
+				}
+				else if ( !strcmp( &argv[i][1], "cache_size") && (i+1) < argc)
+				{
+					i++;
+					cache_size = atoi( argv[i] );
+				}
+				else if ( !strcmp( &argv[i][1], "min_slabs") && (i+1) < argc)
+				{
+					i++;
+					min_slabs = atoi( argv[i] );
+				}
+				else if ( !strcmp( &argv[i][1], "max_slabs") && (i+1) < argc)
+				{
+					i++;
+					max_slabs = atoi( argv[i] );
+				}
+				else if ( !strcmp( &argv[i][1], "free_slabs_threshold") && (i+1) < argc)
+				{
+					i++;
+					free_slabs_threshold = atoi( argv[i] );
+				}
+				else
+				{
+					printf("Unrecognized option %s\n", argv[i] );
+					print_usage( argv[0] );
+					return 1;
 				}
 				
 			}
 			else
 			{
+				printf("Not valid usage\n");
 				print_usage( argv[0] );
 				return 1;
 			}

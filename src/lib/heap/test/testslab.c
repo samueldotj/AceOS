@@ -18,7 +18,13 @@
 
 #define PAGE_SIZE	4096
 
+#define TEST_TYPE_FIFO			1
+#define TEST_TYPE_LIFO			2
+#define TEST_TYPE_FREE_RAND		4
+#define TEST_TYPE_ALL_RAND		8
+
 extern int verbose_level;
+extern int test_type;
 
 int parse_arguments(int argc, char * argv[]);
 void fill_random_numbers(int * number_array, int capacity, int max_number);
@@ -45,8 +51,10 @@ extern int alloc_count, cache_size, min_slabs, free_slabs_threshold, max_slabs;
 
 int main(int argc, char * argv[])
 {
-	CACHE cache;
 	VADDR * va_array;
+	
+	CACHE cache;
+	
 
 	if ( parse_arguments(argc, argv) )
 		return 1;
@@ -73,27 +81,37 @@ int main(int argc, char * argv[])
 	}
 	
 	
-	/*FIFO - test*/
-	PRINT( 1, "FIFO Test : allocating memory from cache\n");
-	AllocateMemory(&cache, (void **)va_array, alloc_count );
-	PRINT( 1, "FIFO Test : free buffer\n");
-	FreeMemoryFifo(&cache, (void **)va_array, alloc_count);
-	
-	/*LIFO - test*/
-	PRINT( 1, "LIFO Test : allocating memory from cache\n");
-	AllocateMemory(&cache, (void **)va_array, alloc_count );
-	PRINT( 1, "LIFO Test : free buffer\n");
-	FreeMemoryLifo(&cache, (void **)va_array, alloc_count);
-	
-	/*random - test*/
-	PRINT( 1, "Random Test : allocating memory from cache\n");
-	AllocateMemory(&cache, (void **)va_array, alloc_count );
-	PRINT( 1, "Random Test : free buffer\n");
-	FreeMemoryRandom(&cache, (void **)va_array, alloc_count);
+	//FIFO - test
+	if ( test_type & TEST_TYPE_FIFO )
+	{
+		PRINT( 1, "FIFO Test : allocating memory from cache\n");
+		AllocateMemory(&cache, (void **)va_array, alloc_count );
+		PRINT( 1, "FIFO Test : free buffer\n");
+		FreeMemoryFifo(&cache, (void **)va_array, alloc_count);
+	}
+	//LIFO - test
+	if ( test_type & TEST_TYPE_LIFO )
+	{
+		PRINT( 1, "LIFO Test : allocating memory from cache\n");
+		AllocateMemory(&cache, (void **)va_array, alloc_count );
+		PRINT( 1, "LIFO Test : free buffer\n");
+		FreeMemoryLifo(&cache, (void **)va_array, alloc_count);
+	}
+	//random - test
+	if ( test_type & TEST_TYPE_FREE_RAND )
+	{
+		PRINT( 1, "Random Test : allocating memory from cache\n");
+		AllocateMemory(&cache, (void **)va_array, alloc_count );
+		PRINT( 1, "Random Test : free buffer\n");
+		FreeMemoryRandom(&cache, (void **)va_array, alloc_count);
+	}
 
-	/*completely random*/
-	PRINT( 1, "Random Alloc & Free Test : \n");
-	RandomMemoryAllocFree(&cache, (void **)va_array, alloc_count, 2+(rand()%20) );
+	//completely random
+	if ( test_type & TEST_TYPE_ALL_RAND )
+	{
+		PRINT( 1, "Random Alloc & Free Test : \n");
+		RandomMemoryAllocFree(&cache, (void **)va_array, alloc_count, 2+(rand()%20) );
+	}
 	
 	DestroyCache( &cache );
 	PRINT(1, "Cache destroyed\n");
@@ -105,9 +123,11 @@ int main(int argc, char * argv[])
 void AllocateMemory(CACHE_PTR c, void * va_array[], int count)
 {
 	int i;
+	
 	for(i=0;i<count; i++)
 	{
 		void* va = GetVAFromCache(c, 0);
+		
 		if ( va == NULL )
 		{
 			printf("GetVAFromCache(%p, 0) failed\n", c);
@@ -202,11 +222,11 @@ void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int m
 		
 		/*randomly select a allocate count*/
 		free_count = rand() % not_freed;
-
-		assert( not_freed > 0 );
-		assert( allocate_count < array_size );
-		assert( not_freed < array_size );
-		assert( free_count < not_freed );
+		
+		assert( not_freed >= 0 );
+		assert( allocate_count <= array_size );
+		assert( not_freed <= array_size );
+		assert( free_count <= not_freed );
 		
 		//prepare random free
 		free_index_array = calloc(not_freed, sizeof(int));
@@ -220,14 +240,16 @@ void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int m
 		//free memory based on random index
 		for(j=0; j<free_count; j++)
 		{
-			if ( verbose_level >= 2 ) printf("Freeing VA %p : ",va_array[free_index_array[j]]);
+			int free_index = free_index_array[j];
+			assert(  free_index < not_freed );
+			if ( verbose_level >= 2 ) printf("Freeing VA %p(%d) : ",va_array[free_index], free_index);
 			if ( FreeBuffer(va_array[free_index_array[j]], c) == -1 )
 			{
-				printf("FreeBuffer(%p, %p) %d %d failed\n", va_array[j], c, i, j);
+				printf("FreeBuffer(%p, %p) %d %d failed\n", va_array[free_index], c, free_index, j);
 				exit(1);
 			}
 			if ( verbose_level >= 2 ) printf("ok\n");
-			va_array[free_index_array[j]] = NULL;
+			va_array[free_index] = NULL;
 			
 		}
 		free(free_index_array);
@@ -235,7 +257,8 @@ void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int m
 		//rearrange(move the freed elements to the end) and resize(decrease not_freed count) the va_array
 		for(j=0; j<not_freed ; j++)
 		{
-			while( not_freed>0 && va_array[not_freed] == NULL )
+			//skip the freed one
+			while( j<not_freed && va_array[not_freed] == NULL )
 				not_freed--;
 			if ( j < not_freed )
 			{
@@ -244,9 +267,14 @@ void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int m
 				{
 					va_array[j] = va_array[not_freed];
 					va_array[not_freed] = 0;
+					not_freed--;
 				}
 			}
 		}
+		//recalculate the not_freed entries
+		for(not_freed=0; va_array[not_freed] != 0 && not_freed<array_size ; not_freed++);
+		
+		if (verbose_level >=1 ) printf("Pass(%d/%d) Allocated %3d Freed %3d Still in cache %3d\n", i+1, min_run, allocate_count, free_count, not_freed );
 	}
 }
 

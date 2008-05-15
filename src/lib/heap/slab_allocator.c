@@ -465,8 +465,10 @@ void DestroyCache(CACHE_PTR rem_cache)
 	SpinLock( &(rem_cache->slock) );
 
 	/* Before proceeding, make sure this cache is no more used by anybody */
-	assert( rem_cache->in_use_slab_tree_root == NULL);
-
+	//todo - write code to delete all the unused buffers
+	
+	//assert( rem_cache->in_use_slab_tree_root == NULL);
+	
 	/* Free the vm_pages inside slabs pointed by completely free slab list */
 	free_slabs = rem_cache->free_slabs_count;
 	while( free_slabs )

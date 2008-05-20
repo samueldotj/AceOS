@@ -458,27 +458,41 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 void DestroyCache(CACHE_PTR rem_cache)
 {
 	UINT32 free_slabs;
-	SLAB_PTR rem_slab;
+	SLAB_PTR slab_ptr;
 	VADDR rem_va;
 
 	/* Get a lock to cache */
 	SpinLock( &(rem_cache->slock) );
 
-	/* Before proceeding, make sure this cache is no more used by anybody */
-	//todo - write code to delete all the unused buffers
+	/*free any partially used slab*/
+	slab_ptr = rem_cache->partially_free_slab_list_head;
+	while( slab_ptr != NULL )
+	{
+		SLAB_STATE old_state = GetSlabState( rem_cache, slab_ptr);
+		
+		rem_cache->free_buffer_count -= slab_ptr->used_buffer_count;
+		slab_ptr->used_buffer_count = 0;
+		
+		ManageSlabStateTransition( rem_cache, slab_ptr, old_state, GetSlabState(rem_cache, slab_ptr) );
+		
+		/*get next partially used slab*/
+		slab_ptr = rem_cache->partially_free_slab_list_head;
+	}
 	
-	//assert( rem_cache->in_use_slab_tree_root == NULL);
+	
+	/* Before proceeding, make sure this cache is no more used by anybody */
+	assert( rem_cache->in_use_slab_tree_root == NULL);
 	
 	/* Free the vm_pages inside slabs pointed by completely free slab list */
 	free_slabs = rem_cache->free_slabs_count;
 	while( free_slabs )
 	{
-		rem_slab =  rem_cache->completely_free_slab_list_head;
+		slab_ptr =  rem_cache->completely_free_slab_list_head;
 		rem_cache->completely_free_slab_list_head = STRUCT_FROM_MEMBER( SLAB_PTR, completely_free_list, rem_cache->completely_free_slab_list_head->completely_free_list.next);
-		RemoveFromCompletelyFreeList( rem_cache, rem_slab );
+		RemoveFromCompletelyFreeList( rem_cache, slab_ptr );
 		
 		/* Now get the starting address of slab */
-		rem_va = SLAB_START( rem_slab, rem_cache);
+		rem_va = SLAB_START( slab_ptr, rem_cache);
 		VM_FREE( (void*)rem_va, rem_cache->slab_size );
 		free_slabs--;
 	}

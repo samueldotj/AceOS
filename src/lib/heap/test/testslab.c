@@ -110,7 +110,7 @@ int main(int argc, char * argv[])
 	if ( test_type & TEST_TYPE_ALL_RAND )
 	{
 		PRINT( 1, "Random Alloc & Free Test : \n");
-		RandomMemoryAllocFree(&cache, (void **)va_array, alloc_count, 2+(rand()%20) );
+		RandomMemoryAllocFree(&cache, (void **)va_array, alloc_count, GetRandomNumber(1, 20) );
 	}
 	
 	DestroyCache( &cache );
@@ -201,7 +201,12 @@ void FreeMemoryRandom(CACHE_PTR c, void * va_array[], int count)
 	}
 	free(rand_array);
 }
-
+int GetRandomNumber(int min, int max)
+{
+	assert( max > min );
+	int range = max - min;
+	return min + ( rand() % range );
+}
 void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int min_run)
 {
 	int i, not_freed=0;
@@ -212,7 +217,7 @@ void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int m
 		int j, * free_index_array;
 		
 		/*randomly select a allocate count*/
-		allocate_count = rand() % (array_size-not_freed);
+		allocate_count = GetRandomNumber( 1, array_size-not_freed ); 
 		
 		//allocate memory
 		AllocateMemory(c, &va_array[not_freed], allocate_count);
@@ -221,9 +226,9 @@ void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int m
 		not_freed+= allocate_count;
 		
 		/*randomly select a allocate count*/
-		free_count = rand() % not_freed;
+		free_count = GetRandomNumber(0, not_freed);
 		
-		assert( not_freed >= 0 );
+		assert( not_freed > 0 );
 		assert( allocate_count <= array_size );
 		assert( not_freed <= array_size );
 		assert( free_count <= not_freed );
@@ -254,6 +259,7 @@ void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int m
 		}
 		free(free_index_array);
 		
+		int tmp = not_freed;
 		//rearrange(move the freed elements to the end) and resize(decrease not_freed count) the va_array
 		for(j=0; j<not_freed ; j++)
 		{
@@ -271,8 +277,9 @@ void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int m
 				}
 			}
 		}
+		
 		//recalculate the not_freed entries
-		for(not_freed=0; va_array[not_freed] != 0 && not_freed<array_size ; not_freed++);
+		for(not_freed=0; va_array[not_freed] != 0 && not_freed<tmp ; not_freed++);
 		
 		if (verbose_level >=1 ) printf("Pass(%d/%d) Allocated %3d Freed %3d Still in cache %3d\n", i+1, min_run, allocate_count, free_count, not_freed );
 	}
@@ -358,5 +365,15 @@ int cache_constructor( void *buffer)
 
 int cache_destructor( void *buffer)
 {
+	int i, j;
+	char pattern[]="ERROR ";
+	//fill the repeating pattern in the buffer
+	for(i=0; i<cache_size; i++, j++)
+	{
+		((char *)buffer)[i] = pattern[j];
+		if ( j > sizeof(pattern) )
+			j=0;
+	}
+
 	return 0;
 }

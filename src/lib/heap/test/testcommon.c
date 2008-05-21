@@ -1,7 +1,9 @@
+#include <heap/slab_allocator.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #define TEST_TYPE_FIFO			1
 #define TEST_TYPE_LIFO			2
@@ -127,4 +129,19 @@ void fill_random_numbers(int * number_array, int capacity, int max_number)
 		swap(&number_array[i] , &number_array[rand_number] );
 	}
 }
-
+void print_stats(CACHE_PTR cache_ptr)
+{
+	CACHE_STATISTICS_PTR stat = GetCahcheStatistics(cache_ptr);
+	if ( stat == NULL )
+	{
+		printf("Cache Statistics are not enabled\n");
+		return;
+	}
+	printf("Cache Statistics : \n");
+	printf("\t alloc() calls : %d Success : %d Failures : %d \n", (int)stat->alloc_calls, (int)stat->alloc_calls - (int)stat->alloc_failures, (int)stat->alloc_failures);
+	printf("\t free() calls: %d\n", (int)stat->free_calls);
+	
+	printf("\t vm_alloc_calls() : %d vm_free_calls() : %d \n", (int)stat->vm_alloc_calls, (int)stat->vm_free_calls);
+	
+	printf("\t peak slab usage : %d average usage : %d\n", (int)stat->max_slabs_used, (int)stat->average_slab_usage );
+}

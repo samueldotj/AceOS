@@ -23,7 +23,7 @@
 /* define this macro to enable statistics */
 #define SLAB_STAT_ENABLED
 /* define this macro to debug the slab alloctor */
-//#define SLAB_DEBUG_ENABLED
+#define SLAB_DEBUG_ENABLED
 
 typedef enum 
 {
@@ -42,11 +42,21 @@ typedef struct slab_allocator_metadata
 	int 	(*virtual_protect)(void * va, int size, int protection);
 } SLAB_ALLOCATOR_METADATA, * SLAB_ALLOCATOR_METADATA_PTR;
 
-
+typedef struct cache_statistics
+{
+	UINT32		alloc_calls; /* total allocation calls from the user */
+	UINT32		alloc_failures; /* Number of times alloc failed to find a free buffer in the slab list */
+	UINT32		free_calls; /* total free calls from the user */
+	
+	UINT32		vm_alloc_calls; /* total calls to vm to get memory pages */
+	UINT32		vm_free_calls; /* total calls to vm to free memory pages */
+	
+	UINT32		max_slabs_used;
+	UINT32		average_slab_usage;
+}CACHE_STATISTICS, * CACHE_STATISTICS_PTR;
 #ifdef SLAB_DEBUG_ENABLED
 	#define	slab_debug_options 0
 #endif
-
 
 typedef struct slab {
 	UINT16		used_buffer_count;
@@ -68,10 +78,10 @@ typedef struct cache {
 
 	int			min_buffers; /* Minimum no of buffers to be present always */
 	int			max_slabs; 	 /* Maximum no of slabs allowed */
-
 	int			free_slabs_threshold; /* Threshold to start VM operation */
-	UINT32		free_slabs_count; /* count of free slabs in the completely free slab list */
 
+	int			total_slabs;	/*total slabs in the cache (this count includes both free and in use)*/
+	UINT32		free_slabs_count; /* count of free slabs in the completely free slab list */
 	int 		free_buffer_count;	/*total buffers free in this cache*/
 	
 	AVL_TREE_PTR in_use_slab_tree_root;
@@ -83,24 +93,15 @@ typedef struct cache {
 
 	SLAB_PTR 	partially_free_slab_list_head;
 	/* List of partially free slabs which have some buffers free */
-	
-#ifdef SLAB_STAT_ENABLED
-	UINT32		alloc_calls; /* total allocation calls from the user */
-	UINT32		free_calls; /* total free calls from the user */
-	UINT32		vm_alloc_calls; /* total calls to vm to get memory pages */
-	UINT32		vm_free_calls; /* total calls to vm to free memory pages */
-	UINT32		free_buffer_end;
-	/* Number of times alloc failed to find a free buffer in the slab list */
-	
-	UINT32		max_slabs_used;
-	UINT32		average_slab_usage;
-#endif
-	
+
 	UINT32		slab_size;				/*size of a slab (including meta data in multiple of page size)*/
 	UINT32		slab_metadata_size;		/*size of a slab's metadata*/
 	UINT32		slab_metadata_offset;	/*where the metadata starts in a slab*/
 	UINT32 		slab_buffer_count;		/*buffers per slab*/
-
+	
+#ifdef SLAB_STAT_ENABLED
+	CACHE_STATISTICS stat;
+#endif
 } CACHE, *CACHE_PTR;
 
 /*initializes the Slab Allocator subsystem*/
@@ -118,13 +119,13 @@ int InitCache(CACHE_PTR new_cache, UINT32 size, int free_slabs_threshold,
 /*allocates memory from the specified cache*/
 void* GetVAFromCache(CACHE_PTR cache_ptr, UINT32 flag);
 
-/*frees memory to the specified cache*/
-void FreeCache(CACHE_PTR, void *);
+/* Frees a buffer in it's slab */
+int FreeBuffer(void *buffer, CACHE_PTR cache_ptr);
 
 /*destroys the specified cache*/
 void DestroyCache(CACHE_PTR);
 
-/* Frees a buffer in it's slab */
-int FreeBuffer(void *buffer, CACHE_PTR cache_ptr);
+/*returns the cache statistics*/
+CACHE_STATISTICS_PTR GetCahcheStatistics(CACHE_PTR cache_ptr);
 
 #endif

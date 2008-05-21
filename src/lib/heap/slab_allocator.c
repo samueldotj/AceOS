@@ -81,6 +81,11 @@ static int ManageSlabStateTransition(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr, SLA
 	//new to free
 	if ( old_state == SLAB_STATE_NEW && new_state == SLAB_STATE_FREE )
 	{
+		cache_ptr->total_slabs++;
+#ifdef SLAB_STAT_ENABLED
+		if ( cache_ptr->total_slabs > cache_ptr->stat.max_slabs_used )
+			cache_ptr->stat.max_slabs_used = cache_ptr->total_slabs;
+#endif
 		AddToCompletelyFreeList(cache_ptr, slab_ptr);
 	}
 	//free to mixed
@@ -285,6 +290,20 @@ int InitCache(CACHE_PTR new_cache, UINT32 size,
 	new_cache->slab_metadata_offset  = new_cache->slab_size - new_cache->slab_metadata_size;
 	new_cache->slab_buffer_count = buf_count;
 	
+#ifdef SLAB_STAT_ENABLED
+	new_cache->stat.alloc_calls = 0; 
+	new_cache->stat.free_calls = 0;
+	
+	new_cache->stat.vm_alloc_calls = 0;
+	new_cache->stat.vm_free_calls = 0;
+	
+	new_cache->stat.alloc_failures = 0;
+	
+	new_cache->stat.max_slabs_used = 0;
+	new_cache->stat.average_slab_usage = 0;
+#endif
+
+	
 	return 0;
 }
 
@@ -300,7 +319,10 @@ void* GetVAFromCache(CACHE_PTR cache_ptr, UINT32 flag)
 {
 	VADDR ret_va = NULL;
 	SpinLock(&(cache_ptr->slock));
-	
+
+#ifdef SLAB_STAT_ENABLED
+	cache_ptr->stat.alloc_calls++;
+#endif
 	/* If no free buffer is available, try to get it from free slab */
 	if ( cache_ptr->free_buffer_count == 0 )
 	{
@@ -325,6 +347,12 @@ void* GetVAFromCache(CACHE_PTR cache_ptr, UINT32 flag)
 	assert( ret_va );
 		
 FINDING_BUFFER_DONE:
+
+#ifdef SLAB_STAT_ENABLED
+	if ( ret_va == NULL )
+		cache_ptr->stat.alloc_failures++;
+#endif
+
 	SpinUnlock(&(cache_ptr->slock));
 	return (void*)(ret_va);
 }
@@ -344,7 +372,10 @@ static int AddSlabToCache(CACHE_PTR cache_ptr, int immediate_use)
 	VADDR slab_start;
 	SLAB_PTR slab_ptr;
 	/* TBD. Add conditon to check max_slabs count and exit */
-	
+
+#ifdef SLAB_STAT_ENABLED
+	cache_ptr->stat.vm_alloc_calls++;
+#endif
 	slab_start = (VADDR) VM_ALLOC( cache_ptr->slab_size );
 	if ( slab_start == NULL )
 	{
@@ -420,6 +451,10 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	VADDR va_start;
 	SLAB_STATE old_state, new_state;
 
+#ifdef SLAB_STAT_ENABLED
+	cache_ptr->stat.free_calls++;
+#endif
+
 	if (buffer == NULL || cache_ptr == NULL)
 	{
 		return -1;
@@ -493,6 +528,10 @@ void DestroyCache(CACHE_PTR rem_cache)
 		
 		/* Now get the starting address of slab */
 		rem_va = SLAB_START( slab_ptr, rem_cache);
+
+#ifdef SLAB_STAT_ENABLED
+		rem_cache->stat.free_calls++;
+#endif
 		VM_FREE( (void*)rem_va, rem_cache->slab_size );
 		free_slabs--;
 	}
@@ -541,4 +580,19 @@ static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr )
 		}
 	}
 	return NULL;
+}
+/*!
+	\brief	returns the cache statistics structure pointer
+	\param	cache_ptr - Pointer to cache for which stats are required
+	\return
+   		On SUCCESS: Returns the cache statistics structure pointer
+		On Failure(if stats are not enabled): Returns NULL.
+*/
+CACHE_STATISTICS_PTR GetCahcheStatistics(CACHE_PTR cache_ptr)
+{
+	CACHE_STATISTICS_PTR ret = NULL;
+#ifdef SLAB_STAT_ENABLED
+	ret = &cache_ptr->stat;
+#endif
+	return ret;
 }

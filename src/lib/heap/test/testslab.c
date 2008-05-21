@@ -28,9 +28,11 @@ extern int test_type;
 
 int parse_arguments(int argc, char * argv[]);
 void fill_random_numbers(int * number_array, int capacity, int max_number);
+void print_stats(CACHE_PTR cache_ptr);
 int rand();
 void srand(unsigned int seed);
 void exit(int status);
+int GetRandomNumber(int min, int max);
 
 void free(void *);
 
@@ -112,9 +114,11 @@ int main(int argc, char * argv[])
 		PRINT( 1, "Random Alloc & Free Test : \n");
 		RandomMemoryAllocFree(&cache, (void **)va_array, alloc_count, GetRandomNumber(1, 20) );
 	}
+	print_stats(&cache);
 	
 	DestroyCache( &cache );
 	PRINT(1, "Cache destroyed\n");
+	
 	free(va_array);
 	return 0;
 }

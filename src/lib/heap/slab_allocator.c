@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Mon Apr 28, 2008  12:20PM
+  			Last modified: Thu May 22, 2008  11:22AM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -450,6 +450,7 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	int buffer_index;
 	VADDR va_start;
 	SLAB_STATE old_state, new_state;
+	char byte;
 
 #ifdef SLAB_STAT_ENABLED
 	cache_ptr->stat.free_calls++;
@@ -471,6 +472,14 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	/* Clear the corresponding bit in buffer_usage_bitmap */
 	va_start = SLAB_START(slab_ptr, cache_ptr);
 	buffer_index = ( ((VADDR)buffer - va_start) / (cache_ptr->buffer_size) );
+	/* see if this buffer is presently used */ 
+	byte = GetBitFromBitArray( (void*)(slab_ptr->buffer_usage_bitmap), buffer_index );
+	if(byte == 0)
+	{
+		printf("I can't free a buffer which is not allocated!\n");
+		return -1;
+	}
+
 	ClearBitInBitArray( (void*)(slab_ptr->buffer_usage_bitmap), buffer_index );	
 	
 	old_state = GetSlabState( cache_ptr, slab_ptr);
@@ -559,7 +568,7 @@ static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr )
 		return NULL;
 	}
 
-	root= cache_ptr->in_use_slab_tree_root;	
+	root= cache_ptr->in_use_slab_tree_root;
 
 	while ( root )
 	{

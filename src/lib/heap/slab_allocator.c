@@ -278,11 +278,11 @@ int InitCache(CACHE_PTR new_cache, UINT32 size,
 	new_cache->free_slabs_count = 0;
 	new_cache->free_buffer_count = 0;
 		
-	new_cache->slab_size = SLAB_SIZE(size);
-	buf_count = (new_cache->slab_size - sizeof(SLAB)) / size;
+	new_cache->slab_size = SLAB_SIZE(new_cache->buffer_size);
+	buf_count = (new_cache->slab_size - sizeof(SLAB)) / new_cache->buffer_size;
 	bitmap_size = buf_count / BITS_PER_BYTE;
 	/*recalcualte the buffer count*/
-	buf_count = (new_cache->slab_size - sizeof(SLAB) - bitmap_size) / size;
+	buf_count = (new_cache->slab_size - sizeof(SLAB) - bitmap_size) / new_cache->buffer_size;
 	
 	new_cache->slab_metadata_size = sizeof(SLAB) + buf_count/BITS_PER_BYTE;
 	//align the size
@@ -522,7 +522,8 @@ void DestroyCache(CACHE_PTR rem_cache)
 		/*get next partially used slab*/
 		slab_ptr = rem_cache->partially_free_slab_list_head;
 	}
-	
+
+	/*TODO add code here to remove the completely full slabs*/
 	
 	/* Before proceeding, make sure this cache is no more used by anybody */
 	assert( rem_cache->in_use_slab_tree_root == NULL);
@@ -573,7 +574,6 @@ static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr )
 	{
 		slab_ptr = STRUCT_FROM_MEMBER( SLAB_PTR, in_use_tree, root);
 		start_va = (VADDR) SLAB_START( slab_ptr, cache_ptr);
-
 		if ( buffer >= start_va && buffer < (start_va + cache_ptr->slab_metadata_offset) )
 		{
 			return slab_ptr;

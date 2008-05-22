@@ -32,4 +32,7 @@ int RemoveNodeFromAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR node);
 #define AVL_TREE_LEFT_LIST(node)	((node)->bintree.left)
 #define AVL_TREE_RIGHT_LIST(node)	((node)->bintree.right)
 
+#define IS_AVL_TREE_LEFT_LIST_END(node)		(IS_TREE_LIST_END( &AVL_TREE_LEFT_LIST(node)) )
+#define IS_AVL_TREE_RIGHT_LIST_END(node)	(IS_TREE_LIST_END( &AVL_TREE_RIGHT_LIST(node)) )
+
 #endif

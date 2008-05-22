@@ -10,7 +10,6 @@
 */
 
 #include <ds/binary_tree.h>
-#include <stdio.h>
 
 #define MARK_TREELIST_END(list)		(list)->next = (LIST_PTR) (((unsigned long)(list)->next ) | 1);
 

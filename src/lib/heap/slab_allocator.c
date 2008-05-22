@@ -263,7 +263,7 @@ int InitCache(CACHE_PTR new_cache, UINT32 size,
 
 	InitSpinLock( &new_cache->slock);
 
-	new_cache->buffer_size = size;
+	new_cache->buffer_size = BUFFER_SIZE(size);
 	new_cache->constructor = constructor;
 	new_cache->destructor = destructor;
 	
@@ -430,7 +430,7 @@ static VADDR GetFreeBufferFromCache(CACHE_PTR cache_ptr)
 	cache_ptr->free_buffer_count --;
 	
 	/*calculate the virtual address*/
-	ret_va = SLAB_START(slab_ptr, cache_ptr) + ( BUFFER_SIZE(cache_ptr->buffer_size) * free_buffer_index);
+	ret_va = SLAB_START(slab_ptr, cache_ptr) + ( cache_ptr->buffer_size * free_buffer_index);
 	
 	return ret_va;
 }
@@ -476,7 +476,7 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	byte = GetBitFromBitArray( (void*)(slab_ptr->buffer_usage_bitmap), buffer_index );
 	if(byte == 0)
 	{
-		printf("I can't free a buffer which is not allocated!\n");
+		printf("I can't free a buffer which is not allocated %d!\n", buffer_index);
 		return -1;
 	}
 
@@ -568,8 +568,7 @@ static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr )
 		return NULL;
 	}
 
-	root= cache_ptr->in_use_slab_tree_root;
-
+	root = cache_ptr->in_use_slab_tree_root;
 	while ( root )
 	{
 		slab_ptr = STRUCT_FROM_MEMBER( SLAB_PTR, in_use_tree, root);
@@ -581,10 +580,14 @@ static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr )
 		}
 		else if ( buffer < start_va )
 		{
+			if ( IS_AVL_TREE_LEFT_LIST_END(root) )
+				return NULL;
 			root = AVL_TREE_LEFT_NODE(root);
 		}
 		else //if ( buffer > (start_va + cache_ptr->slab_metadata_offset) )
 		{
+			if ( IS_AVL_TREE_RIGHT_LIST_END(root) )
+				return NULL;
 			root = AVL_TREE_RIGHT_NODE(root);
 		}
 	}

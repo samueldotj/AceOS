@@ -160,6 +160,7 @@ void FreeMemoryFifo(CACHE_PTR c, void * va_array[], int count)
 		{
 			printf("Freed buffer %p, %d\n", (VADDR*)(va_array[i]), i);
 		}
+		va_array[i] = NULL;
 	}
 }
 
@@ -177,6 +178,7 @@ void FreeMemoryLifo(CACHE_PTR c, void * va_array[], int count)
 		{
 			printf("Freed buffer %p %d\n", (VADDR*)(va_array[i]), i);
 		}
+		va_array[i] = NULL;
 	}
 }
 
@@ -202,6 +204,7 @@ void FreeMemoryRandom(CACHE_PTR c, void * va_array[], int count)
 		{
 			printf("Freed buffer %p %d\n", (VADDR*)(va_array[j]), i);
 		}
+		va_array[j] = NULL;
 	}
 	free(rand_array);
 }
@@ -252,14 +255,13 @@ void RandomMemoryAllocFree(CACHE_PTR c, void * va_array[], int array_size, int m
 			int free_index = free_index_array[j];
 			assert(  free_index < not_freed );
 			if ( verbose_level >= 2 ) printf("Freeing VA %p(%d) : ",va_array[free_index], free_index);
-			if ( FreeBuffer(va_array[free_index_array[j]], c) == -1 )
+			if ( FreeBuffer(va_array[free_index], c) == -1 )
 			{
 				printf("FreeBuffer(%p, %p) %d %d failed\n", va_array[free_index], c, free_index, j);
 				exit(1);
 			}
 			if ( verbose_level >= 2 ) printf("ok\n");
 			va_array[free_index] = NULL;
-			
 		}
 		free(free_index_array);
 		

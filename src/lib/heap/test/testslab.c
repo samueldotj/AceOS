@@ -130,11 +130,11 @@ void AllocateMemory(CACHE_PTR c, void * va_array[], int count)
 	
 	for(i=0;i<count; i++)
 	{
-		void* va = GetVAFromCache(c, 0);
+		void* va = AllocateBuffer(c, 0);
 		
 		if ( va == NULL )
 		{
-			printf("GetVAFromCache(%p, 0) failed\n", c);
+			printf("AllocateBuffer(%p, 0) failed\n", c);
 			exit(1);
 		}
 		if (verbose_level >=2)

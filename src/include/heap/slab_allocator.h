@@ -117,7 +117,7 @@ int InitCache(CACHE_PTR new_cache, UINT32 size, int free_slabs_threshold,
 
 
 /*allocates memory from the specified cache*/
-void* GetVAFromCache(CACHE_PTR cache_ptr, UINT32 flag);
+void* AllocateBuffer(CACHE_PTR cache_ptr, UINT32 flag);
 
 /* Frees a buffer in it's slab */
 int FreeBuffer(void *buffer, CACHE_PTR cache_ptr);

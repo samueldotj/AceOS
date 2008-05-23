@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Thu May 22, 2008  11:22AM
+  			Last modified: Fri May 23, 2008  11:10AM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -59,6 +59,7 @@ static void AddToPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
 static void RemoveFromPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
 static void AddToCompletelyFreeList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
 static void RemoveFromCompletelyFreeList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr);
+static void RemoveInUseTree(AVL_TREE_PTR root, CACHE_PTR cache_ptr);
 
 static COMPARISION_RESULT slab_inuse_tree_compare(AVL_TREE_PTR node1, AVL_TREE_PTR node2);
 
@@ -494,8 +495,42 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	return 0;
 }
 
+
 /*!
-	\brief	Destroy a cache and return the vm_pages t to VM subsystem. 
+	\brief	Remove the entire in_use_tree 
+
+	\param	root: This is the root of the tree that is to be removed.
+			cache_ptr:	Pointer to cache which contains the tree to be removed.
+
+	\return	void
+*/
+static void RemoveInUseTree(AVL_TREE_PTR root, CACHE_PTR cache_ptr)
+{
+	if(root)
+	{
+		SLAB_PTR slab_ptr;
+		int i, count;
+
+		if(!IS_AVL_TREE_LEFT_LIST_END(root))
+			RemoveInUseTree(AVL_TREE_LEFT_NODE(root), cache_ptr);
+		if(!IS_AVL_TREE_RIGHT_LIST_END(root))
+			RemoveInUseTree(AVL_TREE_RIGHT_NODE(root), cache_ptr);
+		
+		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), root );
+		slab_ptr = STRUCT_FROM_MEMBER( SLAB_PTR, in_use_tree, root);
+		cache_ptr->free_buffer_count -= (cache_ptr->slab_buffer_count - slab_ptr->used_buffer_count);
+		/*clear the buffer usage bitmap */
+		for(i=0, count=slab_ptr->used_buffer_count; count >=0; i++, count -= 8)
+			slab_ptr->buffer_usage_bitmap[i] = 0;
+
+		slab_ptr->used_buffer_count = 0;
+		AddToCompletelyFreeList(cache_ptr, slab_ptr);
+	}
+}
+
+
+/*!
+	\brief	Destroy the cache and return the vm_pages to VM subsystem. 
 	\param	cache_ptr: Pointer to cache which is to be destroyed.
 	\return	void
 */
@@ -508,13 +543,13 @@ void DestroyCache(CACHE_PTR rem_cache)
 	/* Get a lock to cache */
 	SpinLock( &(rem_cache->slock) );
 
-	/*free any partially used slab*/
+	/*Move all partially used slabs to compeletely free slabs list*/
 	slab_ptr = rem_cache->partially_free_slab_list_head;
 	while( slab_ptr != NULL )
 	{
 		SLAB_STATE old_state = GetSlabState( rem_cache, slab_ptr);
 		
-		rem_cache->free_buffer_count -= slab_ptr->used_buffer_count;
+		rem_cache->free_buffer_count += slab_ptr->used_buffer_count;
 		slab_ptr->used_buffer_count = 0;
 		
 		ManageSlabStateTransition( rem_cache, slab_ptr, old_state, GetSlabState(rem_cache, slab_ptr) );
@@ -523,12 +558,16 @@ void DestroyCache(CACHE_PTR rem_cache)
 		slab_ptr = rem_cache->partially_free_slab_list_head;
 	}
 
-	/*TODO add code here to remove the completely full slabs*/
+	/* Now remove all slabs from completely FULL slab list.
+	 * This is possible by deleting all nodes from the in use tree.
+	 */
+	RemoveInUseTree(rem_cache->in_use_slab_tree_root, rem_cache);
 	
 	/* Before proceeding, make sure this cache is no more used by anybody */
 	assert( rem_cache->in_use_slab_tree_root == NULL);
-	
-	/* Free the vm_pages inside slabs pointed by completely free slab list */
+
+	/* Now all slabs are in completely free list */
+	/* Free the vm_pages inside slabs pointed by completely free slab list and the slabs themselves.*/
 	free_slabs = rem_cache->free_slabs_count;
 	while( free_slabs )
 	{

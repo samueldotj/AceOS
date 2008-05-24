@@ -10,7 +10,7 @@
 /*version of Ace*/
 #define ACE_MAJOR 3
 #define ACE_MINOR 0
-#define ACE_BUILD " 282 (17-Apr-2008 11:30)"
+#define ACE_BUILD " 317 (21-May-2008 20:09)"
 
 #ifdef CONFIG_SMP
 	#define ACE_NAME "Ace (Multiprocessor Compilation)"

@@ -14,32 +14,27 @@
 #include <ace.h>
 #include <heap/slab_allocator.h>
 
-/* Macros go here */
-#define MAX_HEAP_BUCKETS 10
-#define MAX_HEAP_BUCKET_SIZE 4096
-
-/* Index into bucket for each bucket size */
-#define INDEX_8		0
-#define INDEX_16	1
-#define INDEX_32	2
-#define INDEX_64	3
-#define INDEX_128	4
-#define INDEX_256	5
-#define INDEX_512	6
-#define INDEX_1024	7
-#define INDEX_2048	8
-#define INDEX_4096	9
-
+#define MAX_HEAP_BUCKETS 		12
 
 /* Structure definitions go here */
-
-typedef struct heap {
+typedef struct heap 
+{
 	CACHE cache_bucket[MAX_HEAP_BUCKETS]; /* List of cache entries in the heap */
 } HEAP, *HEAP_PTR;
 
-HEAP_PTR my_heap;
+typedef struct heap_data 
+{
+	int			bucket_index;
+	void * 		buffer[0];
+}HEAP_DATA, *HEAP_DATA_PTR;
 
 /* Function declarations go here */
-CACHE_PTR GetCacheFromBucket(UINT32 size);
+int InitHeap(int page_size, void * (*v_alloc)(int size), 
+		int (*v_free)(void * va, int size),
+		int (*v_protect)(void * va, int size, int protection)
+		);
+
+void * AllocateFromHeap(int size);
+int FreeToHeap(void * buffer);
 
 #endif

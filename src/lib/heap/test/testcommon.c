@@ -1,14 +1,4 @@
-#include <heap/slab_allocator.h>
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <string.h>
-
-#define TEST_TYPE_FIFO			1
-#define TEST_TYPE_LIFO			2
-#define TEST_TYPE_FREE_RAND		4
-#define TEST_TYPE_ALL_RAND		8
+#include "testcommon.h"
 
 int verbose_level=0;
 int print_stat = 0;
@@ -91,7 +81,7 @@ int parse_arguments(int argc, char * argv[])
 			}
 			else
 			{
-				printf("Not valid usage\n");
+				printf("Not a valid usage\n");
 				print_usage( argv[0] );
 				return 1;
 			}
@@ -144,4 +134,68 @@ void print_stats(CACHE_PTR cache_ptr)
 	printf("\t vm_alloc_calls() : %d vm_free_calls() : %d \n", (int)stat->vm_alloc_calls, (int)stat->vm_free_calls);
 	
 	printf("\t peak slab usage : %d average usage : %d\n", (int)stat->max_slabs_used, (int)stat->average_slab_usage );
+}
+
+void * virtual_alloc(int size)
+{
+	void * va;
+	/*size should be greater than 0 and should be a multiple of page size*/
+	if ( size <= 0 || size % PAGE_SIZE )
+	{
+		printf("size is incorrect %d\n", size);
+		exit(1);
+	}
+	if (verbose_level >=2)
+	{
+		printf("virtual_alloc: size=%d\n", size);
+	}
+
+	va = mmap( 0, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+	if ( va == MAP_FAILED )
+	{
+		perror("mmap ");
+		exit(0);
+	}
+		
+	return va;
+}
+
+int virtual_free(void * va, int size)
+{
+	/*va should be greater than 0 and should be a multiple of page size*/
+	if ( va <= 0 || ((unsigned long)va) % PAGE_SIZE)
+	{
+		printf("va is incorrect %p\n", va);
+		exit(1);
+	}
+	/*size should be greater than 0 and should be a multiple of page size*/
+	if ( size <= 0 || size % PAGE_SIZE )
+	{
+		printf("size is incorrect %d\n", size);
+		exit(1);
+	}
+	
+	if (verbose_level >=2)
+	{
+		printf("virtual_free: size=%d va=%p\n", size, (VADDR*)(va));
+	}
+
+	return munmap(va, size);
+}
+
+int virtual_protect(void * va, int size, int protection)
+{
+	/*va should be greater than 0 and shoul be in page size*/
+	if ( va <= 0 || ((unsigned long)va) % PAGE_SIZE)
+	{
+		printf("va is incorrect %p\n", va);
+		exit(1);
+	}
+	/*size should be greater than 0 and shoul be in page size*/
+	if ( size <= 0 || size % PAGE_SIZE )
+	{
+		printf("size is incorrect %d\n", size);
+		exit(1);
+	}
+	return mprotect( va, size, protection );
 }

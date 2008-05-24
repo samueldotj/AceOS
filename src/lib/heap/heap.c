@@ -9,98 +9,100 @@
 */
 
 #include <ace.h>
+#include <ds/align.h>
 #include <heap/heap.h>
 
+static HEAP _heap;
+
+const static int BUCKET_SIZE[MAX_HEAP_BUCKETS] = {
+		16,
+		32,
+		48,
+		64,
+		96,
+		128,
+		196,
+		256,
+		512,
+		1024,
+		2048,
+		4096
+	};
+
+#define CACHE_FROM_INDEX(index)		( _heap.cache_bucket[index] )
+#define BUCKET_INDEX(size)	(\
+							( (size) <= BUCKET_SIZE[0] ) 	? 	0 : \
+							( (size) <= BUCKET_SIZE[1] )	?	1:	\
+							( (size) <= BUCKET_SIZE[2] )	?	2:	\
+							( (size) <= BUCKET_SIZE[3] )	?	3:	\
+							( (size) <= BUCKET_SIZE[4] )	?	4:	\
+							( (size) <= BUCKET_SIZE[5] )	?	5:	\
+							( (size) <= BUCKET_SIZE[6] )	?	6:	\
+							( (size) <= BUCKET_SIZE[7] )	?	7:	\
+							( (size) <= BUCKET_SIZE[8] )	?	8:	\
+							( (size) <= BUCKET_SIZE[9] )	?	9:	\
+							( (size) <= BUCKET_SIZE[10] )	?	10:	\
+							( (size) <= BUCKET_SIZE[11] )	?	11:	12 \
+							)
+
+#define MAX_HEAP_BUCKET_SIZE 	(BUCKET_SIZE[MAX_HEAP_BUCKETS-1])
+#define BUCKET_SIZE(index)		(BUCKET_SIZE[index])
 
 /*!
-	\brief	 Indexes into the heap's bucket and gets a cache of appropriate size.
-
-	\param
-		size: Size in bytes of a cache entry.
-	\return
-		Success: Returns the appropriate cache pointer.
-		FAILURE: Returns NULL.
+	\brief	Initializes the heap
+	\param	page_size -  Size of virtual page.
+	\param	v_alloc - Function Pointer to virtual alloc.
+	\param	v_free - Function pointer to virtual free.
+	\param 	v_protect -	Function pointer to virtual protect.
+	\return	 0 on sucess and -1 on failure
 */
-CACHE_PTR GetCacheFromBucket(UINT32 size)
+int InitHeap( int page_size, void * (*v_alloc)(int size), 
+		int (*v_free)(void * va, int size),
+		int (*v_protect)(void * va, int size, int protection)
+		)
 {
-	assert(size>0 && size<=MAX_HEAP_BUCKET_SIZE && my_heap!= NULL);
-
-	if (size <= 8)
-	{
-		return &(my_heap->cache_bucket[INDEX_8]);
-	}
-	else if (size <= 16)
-	{
-		return &(my_heap->cache_bucket[INDEX_16]);
-	}
-	else if (size <= 32)
-	{
-		return &(my_heap->cache_bucket[INDEX_32]);
-	}
-	else if (size <= 64)
-	{
-		return &(my_heap->cache_bucket[INDEX_64]);
-	}
-	else if (size <= 128)
-	{
-		return &(my_heap->cache_bucket[INDEX_128]);
-	}
-	else if (size <= 256)
-	{
-		return &(my_heap->cache_bucket[INDEX_256]);
-	}
-	else if (size <= 512)
-	{
-		return &(my_heap->cache_bucket[INDEX_512]);
-	}
-	else if (size <= 1024)
-	{
-		return &(my_heap->cache_bucket[INDEX_1024]);
-	}
-	else if (size <= 2048)
-	{
-		return &(my_heap->cache_bucket[INDEX_2048]);
-	} 
-	else if (size <= 4096)
-	{
-		return &(my_heap->cache_bucket[INDEX_4096]);
-	}
-	else
-	{
-		return NULL;
-	}
+	int i;
+	if ( InitSlabAllocator(page_size, v_alloc, v_free, v_protect ) == -1 )
+		return -1;
+	for(i=0; i<MAX_HEAP_BUCKETS; i++ )
+		InitCache(&CACHE_FROM_INDEX(i), BUCKET_SIZE(i), 0, 0, 0, NULL, NULL);
+	return 0;
 }
 
-
-
-/*!
-	\brief	Allocated VA from Heap. 
-
-	\param
-		size: Minimum size requested for allocation.
-		cache_entry: Double Pointer to cache from which memory is wanted.
-
-	\return	 Free VA.
+/*!	Allocates memory from the heap
+	\param 	size - number of bytes required
+	\return 	starting address of the memory on success
+			Null on failure
 */
-void* malloc(UINT32 size, CACHE_PTR *cache_entry)
+void * AllocateFromHeap(int size)
 {
-	VADDR ret_va;
-
-	if (size > MAX_HEAP_BUCKET_SIZE)
+	int bucket_size, bucket_index;
+	CACHE_PTR cache_ptr;
+	HEAP_DATA_PTR heap_data_ptr;
+	
+	bucket_size = ALIGN_UP(size, 2);
+	if ( bucket_size > MAX_HEAP_BUCKET_SIZE )
 	{
-		/* Get vm_pages directly from vm subsystem */
-		/* TBD */
-		return (void*)(ret_va);
+		//for simplicity we dont support size greater than page size.
+		return NULL;
 	}
+	bucket_index = BUCKET_INDEX(bucket_size);
+	cache_ptr = &CACHE_FROM_INDEX(bucket_index);
+	heap_data_ptr = (HEAP_DATA_PTR) AllocateBuffer(cache_ptr, 0);
+	if ( heap_data_ptr == NULL )
+		return NULL;
+	heap_data_ptr->bucket_index = bucket_index;
+	return heap_data_ptr->buffer;
+}
 
-	if (!(*cache_entry))
-	{
-		*cache_entry = GetCacheFromBucket(size);
-	}
-
-	assert(*cache_entry); /* (*cache_entry) has to be valid at this point */
-
-	ret_va = (VADDR)GetVAFromCache(*cache_entry, NULL);
-	return (void*)ret_va;
+/*!	frees the given memory to heap
+	\param buffer - address to free
+*/
+int FreeToHeap(void * buffer)
+{
+	HEAP_DATA_PTR heap_data_ptr;
+	heap_data_ptr = STRUCT_ADDRESS_FROM_MEMBER( buffer, HEAP_DATA, buffer);
+	
+	return FreeBuffer(heap_data_ptr, &CACHE_FROM_INDEX(heap_data_ptr->bucket_index) );
 }
 

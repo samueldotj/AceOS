@@ -80,7 +80,7 @@ void * AllocateFromHeap(int size)
 	CACHE_PTR cache_ptr;
 	HEAP_DATA_PTR heap_data_ptr;
 	
-	bucket_size = ALIGN_UP(size, 2);
+	bucket_size = ALIGN_UP(size + sizeof(HEAP_DATA), 2);
 	if ( bucket_size > MAX_HEAP_BUCKET_SIZE )
 	{
 		//for simplicity we dont support size greater than page size.
@@ -98,11 +98,10 @@ void * AllocateFromHeap(int size)
 /*!	frees the given memory to heap
 	\param buffer - address to free
 */
-int FreeToHeap(void * buffer)
+int FreeToHeap(void * free_buffer)
 {
 	HEAP_DATA_PTR heap_data_ptr;
-	heap_data_ptr = STRUCT_ADDRESS_FROM_MEMBER( buffer, HEAP_DATA, buffer);
-	
+	heap_data_ptr = STRUCT_ADDRESS_FROM_MEMBER( free_buffer, HEAP_DATA, buffer[0]);
 	return FreeBuffer(heap_data_ptr, &CACHE_FROM_INDEX(heap_data_ptr->bucket_index) );
 }
 

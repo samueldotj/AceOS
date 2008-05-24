@@ -81,7 +81,7 @@ void AllocateMemory(void * va_array[], int count)
 	
 	for(i=0;i<count; i++)
 	{
-		int size = 1 + (rand() % 4095);
+		int size = 1 + (rand() % 4000);
 		void* va = AllocateFromHeap( size );
 		
 		if ( va == NULL )
@@ -91,7 +91,7 @@ void AllocateMemory(void * va_array[], int count)
 		}
 		if (verbose_level >=2)
 		{
-			printf("Allocated memory %p %d\n", va, i);
+			printf("Allocated memory %p size %d (%d)\n", va, size, i);
 		}
 		va_array[i] = va;
 	}

@@ -7,7 +7,7 @@
 */
 #include <kernel/i386/vga_text.h>
 #include <kernel/i386/pagetab.h>
-#include <kernel/i386/io.h>
+#include <kernel/io.h>
 #include <string.h>
 
 #define VGA_TEXT_MEMORY 			(KERNEL_VIRTUAL_ADDRESS_START + 0xB8000)

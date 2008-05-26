@@ -15,7 +15,7 @@
 #include <ace.h>
 #include <kernel/i386/idt.h>
 #include <kernel/i386/interrupt.h>
-#include <kernel/i386/io.h>
+#include <kernel/io.h>
 #include <kernel/debug.h>
 
 

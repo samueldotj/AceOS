@@ -5,7 +5,7 @@
 	\brief	Read or write value from/to hardware port.
 */
 #include <ace.h>
-#include <kernel/i386/io.h>
+#include <kernel/io.h>
 
 /*! Reads and returns a byte value from the specified port 
 */

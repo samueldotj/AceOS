@@ -59,7 +59,7 @@ static void sift_down(char * data_array, char * temp_data, int root, int bottom,
 
 static void swap(char * data_array, int pos1, int pos2, char * temp, int data_size)
 {
-	memcpy( temp, &data_array[pos1*data_size], data_size );
-	memcpy( &data_array[pos1*data_size], &data_array[pos2*data_size], data_size );
-	memcpy( &data_array[pos2*data_size], temp, data_size );
+	memmove( temp, &data_array[pos1*data_size], data_size );
+	memmove( &data_array[pos1*data_size], &data_array[pos2*data_size], data_size );
+	memmove( &data_array[pos2*data_size], temp, data_size );
 }

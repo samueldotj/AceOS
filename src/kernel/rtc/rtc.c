@@ -13,6 +13,7 @@
 
 #include <kernel/time.h>
 #include <string.h>
+#include <kernel/pit.h>
 
 void InitMC146818();
 UINT32 GetLocalTimeFromMC146818(SYSTEM_TIME_PTR pSystemTime);

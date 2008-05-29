@@ -104,7 +104,7 @@ typedef struct multiboot_info
   } u;
   unsigned long mmap_length;
   unsigned long mmap_addr;
-} multiboot_info_t;
+} MULTIBOOT_INFO, * MULTIBOOT_INFO_PTR;
 
 /* The module structure.  */
 typedef struct module
@@ -125,6 +125,6 @@ typedef struct memory_map
   unsigned long length_low;
   unsigned long length_high;
   unsigned long type;
-} memory_map_t;
+} MEMORY_MAP, * MEMORY_MAP_PTR;
 
 #endif /* ! ASM */

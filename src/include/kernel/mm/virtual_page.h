@@ -4,23 +4,21 @@
 	\version 	3.0
 	\date	
   			Created: 24-May-2008 14:37
-  			Last modified: 24-May-2008 14:37
+  			Last modified: Tue May 27, 2008  11:18AM
 	\brief	virtual page
 */
 
 #ifndef __VIRTUAL_PAGE_H
-#define __VIRTUAL_PAGE__H
+#define __VIRTUAL_PAGE_H
 
 #include <ace.h>
-#include <list.h>
+#include <ds/list.h>
 
-struct virtual_page
+typedef struct virtual_page
 {
 	LIST	page_list;
 	LIST	object_list;
-};
-
-typedef struct virtual_page VIRTUAL_PAGE, VIRTUAL_PAGE_PTR;
+}VIRTUAL_PAGE, * VIRTUAL_PAGE_PTR;
 
 VIRTUAL_PAGE_PTR AllocateVirtualPage();
 int FreeVirtualPage(VIRTUAL_PAGE_PTR);

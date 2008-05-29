@@ -23,8 +23,6 @@ static void TicksToTime(UINT32 ticks, SYSTEM_TIME_PTR pTime);
 /*! boot_time - filled by RTC chips during booting.*/
 static SYSTEM_TIME boot_time;
 
-UINT32 lbolt=0;
-
 int InitRtc()
 {
 	memset( &boot_time, 0, sizeof(SYSTEM_TIME) );
@@ -58,7 +56,7 @@ UINT32 GetLocalTime(SYSTEM_TIME_PTR pTime)
 	memmove(pTime, &boot_time, sizeof(SYSTEM_TIME) );
 
 	//convert the elapsed ticks to time format
-	TicksToTime(lbolt, &pElapsedTime);
+	TicksToTime(ElapsedTicks(), &pElapsedTime);
 	
 	//add the elapsed time to boot_time
 	TimeAdd( pTime, &pElapsedTime);

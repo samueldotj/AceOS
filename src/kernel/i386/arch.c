@@ -4,7 +4,7 @@
 	\version 	3.0
 	\date	
   			Created: 26/09/07 15:21
-  			Last modified: Fri Oct 12, 2007  04:26PM
+  			Last modified: Tue May 27, 2008  11:05AM
 	\brief	contains architecture related interface routines.
 */
 #include <kernel/debug.h>
@@ -12,6 +12,7 @@
 #include <kernel/multiboot.h>
 #include <kernel/parameter.h>
 #include <kernel/mm/vm.h>
+#include <kernel/mm/pmem.h>
 #include <kernel/i386/vga_text.h>
 #include <kernel/i386/gdt.h>
 #include <kernel/i386/idt.h>
@@ -23,7 +24,7 @@
 /*! This is the startup module for i386 architecture
 	This should initialize all the i386 specific data/variables
 */
-void ArchInit(multiboot_info_t * mbi)
+void ArchInit(MULTIBOOT_INFO_PTR mbi)
 {
 	/*redirect kprintf to vga console*/
 	kprintf_putc = VgaPrintCharacter;

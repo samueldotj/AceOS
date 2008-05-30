@@ -18,21 +18,28 @@ MEMORY_REGION memory_region;
 
 /*!
 	\brief	 Initialize physical memory.
-
-	\param	 mb: Pointer to multiboot info structure
-
+	\param	 mb_info: Pointer to multiboot info structure
 	\return	 void
 */
-void InitPhysicalMemory(MULTIBOOT_INFO_PTR mb_info)
+void InitPhysicalMemory(MEMORY_MAP_PTR memory_map_array, int memory_map_array_size )
 {
-	mb_info = (MULTIBOOT_INFO_PTR)BOOT_TO_KERNEL_ADDRESS(mb_info);
-
-	MEMORY_MAP_PTR mmap = (MEMORY_MAP_PTR)( mb_info->mmap_addr );
+	int i;
+	for(i=0; i<memory_map_array_size; i++)
+	{
+		//use only available RAM
+		if( memory_map_array[i].type == 1 )
+		{
+		}
+		kprintf("%d/%d) type = %d start=low %p high %p end= low %p high %p\n",i, memory_map_array_size, memory_map_array[i].type, memory_map_array[i].base_addr_low, memory_map_array[i].base_addr_high, memory_map_array[i].length_low, memory_map_array[i].length_high); 
+	}
+	
+#if 0
 	PHYSICAL_MEMORY_REGION_PTR pmem;
 	int i=0, vpage_count;
-	
+
 	while(mmap < (MEMORY_MAP_PTR)(mb_info->mmap_addr) + mb_info->mmap_length)
 	{
+		kprintf("type = %d start=%p end=%p\n", pmem->type, pmem->start_physical_address, pmem->end_physical_address); 
 		pmem = &(memory_region.physical_memory_regions[i]);
 
 		/* The higher order bits are 0 on a 32 bit machine */
@@ -43,9 +50,11 @@ void InitPhysicalMemory(MULTIBOOT_INFO_PTR mb_info)
 		pmem->virtual_page_array = (VIRTUAL_PAGE_PTR)(mmap->base_addr_low);
 		pmem->start_physical_address = PAGE_ALIGN_UP( mmap->base_addr_low + vpage_count*sizeof(struct virtual_page) );
 		pmem->end_physical_address = mmap->base_addr_low + mmap->size;
-		kprintf("type = %d start=%p end=%p\n", pmem->type, pmem->start_physical_address, pmem->end_physical_address); 
+	
+		
 		
 		mmap = (MEMORY_MAP_PTR)( (unsigned int)(mmap) + mmap->size + sizeof(mmap->size) );
 		i++;
 	}
+#endif
 }

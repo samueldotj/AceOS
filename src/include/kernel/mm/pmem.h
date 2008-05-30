@@ -30,6 +30,6 @@ typedef struct memory_region
 	PHYSICAL_MEMORY_REGION physical_memory_regions[0];
 }MEMORY_REGION, * MEMORY_REGION_PTR;
 
-void InitPhysicalMemory(struct multiboot_info * mb);
+void InitPhysicalMemory(MEMORY_MAP_PTR memory_map_array, int memory_map_array_size);
 
 #endif

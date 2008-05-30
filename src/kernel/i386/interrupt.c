@@ -18,9 +18,7 @@
 #include <kernel/io.h>
 #include <kernel/debug.h>
 
-
 static void SetupPIC(void);
-static void DummyInterruptHandler(struct regs* reg);
 
 /* These are own ISRs that point to our special IRQ handler instead of the 
 regular 'fault_handler' function */
@@ -32,12 +30,6 @@ extern	void
 
 /* Array of ISR pointers. We use this to handle custom IRQ handlers for a given IRQ */
 void (*interrupt_routines[MAX_INTERRUPTS])(struct regs*);
-
-/* Debug purpose - This dummy handler will just print and exit  */
-static void DummyInterruptHandler(struct regs* reg)
-{
-	kprintf("Interrupt recieved from %d\n", reg->int_no);
-}
 
 /* This installs a custom IRQ handler for the given IRQ */
 void InstallInterruptHandler(int interrupt, void (*handler)(struct regs*))
@@ -57,8 +49,7 @@ void UninstallInterruptHandler(int interrupt)
 void SetupInterruptHandlers()
 {
 	SetupPIC();
-	InstallInterruptHandler(0, DummyInterruptHandler);	
-
+	
 	SetIdtGate(32, (unsigned)InterruptStub0);
 	SetIdtGate(33, (unsigned)InterruptStub1);
 	SetIdtGate(34, (unsigned)InterruptStub2);
@@ -84,7 +75,10 @@ void SetupInterruptHandlers()
 void InterruptHandler(struct regs *reg)
 {
 	/* run the installed handler */
-	interrupt_routines[reg->int_no - 32](reg);
+	if ( interrupt_routines[reg->int_no - 32] != 0 )
+		interrupt_routines[reg->int_no - 32](reg);
+	else
+		kprintf("Interrupt recieved from %d but has no handler\n", reg->int_no);
 
 	/* If the IDT entry that was invoked was greater than 40 (meaning IRQ8 - 15), then we need to send an EOI to the slave controller */
 	if (reg->int_no >= 40)

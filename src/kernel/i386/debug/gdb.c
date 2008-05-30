@@ -16,7 +16,7 @@ UINT32 sys_gdb_port = 0;
 void InitGdb()
 {
 	/*set up the serial port*/
-	InitSerialPort(sys_gdb_port, 115200, UART_DATA_BIT_8, UART_PARITY_NONE, UART_STOP_BIT_1);
+	InitSerialPort(sys_gdb_port, 9600, UART_DATA_BIT_8, UART_PARITY_NONE, UART_STOP_BIT_1);
 	/*setup exception handlers*/
 	set_debug_traps();
 	kprintf("Waiting for GDB(0x%X) : ", sys_gdb_port );
@@ -37,12 +37,8 @@ inline void putDebugChar(int ch)
 
 void exceptionHandler(int exc, void *addr)
 {
-	if (exc != 14 &&    /* page fault (normal) */
-		exc != 13 &&    /* GPF (normal in V86 mode) */
-		exc != 8 )     /* double fault (so abnormal we just crash) */
-	{
-		SetIdtGate(exc, (UINT32)addr);
-	}
+	SetIdtGate(exc, (UINT32)addr);
+	
 }
 
 void flush_i_cache(void)

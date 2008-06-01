@@ -59,7 +59,6 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	if ( sys_gdb_port )
 		InitGdb();
 	
-	InitPhysicalMemory(BOOT_TO_KERNEL_ADDRESS(mbi->mmap_addr), mbi->mmap_length / sizeof(MEMORY_MAP) );	
 	while(1);
 	//InitPhysicalMemory(mbi); /* Initiate pmem */
 	//for now generate exception

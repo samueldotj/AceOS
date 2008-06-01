@@ -18,7 +18,7 @@ KSTACK_SIZE             equ 0x2000
 EXTERN sbss
 EXTERN ebss
 EXTERN cmain
-EXTERN InitKernelPageDirectoryPhase1
+EXTERN InitPhysicalMemoryManagerPhaseI
 EXTERN InitKernelPageDirectoryPhase2
 
 GLOBAL KernelEntry
@@ -55,7 +55,7 @@ KernelEntry:
 	rep stosb
 	
 	;setup kernel page directory
-	call InitKernelPageDirectoryPhase1
+	call InitPhysicalMemoryManagerPhaseI
 	
 ;init paging
 	mov eax, cr0

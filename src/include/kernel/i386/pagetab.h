@@ -62,11 +62,60 @@ the page tables = ((KERNEL_VIRTUAL_ADDRESS / (PAGE_TABLE_ENTRIES * PAGE_SIZE)) -
 /*directory entry index for a given va*/
 #define PAGE_DIRECTORY_ENTRY_INDEX(va)	( ((UINT32)va)>>22 )
 
-#define PAGE_TABLE1_ENTRY_INDEX(va)		( (((UINT32)va)>>12) & 0x03FF )
+#define PAGE_TABLE_ENTRY_INDEX(va)		( (((UINT32)va)>>12) & 0x03FF )
 
 #ifdef __cplusplus
     extern "C" {
 #endif
+
+typedef struct virtual_address
+{
+	UINT32	offset:12,
+			page_table_index:10,
+			page_directory_index:10;
+}VIRTUAL_ADDRESS, VIRTUAL_ADDRESS_PTR;
+
+typedef struct page_directory_entry
+{
+	union
+	{
+		UINT32	all;
+		
+		UINT32	
+			present:1,
+			write:1,
+			supervisior:1,
+			write_through:1,
+			cache_disabled:1,
+			accessed:1,
+			reserved:1,
+			page_size:1,
+			global_page:1,
+			software:3,
+			page_table_pa:20;
+	};
+}PAGE_DIRECTORY_ENTRY, * PAGE_DIRECTORY_ENTRY_PTR;
+
+typedef struct page_table_entry
+{
+	union
+	{
+		UINT32	all;
+	
+		UINT32	
+			present:1,
+			write:1,
+			supervisior:1,
+			write_through:1,
+			cache_disabled:1,
+			accessed:1,
+			dirty:1,
+			page_table_attribute_index:1,
+			global_page:1,
+			software:3,
+			page_table_pa:20;
+	};
+}PAGE_TABLE_ENTRY, * PAGE_TABLE_ENTRY_PTR;
 
 extern UINT32 kernel_page_directory[PAGE_DIRECTORY_ENTRIES];
 

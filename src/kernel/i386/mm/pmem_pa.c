@@ -89,7 +89,7 @@ static void * GetFreePhysicalPage()
 	int i;
 	MEMORY_AREA_PTR ma_pa;
 	ma_pa = (MEMORY_AREA_PTR)BOOT_ADDRESS ( &memory_areas[0] );
-	for(i=0; i < ma_pa->physical_memory_regions_count; i++)
+	for(i=ma_pa->physical_memory_regions_count-1; i >= 0 ; i--)
 	{
 		PHYSICAL_MEMORY_REGION_PTR pmr_pa;
 		void * pa;
@@ -104,6 +104,8 @@ static void * GetFreePhysicalPage()
 		//adjust the region
 		pmr_pa->start_physical_address += PAGE_SIZE;
 		pmr_pa->virtual_page_count--;
+		
+		memset(pa, 0, PAGE_SIZE);
 		
 		return pa;
 	}
@@ -138,27 +140,23 @@ static void InitKernelPageDirectory(UINT32 k_map_end)
 	for(i=0; i<PAGE_DIRECTORY_ENTRIES; i++)
 		k_page_dir[i]=0;
 
-	/*mapping for accessing below 0-1 MB*/
-	physical_address = 0;
-	end_physical_address = 1024*1024;
-	do
-	{
-		EnterKernelPageTableEntry(physical_address, physical_address);
-		physical_address += PAGE_SIZE;
-	}while( physical_address < end_physical_address );
-	
-	/*map kernel text/data (physical address start - 0)*/
+	/*	Enter mapping indentity mapping 0 - kernel end 
+		and also enter mapping for VA 3GB to physical 0-kernel end
+	*/
 	va = KERNEL_VIRTUAL_ADDRESS_START;
 	physical_address = 0;
 	end_physical_address = BOOT_ADDRESS( k_map_end );
 	do
 	{
-		EnterKernelPageTableEntry( va, physical_address );
+		//identity map
+		EnterKernelPageTableEntry(physical_address, physical_address);
+		//kernel code/data and also below 0 MB mapping
+		EnterKernelPageTableEntry(va, physical_address);
 		physical_address += PAGE_SIZE;
 		va += PAGE_SIZE;
 	}while( physical_address < end_physical_address );
 	
-	/*map virtual page array*/
+	//map virtual page array
 	ma_pa = (MEMORY_AREA_PTR)BOOT_ADDRESS ( &memory_areas[0] );
 	for(i=0; i < ma_pa->physical_memory_regions_count; i++)
 	{
@@ -173,9 +171,8 @@ static void InitKernelPageDirectory(UINT32 k_map_end)
 			va += PAGE_SIZE;		
 		}while( physical_address <= ((UINT32)pmr_pa->virtual_page_array + (pmr_pa->virtual_page_count * sizeof(VIRTUAL_PAGE)) ) );
 	}
-		
 	/*self mapping*/
-	k_page_dir[PT_SELF_MAP_INDEX] = ((UINT32)k_page_dir) | KERNEL_PTE_FLAG;
+	EnterKernelPageTableEntry( PT_SELF_MAP_ADDRESS, k_page_dir );
 	
 	/*activate paging*/	
 	asm volatile(" movl %0, %%eax; movl %%eax, %%cr3; /*load cr3 with page directory address*/ \
@@ -195,13 +192,15 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 	pt_index = PAGE_TABLE_ENTRY_INDEX(va);
 	
 	//if we dont have a page table, create it
-	if ( k_page_dir[ pd_index ].all == 0 )
+	if ( !k_page_dir[ pd_index ].present )
 		k_page_dir[pd_index].all = ((UINT32)GetFreePhysicalPage()) | KERNEL_PTE_FLAG;
 	
 	//get the page table address
-	page_table = (PAGE_TABLE_ENTRY_PTR) (k_page_dir[ pd_index ].page_table_pa << PAGE_SHIFT);
+	//page_table = (PAGE_TABLE_ENTRY_PTR) ( (k_page_dir[ pd_index ].page_table_pa));
+	page_table = (PAGE_TABLE_ENTRY_PTR) ( (k_page_dir[ pd_index ].all>>PAGE_SHIFT) << PAGE_SHIFT);
+	
 	//enter pte in the page table.
-	if ( page_table[ pt_index ].all == 0 )
+	if ( !page_table[ pt_index ].present )
 		page_table[pt_index].all = pa | KERNEL_PTE_FLAG;
 }
 /*! This phase will removes the unnessary page table entries that is created before enabling paging.
@@ -209,7 +208,7 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 void InitKernelPageDirectoryPhase2()
 {
 	/*clear the PTE*/
-	kernel_page_directory[0]=0;
+	//kernel_page_directory[0]=0;
 	/*invalidate the TLB*/
 	asm volatile("invlpg 0");
 }

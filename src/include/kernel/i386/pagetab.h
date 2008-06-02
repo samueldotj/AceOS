@@ -53,6 +53,8 @@ so to map kernel and 0-1MB we are using kernel virtual address as the following*
 the page tables = ((KERNEL_VIRTUAL_ADDRESS / (PAGE_TABLE_ENTRIES * PAGE_SIZE)) -1) */
 #define PT_SELF_MAP_INDEX				(765)
 
+#define PT_SELF_MAP_ADDRESS				((UINT32)PT_SELF_MAP_INDEX * PAGE_TABLE_ENTRIES * PAGE_SIZE)
+
 /*Get the page directory pointer va for a given va*/
 #define PT_SELF_MAP_PAGE_DIRECTORY(va)	( (PT_SELF_MAP_INDEX << 22) | (PT_SELF_MAP_INDEX << 12) )
 

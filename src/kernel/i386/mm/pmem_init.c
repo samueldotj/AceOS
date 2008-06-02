@@ -14,6 +14,7 @@
 #include <kernel/mm/virtual_page.h>
 #include <kernel/i386/pagetab.h>
 #include <kernel/debug.h>
+#include <string.h>
 
 extern UINT32 ebss;
 
@@ -172,7 +173,7 @@ static void InitKernelPageDirectory(UINT32 k_map_end)
 		}while( physical_address <= ((UINT32)pmr_pa->virtual_page_array + (pmr_pa->virtual_page_count * sizeof(VIRTUAL_PAGE)) ) );
 	}
 	/*self mapping*/
-	EnterKernelPageTableEntry( PT_SELF_MAP_ADDRESS, k_page_dir );
+	EnterKernelPageTableEntry( PT_SELF_MAP_ADDRESS, (UINT32)k_page_dir );
 	
 	/*activate paging*/	
 	asm volatile(" movl %0, %%eax; movl %%eax, %%cr3; /*load cr3 with page directory address*/ \
@@ -203,12 +204,24 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 	if ( !page_table[ pt_index ].present )
 		page_table[pt_index].all = pa | KERNEL_PTE_FLAG;
 }
-/*! This phase will removes the unnessary page table entries that is created before enabling paging.
+/*! 	1) This phase will removes the unnessary page table entries that is created before enabling paging.
+	2) Initializes the virtual page array.
 */
-void InitKernelPageDirectoryPhase2()
+void InitPhysicalMemoryManagerPhaseII()
 {
+	int i;
+	
 	/*clear the PTE*/
-	//kernel_page_directory[0]=0;
+	kernel_page_directory[0]=0;
 	/*invalidate the TLB*/
 	asm volatile("invlpg 0");
+	for(i=0; i<memory_area_count; i++ )
+	{
+		int j;
+		for(j=0; j<memory_areas[i].physical_memory_regions_count; j++ )
+		{
+			PHYSICAL_MEMORY_REGION_PTR pmr = &memory_areas[i].physical_memory_regions[j];
+			InitVirtualPageArray(pmr->virtual_page_array, pmr->virtual_page_count);
+		}
+	}
 }

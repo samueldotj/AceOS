@@ -19,7 +19,6 @@ EXTERN sbss
 EXTERN ebss
 EXTERN cmain
 EXTERN InitPhysicalMemoryManagerPhaseI
-EXTERN InitKernelPageDirectoryPhase2
 
 GLOBAL KernelEntry
 
@@ -73,9 +72,6 @@ KernelEntry:
 
 	;correct stack pointer
 	add esp, (KERNEL_VIRTUAL_ADDRESS - KERNEL_PHYSICAL_ADDRESS)
-	
-	;stack pointer and eip is corrected - remove the 0-4mb page entry
-	call InitKernelPageDirectoryPhase2
 	
 	;correct multiboot info pointer
 	pop eax

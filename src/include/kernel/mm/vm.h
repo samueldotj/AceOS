@@ -31,6 +31,8 @@
     extern "C" {
 #endif
 
+void InitVm();
+
 #ifdef __cplusplus
 	}
 #endif

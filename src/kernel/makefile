@@ -18,7 +18,7 @@ LIBS= $(ACE_ROOT)/obj/libds.a $(ACE_ROOT)/obj/libstring.a
 
 #kernel object files
 DEBUG_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/debug/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/debug/*.asm))
-KERNEL_OBJ = $(patsubst %.c,%.o,$(wildcard *.c)) 
+KERNEL_OBJ = $(patsubst %.c,%.o,$(wildcard *.c))  $(patsubst %.c,%.o,$(wildcard mm/*.c))
 RTC_OBJ = $(patsubst %.c,%.o,$(wildcard rtc/*.c))
 PIT_OBJ = $(patsubst %.c,%.o,$(wildcard pit/*.c))
 ARCH_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/*.asm)) $(patsubst %.c,%.o,$(wildcard $(ARCH)/mm/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/mm/*.asm))

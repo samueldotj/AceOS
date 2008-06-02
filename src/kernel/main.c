@@ -24,7 +24,6 @@
 void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 {
 	SYSTEM_TIME boot_time;
-	int a=0, b=1;
 	
 	/*initialize architecture depend parts*/
 	ArchInit(mbi);
@@ -59,8 +58,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	if ( sys_gdb_port )
 		InitGdb();
 	
+	InitVm();
+	
 	while(1);
-	//InitPhysicalMemory(mbi); /* Initiate pmem */
-	//for now generate exception
-	//a = b/a;
 }

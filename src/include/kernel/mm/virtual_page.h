@@ -20,6 +20,8 @@ typedef struct virtual_page
 	LIST	object_list;
 }VIRTUAL_PAGE, * VIRTUAL_PAGE_PTR;
 
+void InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count);
+
 VIRTUAL_PAGE_PTR AllocateVirtualPage();
 int FreeVirtualPage(VIRTUAL_PAGE_PTR);
 

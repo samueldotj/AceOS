@@ -17,6 +17,9 @@
 
 /* Macros.  */
 
+#ifndef __MULTIBOOT__H
+#define __MULTIBOOT__H
+
 /* The magic number for the Multiboot header.  */
 #define MULTIBOOT_HEADER_MAGIC		0x1BADB002
 
@@ -128,3 +131,5 @@ typedef struct memory_map
 } MEMORY_MAP, * MEMORY_MAP_PTR;
 
 #endif /* ! ASM */
+
+#endif

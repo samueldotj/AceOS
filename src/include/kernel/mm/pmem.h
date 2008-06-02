@@ -8,12 +8,12 @@
 	\brief	physical memory manager
 */
 
-#include <ace.h>
-#include <kernel/mm/virtual_page.h>
-
 #ifndef __PMEM__H
 #define __PMEM__H
 
+#include <ace.h>
+#include <kernel/mm/virtual_page.h>
+#include <kernel/multiboot.h>
 
 #define MAX_MEMORY_AREAS		32
 #define MAX_PHYSICAL_REGIONS	16
@@ -37,7 +37,7 @@ typedef struct memory_area
 extern MEMORY_AREA memory_areas[MAX_MEMORY_AREAS];
 extern int memory_area_count;
 
-void InitPhysicalMemoryManagerPhase1(unsigned long magic, MULTIBOOT_INFO_PTR mbi);
-void InitPhysicalMemoryManagerPhase2();
+void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi);
+void InitPhysicalMemoryManagerPhaseII();
 
 #endif

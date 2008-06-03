@@ -8,7 +8,7 @@
 include $(ACE_ROOT)/make.conf
 
 #since we might use different cross compiler for Ace, for testing use the host's default compiler.
-CC = /usr/bin/gcc
+#CC = /usr/bin/gcc
 
 #clean dirs 
 CLEAN_DIRS=	$(ARCH)

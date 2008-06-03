@@ -12,18 +12,24 @@
 #include <kernel/debug.h>
 #include <string.h>
 
-static void InitVirtualPage(VIRTUAL_PAGE_PTR vp);
+static void InitVirtualPage(VIRTUAL_PAGE_PTR vp, UINT32 physical_address);
 
-void InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count)
+void InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 start_physical_address)
 {
 	int i;
 	for(i=0; i<page_count ;i++)
 	{
-		InitVirtualPage( &vpa[i] );
+		InitVirtualPage( &vpa[i], start_physical_address );
+		start_physical_address += PAGE_SIZE;
 	}
-	kprintf("Init vpa %p count %d \n", vpa, page_count );
 }
-void InitVirtualPage(VIRTUAL_PAGE_PTR vp)
+static void InitVirtualPage(VIRTUAL_PAGE_PTR vp, UINT32 physical_address)
 {
+	memset(vp, 0, sizeof( VIRTUAL_PAGE ) );
 	
+	InitSpinLock( &vp->lock );
+	InitList( &vp->page_list );
+	InitList( &vp->lru_list );
+	vp->free = 1;
+	vp->physical_address = physical_address;
 }

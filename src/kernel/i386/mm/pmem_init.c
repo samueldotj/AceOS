@@ -40,8 +40,8 @@ void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi
 		return;/*we will panic in main()*/
 		
 	//get physical address of the memory area - currently no NUMA support for i386
-	* ((int *)BOOT_ADDRESS ( memory_area_count ) )  = 1;
-	vpa_size = InitMemoryArea( (MEMORY_AREA_PTR) BOOT_ADDRESS(&memory_areas[0]), (MEMORY_MAP_PTR)mbi->mmap_addr,  mbi->mmap_length / sizeof(MEMORY_MAP) );
+	* ((int *)BOOT_ADDRESS ( &memory_area_count ) )  = 1;
+	vpa_size = InitMemoryArea( (MEMORY_AREA_PTR) BOOT_ADDRESS(memory_areas), (MEMORY_MAP_PTR)mbi->mmap_addr,  mbi->mmap_length / sizeof(MEMORY_MAP) );
 	
 	InitKernelPageDirectory( PAGE_ALIGN_UP(&ebss) );
 }
@@ -60,6 +60,17 @@ static UINT32 InitMemoryArea(MEMORY_AREA_PTR ma_pa, MEMORY_MAP_PTR memory_map_ar
 		{
 			PHYSICAL_MEMORY_REGION_PTR pmr_pa;
 			int total_virtual_pages, virtual_page_array_size;
+
+			//if memory start is less than 1MB then skip it because we cant use it
+			if ( memory_map_array[i].base_addr_low < (1024 * 1024) )
+				continue;
+			//we cant use the kernel code and data area
+			if ( memory_map_array[i].base_addr_low < BOOT_ADDRESS(&ebss) &&
+				(memory_map_array[i].base_addr_low + memory_map_array[i].length_low) > BOOT_ADDRESS(&ebss) 
+				)
+			{
+				memory_map_array[i].base_addr_low = BOOT_ADDRESS(&ebss);
+			}
 			
 			//calculate virtual page array size
 			total_virtual_pages =  memory_map_array[i].length_low / PAGE_SIZE;
@@ -221,7 +232,8 @@ void InitPhysicalMemoryManagerPhaseII()
 		for(j=0; j<memory_areas[i].physical_memory_regions_count; j++ )
 		{
 			PHYSICAL_MEMORY_REGION_PTR pmr = &memory_areas[i].physical_memory_regions[j];
-			InitVirtualPageArray(pmr->virtual_page_array, pmr->virtual_page_count);
+			pmr->virtual_page_array = (VIRTUAL_PAGE_PTR)BOOT_TO_KERNEL_ADDRESS(pmr->virtual_page_array);
+			InitVirtualPageArray(pmr->virtual_page_array, pmr->virtual_page_count, pmr->start_physical_address);
 		}
 	}
 }

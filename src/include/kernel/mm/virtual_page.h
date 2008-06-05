@@ -44,6 +44,6 @@ typedef struct virtual_page
 void InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 start_physical_address);
 
 VIRTUAL_PAGE_PTR AllocateVirtualPage();
-int FreeVirtualPage(VIRTUAL_PAGE_PTR);
+UINT32 FreeVirtualPage(VIRTUAL_PAGE_PTR vp);
 
 #endif

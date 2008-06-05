@@ -1,5 +1,5 @@
 /*!
-  \file	pagetab.h
+  \file	include/kernel/i386/pmem.h
   \author	Samuel (samueldotj@gmail.com)
   \version 	3.0
   \date	
@@ -49,6 +49,8 @@ so to map kernel and 0-1MB we are using kernel virtual address as the following*
 
 /*returns physical address for a given kernel virtual address*/
 #define KERNEL_VTOP(k_addr)				( (k_addr) - KERNEL_VIRTUAL_ADDRESS_START + KERNEL_PHYSICAL_ADDRESS_LOAD )
+
+#define BOOT_TO_KERNEL_ADDRESS(addr)	(((UINT32)addr + KERNEL_VIRTUAL_ADDRESS_TEXT_START)-KERNEL_PHYSICAL_ADDRESS_LOAD )
 
 /*one entry in the page table should point to itself so that it is easy to modify
 the page tables = ((KERNEL_VIRTUAL_ADDRESS / (PAGE_TABLE_ENTRIES * PAGE_SIZE)) -1) */

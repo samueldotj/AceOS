@@ -8,6 +8,7 @@
   \brief	i386 page directory/table related macros
 */
 #include <ace.h>
+#include <kernel/mm/vm.h>
 
 #ifndef __PAGETAB__H
 #define __PAGETAB__H
@@ -66,6 +67,9 @@ the page tables = ((KERNEL_VIRTUAL_ADDRESS / (PAGE_TABLE_ENTRIES * PAGE_SIZE)) -
 
 #define PAGE_TABLE_ENTRY_INDEX(va)		( (((UINT32)va)>>12) & 0x03FF )
 
+#define PFN_TO_PA(pfn)					( ((UINT32)pfn)<<PAGE_SHIFT )
+#define PA_TO_PFN(pa)					( ((UINT32)pa)>>PAGE_SHIFT )
+
 #ifdef __cplusplus
     extern "C" {
 #endif
@@ -82,19 +86,21 @@ typedef struct page_directory_entry
 	union
 	{
 		UINT32	all;
-		
-		UINT32	
-			present:1,
-			write:1,
-			supervisior:1,
-			write_through:1,
-			cache_disabled:1,
-			accessed:1,
-			reserved:1,
-			page_size:1,
-			global_page:1,
-			software:3,
-			page_table_pa:20;
+		struct 
+		{
+			UINT32	
+				present:1,
+				write:1,
+				supervisior:1,
+				write_through:1,
+				cache_disabled:1,
+				accessed:1,
+				reserved:1,
+				page_size:1,
+				global:1,
+				software:3,
+				page_table_pfn:20;
+		}_;
 	};
 }PAGE_DIRECTORY_ENTRY, * PAGE_DIRECTORY_ENTRY_PTR;
 
@@ -103,19 +109,21 @@ typedef struct page_table_entry
 	union
 	{
 		UINT32	all;
-	
-		UINT32	
-			present:1,
-			write:1,
-			supervisior:1,
-			write_through:1,
-			cache_disabled:1,
-			accessed:1,
-			dirty:1,
-			page_table_attribute_index:1,
-			global_page:1,
-			software:3,
-			page_table_pa:20;
+		struct 
+		{
+			UINT32	
+				present:1,
+				write:1,
+				supervisior:1,
+				write_through:1,
+				cache_disabled:1,
+				accessed:1,
+				dirty:1,
+				page_table_attribute_index:1,
+				global:1,
+				software:3,
+				page_pfn:20;
+		}_;
 	};
 }PAGE_TABLE_ENTRY, * PAGE_TABLE_ENTRY_PTR;
 

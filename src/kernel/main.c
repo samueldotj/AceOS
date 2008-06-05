@@ -16,8 +16,6 @@
 #include <kernel/mm/pmem.h>
 #include <kernel/time.h>
 #include <kernel/pit.h>
-
-#include <kernel/i386/pagetab.h>
 #include <kernel/mm/vm.h>
 /*! first C function which gets control from assembly
 */

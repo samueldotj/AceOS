@@ -8,13 +8,13 @@
 	\brief	physical memory manager initialization routines
 	\note		all these routines uses physical memory and dont know about va.
 */
+#include <string.h>
 #include <kernel/multiboot.h>
-#include <kernel/mm/pmem.h>
+#include <kernel/debug.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/virtual_page.h>
-#include <kernel/i386/pagetab.h>
-#include <kernel/debug.h>
-#include <string.h>
+#include <kernel/mm/pmem.h>
+#include <kernel/i386/pmem.h>
 
 extern UINT32 ebss;
 
@@ -204,15 +204,14 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 	pt_index = PAGE_TABLE_ENTRY_INDEX(va);
 	
 	//if we dont have a page table, create it
-	if ( !k_page_dir[ pd_index ].present )
+	if ( !k_page_dir[ pd_index ]._.present )
 		k_page_dir[pd_index].all = ((UINT32)GetFreePhysicalPage()) | KERNEL_PTE_FLAG;
 	
 	//get the page table address
-	//page_table = (PAGE_TABLE_ENTRY_PTR) ( (k_page_dir[ pd_index ].page_table_pa));
-	page_table = (PAGE_TABLE_ENTRY_PTR) ( (k_page_dir[ pd_index ].all>>PAGE_SHIFT) << PAGE_SHIFT);
+	page_table = (PAGE_TABLE_ENTRY_PTR) ( PFN_TO_PA(k_page_dir[ pd_index ]._.page_table_pfn) ) ;
 	
 	//enter pte in the page table.
-	if ( !page_table[ pt_index ].present )
+	if ( !page_table[ pt_index ]._.present )
 		page_table[pt_index].all = pa | KERNEL_PTE_FLAG;
 }
 /*! 	1) This phase will removes the unnessary page table entries that is created before enabling paging.

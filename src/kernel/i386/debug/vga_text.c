@@ -6,7 +6,7 @@
     Does direct IO on VGA registers to move text mode cursor
 */
 #include <kernel/i386/vga_text.h>
-#include <kernel/i386/pagetab.h>
+#include <kernel/i386/pmem.h>
 #include <kernel/io.h>
 #include <string.h>
 

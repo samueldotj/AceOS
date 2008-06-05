@@ -17,7 +17,7 @@
 #include <kernel/i386/gdt.h>
 #include <kernel/i386/idt.h>
 #include <kernel/i386/exception.h>
-#include <kernel/i386/pagetab.h>
+#include <kernel/i386/pmem.h>
 #include <kernel/i386/interrupt.h>
 
 
@@ -41,8 +41,7 @@ void ArchInit(MULTIBOOT_INFO_PTR mbi)
 	
 	if ( mbi->flags & MB_FLAG_CMD )
 		sys_kernel_cmd_line = (char *)BOOT_TO_KERNEL_ADDRESS(mbi->cmdline);
-	
-	
+
 	/*enable interrupt only after setting up idt*/    
     __asm__ __volatile__ ("sti");
 

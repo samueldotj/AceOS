@@ -107,26 +107,41 @@ char *exception_messages[] =
 	"Reserved"
 };
 
+#define REG_FORMAT	"0x%08x\t"
+#define SEG_FORMAT	"0x%02x"
+
+#define PRINT_REGS(reg)\
+	kprintf("eax="REG_FORMAT"ebx="REG_FORMAT"ecx="REG_FORMAT"edx="REG_FORMAT"\n", reg->eax, reg->ebx, reg->ecx, reg->edx);\
+	kprintf("esi="REG_FORMAT"edi="REG_FORMAT"ebp="REG_FORMAT"esp="REG_FORMAT"\n", reg->esi, reg->edi, reg->ebp, reg->esp);\
+	kprintf("cs:eip="SEG_FORMAT":"REG_FORMAT"[user stack ss:esp="SEG_FORMAT":"REG_FORMAT"]\n", reg->cs, reg->eip, reg->ss, reg->useresp);\
+	kprintf("ds="SEG_FORMAT" es="SEG_FORMAT" gs="SEG_FORMAT" fs="SEG_FORMAT" eflags=0x%X\n", reg->ds, reg->es, reg->gs, reg->fs, reg->eflags);\
+	kprintf("cr0="REG_FORMAT" cr1="REG_FORMAT" cr2="REG_FORMAT" cr3="REG_FORMAT"\n", reg->cr0, reg->cr1, reg->cr2, reg->cr3);
 
 /* All of our Exception handling Interrupt Service Routines will point to this function. 
 *  This will tell us what exception has happened. 
 */
 void ExceptionHandler(REGS_PTR reg)
 {
-	#define REG_FORMAT	"0x%08x\t"
-	#define SEG_FORMAT	"0x%02x"
 	kprintf("######### Unhandled Exception [%s] - No [%d]########\n", exception_messages[reg->int_no], reg->int_no);
 	/*now print some useful info from regs structure for debugging*/
-	kprintf("eax="REG_FORMAT"ebx="REG_FORMAT"ecx="REG_FORMAT"edx="REG_FORMAT"\n", reg->eax, reg->ebx, reg->ecx, reg->edx);
-	kprintf("esi="REG_FORMAT"edi="REG_FORMAT"ebp="REG_FORMAT"esp="REG_FORMAT"\n", reg->esi, reg->edi, reg->ebp, reg->esp);
-	kprintf("cs:eip="SEG_FORMAT":"REG_FORMAT"[user stack ss:esp="SEG_FORMAT":"REG_FORMAT"]\n", reg->cs, reg->eip, reg->ss, reg->useresp);
-	kprintf("ds="SEG_FORMAT" es="SEG_FORMAT" gs="SEG_FORMAT" fs="SEG_FORMAT" eflags=0x%X\n", reg->ds, reg->es, reg->gs, reg->fs, reg->eflags);
-	kprintf("cr0="REG_FORMAT" cr1="REG_FORMAT" cr2="REG_FORMAT" cr3="REG_FORMAT"\n", reg->cr0, reg->cr1, reg->cr2, reg->cr3);
+	PRINT_REGS( reg );
 	kprintf("System Halted!\n");
 	ArchHalt();
 }
 
 void PageFaultHandler(REGS_PTR reg)
 {
-	ExceptionHandler(reg);
+	PF_ERROR_CODE err;
+	err.all = reg->error_code;
+	if ( err._.rsvd ) 
+		kprintf( "Page fault - RESERVED BIT SET\n");
+	else
+		kprintf("Page fault(code %d): %s page %s attempt and %s fault.\n",  
+			reg->error_code,
+			err._.user ? "User" : "Supervisor" ,
+			err._.write ? "write" : "read",
+			err._.present ? "protection" : "page not present");
+			
+	PRINT_REGS(reg);
+	ArchHalt();
 }

@@ -34,6 +34,9 @@ typedef struct memory_area
 	PHYSICAL_MEMORY_REGION physical_memory_regions[MAX_PHYSICAL_REGIONS];
 }MEMORY_AREA, * MEMORY_AREA_PTR;
 
+typedef struct physical_map PHYSICAL_MAP, * PHYSICAL_MAP_PTR;
+extern PHYSICAL_MAP kernel_physical_map;;
+
 extern MEMORY_AREA memory_areas[MAX_MEMORY_AREAS];
 extern int memory_area_count;
 

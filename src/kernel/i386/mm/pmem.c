@@ -7,6 +7,8 @@
   			Last modified: Tue May 27, 2008  11:44AM
 	\brief	physical memory manager
 */
+#include <ace.h>
+#include <kernel/error.h>
 #include <kernel/multiboot.h>
 #include <kernel/debug.h>
 #include <kernel/mm/vm.h>
@@ -14,7 +16,9 @@
 #include <kernel/mm/pmem.h>
 #include <kernel/i386/pmem.h>
 
-MEMORY_AREA memory_areas[MAX_MEMORY_AREAS];
-int memory_area_count;
+PHYSICAL_MAP kernel_physical_map;
 
-
+ERROR_CODE EnterPhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UINT32 protection)
+{
+	return ERROR_NOT_SUPPORTED;
+}

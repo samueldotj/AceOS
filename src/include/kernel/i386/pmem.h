@@ -47,6 +47,9 @@ so to map kernel and 0-1MB we are using kernel virtual address as the following*
 #define KERNEL_VIRTUAL_ADDRESS_START		(0xC0000000) 
 #define KERNEL_VIRTUAL_ADDRESS_TEXT_START	(KERNEL_VIRTUAL_ADDRESS_START + KERNEL_PHYSICAL_ADDRESS_LOAD)
 
+/*KERNEL_MAPPED_PTE_VA_START		= 4GB - MB required to manage 1GB*/
+#define KERNEL_MAPPED_PTE_VA_START			(0x100000000 - ((0x40000000/PAGE_SIZE)*4) )
+
 /*returns physical address for a given kernel virtual address*/
 #define KERNEL_VTOP(k_addr)				( (k_addr) - KERNEL_VIRTUAL_ADDRESS_START + KERNEL_PHYSICAL_ADDRESS_LOAD )
 
@@ -68,6 +71,11 @@ the page tables = ((KERNEL_VIRTUAL_ADDRESS / (PAGE_TABLE_ENTRIES * PAGE_SIZE)) -
 #define PAGE_DIRECTORY_ENTRY_INDEX(va)	( ((UINT32)va)>>22 )
 
 #define PAGE_TABLE_ENTRY_INDEX(va)		( (((UINT32)va)>>12) & 0x03FF )
+
+
+/*Get mapped page table VA for a given kernel va*/
+#define KERNEL_MAPPED_PTE_VA(kva)		( KERNEL_MAPPED_PTE_VA_START + (((UINT32)kva)-KERNEL_VIRTUAL_ADDRESS_START)/PAGE_SIZE )
+
 
 #define PFN_TO_PA(pfn)					( ((UINT32)pfn)<<PAGE_SHIFT )
 #define PA_TO_PFN(pa)					( ((UINT32)pa)>>PAGE_SHIFT )
@@ -129,7 +137,14 @@ typedef struct page_table_entry
 	};
 }PAGE_TABLE_ENTRY, * PAGE_TABLE_ENTRY_PTR;
 
+struct physical_map
+{	
+	SPIN_LOCK					lock;
+	PAGE_DIRECTORY_ENTRY_PTR 	page_directory;
+};
+
 extern UINT32 kernel_page_directory[PAGE_DIRECTORY_ENTRIES];
+
 
 #ifdef __cplusplus
 	}

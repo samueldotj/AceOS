@@ -12,16 +12,21 @@
 #ifndef _EXCEPTION_H_
 #define _EXCEPTION_H_
 
+#include <ace.h>
+
 /* This defines what the stack looks like after an ISR was running */
 struct regs
 {
-    unsigned int gs, fs, es, ds;      /* pushed the segs last */
-    unsigned int edi, esi, ebp, esp, ebx, edx, ecx, eax;  /* pushed by 'pusha' */
-    unsigned int int_no, err_code;    /* our 'push byte #' and ecodes do this */
-    unsigned int eip, cs, eflags, useresp, ss;   /* pushed by the processor automatically */ 
+	UINT32 cr0, cr1, cr2, cr3;
+    UINT32 gs, fs, es, ds;      /* pushed the segs last */
+    UINT32 edi, esi, ebp, esp, ebx, edx, ecx, eax;  /* pushed by 'pusha' */
+    UINT32 int_no, err_code;    /* our 'push byte #' and ecodes do this */
+    UINT32 eip, cs, eflags, useresp, ss;   /* pushed by the processor automatically */ 
 } __attribute__((packed));
 
+typedef struct regs REGS, *REGS_PTR;
+
 void SetupExceptionHandlers();
-void ExceptionHandler(struct regs *reg);
+void ExceptionHandler(REGS_PTR reg);
 
 #endif

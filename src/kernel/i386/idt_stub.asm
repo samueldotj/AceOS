@@ -4,6 +4,7 @@
 
 ;	We call a C function in here. We need to let the assembler know that '_fault_handler' exists in another file.
 extern ExceptionHandler
+extern PageFaultHandler
 extern InterruptHandler
 
 ;	This is our common ISR stub. It saves the processor state, sets up for kernel mode segments, 
@@ -22,6 +23,16 @@ extern InterruptHandler
 	push es
 	push fs
 	push gs
+	
+	mov eax, cr3
+	push eax
+	mov eax, cr2
+	push eax
+	;mov eax, cr1
+	push 0
+	mov eax, cr0
+	push eax
+	
 	mov ax, 0x10   ; Load the Kernel Data Segment descriptor!
 	mov ds, ax
 	mov es, ax
@@ -29,12 +40,12 @@ extern InterruptHandler
 	mov gs, ax
 	mov eax, esp   ; Push us the stack
 	push eax
-	%ifidni %1,e 
-		mov eax, ExceptionHandler
-	%else
-		mov eax, InterruptHandler
-	%endif
+	
+	mov eax, %1
 	call eax       ; A special call, preserves the 'eip' register
+	
+	add esp, 16		; Cleans up the pushed control registers
+	
 	pop eax
 	pop gs
 	pop fs
@@ -80,7 +91,7 @@ global ExceptionStub10
 global ExceptionStub11
 global ExceptionStub12
 global ExceptionStub13
-global ExceptionStub14
+global PageFaultHandlerStub
 global ExceptionStub15
 global ExceptionStub16
 global ExceptionStub17
@@ -103,196 +114,196 @@ global ExceptionStub31
 
 ;	0: Divide By Zero Exception
 ExceptionStub0:
-	IsrStubMacro e, 0, 0
+	IsrStubMacro ExceptionHandler, 0, 0
 
 ;	1: Debug Exception
 ExceptionStub1:
-	IsrStubMacro e, 0, 1
+	IsrStubMacro ExceptionHandler, 0, 1
     
 ;	2: Non Maskable Interrupt Exception
 ExceptionStub2:
-	IsrStubMacro e, 0, 2
+	IsrStubMacro ExceptionHandler, 0, 2
 
 ;	3: Breakpoint Exception
 ExceptionStub3:
-	IsrStubMacro e, 0, 3
+	IsrStubMacro ExceptionHandler, 0, 3
 
 ;	4: Into Detected Overflow Exception
 ExceptionStub4:
-	IsrStubMacro e, 0, 4
+	IsrStubMacro ExceptionHandler, 0, 4
 
 ;	5: Out of Bounds Exception
 ExceptionStub5:
-	IsrStubMacro e, 0, 5
+	IsrStubMacro ExceptionHandler, 0, 5
 
 ;	6: Invalid Opcode Exception
 ExceptionStub6:
-	IsrStubMacro e, 0, 6
+	IsrStubMacro ExceptionHandler, 0, 6
 
 ;	7: No Coprocessor Exception
 ExceptionStub7:
-	IsrStubMacro e, 0, 7
+	IsrStubMacro ExceptionHandler, 0, 7
 
 ;	8: Double Fault Exception
 ExceptionStub8:
-	IsrStubMacro e, 1, 8
+	IsrStubMacro ExceptionHandler, 1, 8
 
 ;	9: Coprocessor Segment Overrun Exception
 ExceptionStub9:
-	IsrStubMacro e, 0, 9
+	IsrStubMacro ExceptionHandler, 0, 9
 
 ;	10: Bad TSS Exception
 ExceptionStub10:
-	IsrStubMacro e, 1, 10
+	IsrStubMacro ExceptionHandler, 1, 10
 
 ;	11: Segment Not Present Exception
 ExceptionStub11:
-	IsrStubMacro e, 1, 11
+	IsrStubMacro ExceptionHandler, 1, 11
 
 ;	12: Stack Fault Exception
 ExceptionStub12:
-	IsrStubMacro e, 1, 12
+	IsrStubMacro ExceptionHandler, 1, 12
 
 ;	13: General Protection Fault Exception
 ExceptionStub13:
-	IsrStubMacro e, 1, 13
+	IsrStubMacro ExceptionHandler, 1, 13
 
 ;	14: Page Fault Exception
-ExceptionStub14:
-	IsrStubMacro e, 1, 14
+PageFaultHandlerStub:
+	IsrStubMacro PageFaultHandler, 1, 14
 
 ;	15: Unknown Interrupt Exception
 ExceptionStub15:
-	IsrStubMacro e, 0, 15
+	IsrStubMacro ExceptionHandler, 0, 15
 
 ;	16: Coprocessor Fault Exception
 ExceptionStub16:
-	IsrStubMacro e, 0, 16
+	IsrStubMacro ExceptionHandler, 0, 16
 
 ;	17: Alignment Check Exception (486+)
 ExceptionStub17:
-	IsrStubMacro e, 0, 17
+	IsrStubMacro ExceptionHandler, 0, 17
 
 ;	18: Machine Check Exception (Pentium/586+)
 ExceptionStub18:
-	IsrStubMacro e, 0, 18
+	IsrStubMacro ExceptionHandler, 0, 18
 
 ;	19: Reserved Exceptions
 ExceptionStub19:
-	IsrStubMacro e, 0, 19
+	IsrStubMacro ExceptionHandler, 0, 19
 
 ;	20: Reserved Exceptions
 ExceptionStub20:
-	IsrStubMacro e, 0, 20
+	IsrStubMacro ExceptionHandler, 0, 20
 
 ;	21: Reserved Exceptions
 ExceptionStub21:
-	IsrStubMacro e, 0, 21
+	IsrStubMacro ExceptionHandler, 0, 21
 
 ;	22: Reserved Exceptions
 ExceptionStub22:
-	IsrStubMacro e, 0, 22
+	IsrStubMacro ExceptionHandler, 0, 22
 
 ;	23: Reserved Exceptions
 ExceptionStub23:
-	IsrStubMacro e, 0, 23
+	IsrStubMacro ExceptionHandler, 0, 23
 
 ;	24: Reserved Exceptions
 ExceptionStub24:
-	IsrStubMacro e, 0, 24
+	IsrStubMacro ExceptionHandler, 0, 24
 
 ;	25: Reserved Exceptions
 ExceptionStub25:
-	IsrStubMacro e, 0, 25
+	IsrStubMacro ExceptionHandler, 0, 25
 
 ;	26: Reserved Exceptions
 ExceptionStub26:
-	IsrStubMacro e, 0, 26
+	IsrStubMacro ExceptionHandler, 0, 26
 
 ;	27: Reserved Exceptions
 ExceptionStub27:
-	IsrStubMacro e, 0, 27
+	IsrStubMacro ExceptionHandler, 0, 27
 
 ;	28: Reserved Exceptions
 ExceptionStub28:
-	IsrStubMacro e, 0, 28
+	IsrStubMacro ExceptionHandler, 0, 28
 
 ;	29: Reserved Exceptions
 ExceptionStub29:
-	IsrStubMacro e, 0, 29
+	IsrStubMacro ExceptionHandler, 0, 29
 
 ;	30: Reserved Exceptions
 ExceptionStub30:
-	IsrStubMacro e, 0, 30
+	IsrStubMacro ExceptionHandler, 0, 30
 
 ;	31: Reserved Exceptions
 ExceptionStub31:
-	IsrStubMacro e, 0, 31
+	IsrStubMacro ExceptionHandler, 0, 31
 
 
 ;	Interrupts
 
 ;	32: IRQ0
 InterruptStub0:
-	IsrStubMacro i, 0, 32
+	IsrStubMacro InterruptHandler, 0, 32
 
 ;	33: IRQ1
 InterruptStub1:
-	IsrStubMacro i, 0, 33
+	IsrStubMacro InterruptHandler, 0, 33
 
 ;	34: IRQ2
 InterruptStub2:
-	IsrStubMacro i, 0, 34
+	IsrStubMacro InterruptHandler, 0, 34
 
 ;	35: IRQ3
 InterruptStub3:
-	IsrStubMacro i, 0, 35
+	IsrStubMacro InterruptHandler, 0, 35
 
 ;	36: IRQ4
 InterruptStub4:
-	IsrStubMacro i, 0, 36
+	IsrStubMacro InterruptHandler, 0, 36
 
 ;	37: IRQ5
 InterruptStub5:
-	IsrStubMacro i, 0, 37
+	IsrStubMacro InterruptHandler, 0, 37
 
 ;	38: IRQ6
 InterruptStub6:
-	IsrStubMacro i, 0, 38
+	IsrStubMacro InterruptHandler, 0, 38
 
 ;	39: IRQ7
 InterruptStub7:
-	IsrStubMacro i, 0, 39
+	IsrStubMacro InterruptHandler, 0, 39
 
 ;	40: IRQ8
 InterruptStub8:
-	IsrStubMacro i, 0, 40
+	IsrStubMacro InterruptHandler, 0, 40
 
 ;	41: IRQ9
 InterruptStub9:
-	IsrStubMacro i, 0, 41
+	IsrStubMacro InterruptHandler, 0, 41
 
 ;	42: IRQ10
 InterruptStub10:
-	IsrStubMacro i, 0, 42
+	IsrStubMacro InterruptHandler, 0, 42
 
 ;	43: IRQ11
 InterruptStub11:
-	IsrStubMacro i, 0, 43
+	IsrStubMacro InterruptHandler, 0, 43
 
 ;	44: IRQ12
 InterruptStub12:
-	IsrStubMacro i, 0, 44
+	IsrStubMacro InterruptHandler, 0, 44
 
 ;	45: IRQ13
 InterruptStub13:
-	IsrStubMacro i, 0, 45
+	IsrStubMacro InterruptHandler, 0, 45
 
 ;	46: IRQ14
 InterruptStub14:
-	IsrStubMacro i, 0, 46
+	IsrStubMacro InterruptHandler, 0, 46
 
 ;	47: IRQ15
 InterruptStub15:
-	IsrStubMacro i, 0, 47
+	IsrStubMacro InterruptHandler, 0, 47
 

@@ -21,7 +21,7 @@ extern	void
 	ExceptionStub0(), 	ExceptionStub1(), 	ExceptionStub2(), 	ExceptionStub3(),
 	ExceptionStub4(), 	ExceptionStub5(), 	ExceptionStub6(), 	ExceptionStub7(),
 	ExceptionStub8(), 	ExceptionStub9(), 	ExceptionStub10(), 	ExceptionStub11(),
-	ExceptionStub12(), 	ExceptionStub13(), 	ExceptionStub14(),  ExceptionStub15(),
+	ExceptionStub12(), 	ExceptionStub13(), 	PageFaultHandlerStub(),  ExceptionStub15(),
 	ExceptionStub16(), 	ExceptionStub17(),	ExceptionStub18(),	ExceptionStub19(),
 	ExceptionStub20(), 	ExceptionStub21(),	ExceptionStub22(), 	ExceptionStub23(),
 	ExceptionStub24(),	ExceptionStub25(),	ExceptionStub26(),	ExceptionStub27(),
@@ -48,7 +48,7 @@ void SetupExceptionHandlers()
 	SetIdtGate(11, 	(unsigned)ExceptionStub11);
 	SetIdtGate(12, 	(unsigned)ExceptionStub12);
 	SetIdtGate(13, 	(unsigned)ExceptionStub13);
-	SetIdtGate(14, 	(unsigned)ExceptionStub14);
+	SetIdtGate(14, 	(unsigned)PageFaultHandlerStub);
 	SetIdtGate(15, 	(unsigned)ExceptionStub15);
 	SetIdtGate(16, 	(unsigned)ExceptionStub16);
 	SetIdtGate(17, 	(unsigned)ExceptionStub17);
@@ -111,7 +111,7 @@ char *exception_messages[] =
 /* All of our Exception handling Interrupt Service Routines will point to this function. 
 *  This will tell us what exception has happened. 
 */
-void ExceptionHandler(struct regs *reg)
+void ExceptionHandler(REGS_PTR reg)
 {
 	#define REG_FORMAT	"0x%08x\t"
 	#define SEG_FORMAT	"0x%02x"
@@ -121,6 +121,12 @@ void ExceptionHandler(struct regs *reg)
 	kprintf("esi="REG_FORMAT"edi="REG_FORMAT"ebp="REG_FORMAT"esp="REG_FORMAT"\n", reg->esi, reg->edi, reg->ebp, reg->esp);
 	kprintf("cs:eip="SEG_FORMAT":"REG_FORMAT"[user stack ss:esp="SEG_FORMAT":"REG_FORMAT"]\n", reg->cs, reg->eip, reg->ss, reg->useresp);
 	kprintf("ds="SEG_FORMAT" es="SEG_FORMAT" gs="SEG_FORMAT" fs="SEG_FORMAT" eflags=0x%X\n", reg->ds, reg->es, reg->gs, reg->fs, reg->eflags);
+	kprintf("cr0="REG_FORMAT" cr1="REG_FORMAT" cr2="REG_FORMAT" cr3="REG_FORMAT"\n", reg->cr0, reg->cr1, reg->cr2, reg->cr3);
 	kprintf("System Halted!\n");
 	ArchHalt();
+}
+
+void PageFaultHandler(REGS_PTR reg)
+{
+	ExceptionHandler(reg);
 }

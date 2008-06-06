@@ -18,6 +18,9 @@
 
 PHYSICAL_MAP kernel_physical_map;
 
+MEMORY_AREA	memory_areas[MAX_MEMORY_AREAS];
+int memory_area_count;
+
 ERROR_CODE EnterPhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UINT32 protection)
 {
 	return ERROR_NOT_SUPPORTED;

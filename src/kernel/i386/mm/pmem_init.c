@@ -52,6 +52,7 @@ void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi
 static UINT32 InitMemoryArea(MEMORY_AREA_PTR ma_pa, MEMORY_MAP_PTR memory_map_array, int memory_map_count)
 {
 	UINT32 total_size = 0;	//total bytes occupied by virtual page array
+	UINT32 kernel_end = PAGE_ALIGN_UP (  BOOT_ADDRESS(&ebss) );
 	int i;
 	for(i=0; i<memory_map_count; i++)
 	{
@@ -65,19 +66,19 @@ static UINT32 InitMemoryArea(MEMORY_AREA_PTR ma_pa, MEMORY_MAP_PTR memory_map_ar
 			if ( memory_map_array[i].base_addr_low < (1024 * 1024) )
 				continue;
 			//we cant use the kernel code and data area
-			if ( memory_map_array[i].base_addr_low < BOOT_ADDRESS(&ebss) &&
-				(memory_map_array[i].base_addr_low + memory_map_array[i].length_low) > BOOT_ADDRESS(&ebss) 
-				)
+			if ( memory_map_array[i].base_addr_low <  kernel_end )
 			{
-				memory_map_array[i].base_addr_low = BOOT_ADDRESS(&ebss);
+				memory_map_array[i].length_low -=  kernel_end - memory_map_array[i].base_addr_low;
+				memory_map_array[i].base_addr_low = kernel_end;
 			}
 			
 			//calculate virtual page array size
 			total_virtual_pages =  memory_map_array[i].length_low / PAGE_SIZE;
 			virtual_page_array_size = PAGE_ALIGN_UP ( total_virtual_pages * sizeof(VIRTUAL_PAGE) );
-			total_size += virtual_page_array_size;
 			//adjust total_virtual_pages
 			total_virtual_pages = (memory_map_array[i].length_low - virtual_page_array_size) / PAGE_SIZE;
+			
+			total_size += virtual_page_array_size;
 
 			//get physical address of the physical memory region
 			pmr_pa = &ma_pa->physical_memory_regions[ma_pa->physical_memory_regions_count];

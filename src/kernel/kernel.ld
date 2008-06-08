@@ -33,11 +33,6 @@ SECTIONS
 	.bss : 
 	{   sbss = .;
 	
-		/*kernel page directory*/
-		. = ALIGN(4096);
-		kernel_page_directory = .;
-		. += 4096;
-		
 		bss = .;
 		*(.bss)
 		*(COMMON)

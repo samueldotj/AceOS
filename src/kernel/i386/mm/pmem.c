@@ -21,6 +21,11 @@ PHYSICAL_MAP kernel_physical_map;
 MEMORY_AREA	memory_areas[MAX_MEMORY_AREAS];
 int memory_area_count;
 
+/*i386 arch specific kernel page directory*/
+PAGE_DIRECTORY_ENTRY kernel_page_directory[PAGE_DIRECTORY_ENTRIES] __attribute__ ((aligned (PAGE_SIZE)));
+
+PHYSICAL_MAP kernel_physical_map;
+
 ERROR_CODE EnterPhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UINT32 protection)
 {
 	return ERROR_NOT_SUPPORTED;

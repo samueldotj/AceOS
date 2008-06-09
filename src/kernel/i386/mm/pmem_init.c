@@ -20,8 +20,6 @@ extern UINT32 ebss;
 
 #define BOOT_ADDRESS(addr)	(((UINT32)addr - KERNEL_VIRTUAL_ADDRESS_TEXT_START)+KERNEL_PHYSICAL_ADDRESS_LOAD )
 
-#define KERNEL_PTE_FLAG		(PAGE_PRESENT | PAGE_READ_WRITE | PAGE_SUPERUSER | PAGE_GLOBAL)
-
 static UINT32 InitMemoryArea(MEMORY_AREA_PTR ma_pa, MEMORY_MAP_PTR memory_map_array, int memory_map_count);
 static void * GetFreePhysicalPage();
 static void InitKernelPageDirectory(UINT32 k_map_end);

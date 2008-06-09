@@ -16,17 +16,134 @@
 #include <kernel/mm/pmem.h>
 #include <kernel/i386/pmem.h>
 
-PHYSICAL_MAP kernel_physical_map;
+#define IS_KERNEL_ADDRESS(va)	(va >= KERNEL_VIRTUAL_ADDRESS_START)
 
 MEMORY_AREA	memory_areas[MAX_MEMORY_AREAS];
 int memory_area_count;
 
 /*i386 arch specific kernel page directory*/
 PAGE_DIRECTORY_ENTRY kernel_page_directory[PAGE_DIRECTORY_ENTRIES] __attribute__ ((aligned (PAGE_SIZE)));
-
 PHYSICAL_MAP kernel_physical_map;
 
-ERROR_CODE EnterPhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UINT32 protection)
+static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va );
+
+/*! Fills page table entry for a given VA. This function makes the corresponding VA to point to PA by filling PTEs.
+	this function can be also called to change the protection.
+	\param pmap - physical map 
+	\param va - virtual address
+	\param pa - physical address
+	\param protection 
+*/
+ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UINT32 protection)
 {
-	return ERROR_NOT_SUPPORTED;
+	PAGE_DIRECTORY_ENTRY_PTR mapped_pde = NULL;
+	PAGE_TABLE_ENTRY_PTR mapped_pte = NULL;
+	PAGE_TABLE_ENTRY pte;
+	
+	if ( IS_KERNEL_ADDRESS(va) )
+	{
+		mapped_pte = (PAGE_TABLE_ENTRY_PTR)KERNEL_MAPPED_PTE_VA(va);
+		pte.all = pa | KERNEL_PTE_FLAG;
+	}
+	else
+	{
+		//todo - get user space mapped pte here
+		pte.all = pa | USER_PTE_FLAG;
+	}
+	
+	mapped_pde = &pmap->page_directory[PAGE_DIRECTORY_ENTRY_INDEX(va)];
+	//create page table if not present
+	if ( !mapped_pde->_.present )
+	{
+		CreatePageTable( pmap, va );
+	}
+	if ( !mapped_pte->_.present )
+	{
+		//now mapping should present for the page table
+		assert( mapped_pde->_.present );
+		mapped_pte->all = pte.all;
+	}
+	else
+	{
+		//todo - handle protection change here
+	}
+
+	return ERROR_SUCCESS;
+}
+ERROR_CODE RemovePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va)
+{
+	PAGE_DIRECTORY_ENTRY_PTR mapped_pde = NULL;
+	PAGE_TABLE_ENTRY_PTR mapped_pte = NULL;
+	
+	if ( IS_KERNEL_ADDRESS(va) )
+		mapped_pte = (PAGE_TABLE_ENTRY_PTR)KERNEL_MAPPED_PTE_VA(va);
+	else
+	{
+		//todo - get user space mapped pte here
+	}
+	
+	mapped_pde = &pmap->page_directory[PAGE_DIRECTORY_ENTRY_INDEX(va)];
+	
+	//if we havent created a page table entry, just return success because nothing to remove
+	if ( !mapped_pde->_.present || !mapped_pte->_.present )
+		return ERROR_SUCCESS;
+	
+	//clear the page table entry
+	mapped_pte->all = 0;
+	
+	//todo we need to invlidate other caches
+	
+	return ERROR_SUCCESS;
+}
+
+/*! allocates a page for page table use*/
+static UINT32 AllocatePageTable()
+{
+	VIRTUAL_PAGE_PTR vp;
+	
+	vp = AllocateVirtualPage();
+	assert ( vp != NULL );
+	return vp->physical_address;
+}
+/*! creates page table for a given VA.
+	\param pmap - physical map on which the page table should be created
+	\param va - virtual address for which page table needs to be created
+*/
+static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
+{
+	int pd_index;
+	PAGE_DIRECTORY_ENTRY_PTR page_dir;
+	UINT32 mapped_va = NULL;
+	
+	page_dir = pmap->page_directory;
+	pd_index = PAGE_DIRECTORY_ENTRY_INDEX(va);
+	
+	if ( IS_KERNEL_ADDRESS(va) )
+	{
+		mapped_va = KERNEL_MAPPED_PTE_VA(va);
+	}
+	else
+	{
+		//todo - get user space mapped pte va here
+	}
+	
+	//if we dont have a page table, create it
+	if ( !page_dir[ pd_index ]._.present )
+	{
+		PAGE_TABLE_ENTRY_PTR pagetable_self;
+		UINT32 pa;
+
+		/*allocate page table*/
+		pa = AllocatePageTable();
+		
+		/*enter pde*/
+		page_dir[pd_index].all = pa | USER_PDE_FLAG;
+		
+		/*mapping for kernel mapped pte*/
+		CreatePhysicalMapping( pmap, mapped_va, pa, USER_PDE_FLAG);
+		
+		/*self mapping*/
+		pagetable_self = PT_SELF_MAP_PAGE_TABLE1(va);
+		pagetable_self->all = pa | USER_PDE_FLAG;
+	}
 }

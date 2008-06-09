@@ -12,8 +12,9 @@
 #define __PMEM__H
 
 #include <ace.h>
-#include <kernel/mm/virtual_page.h>
 #include <kernel/multiboot.h>
+#include <kernel/error.h>
+#include <kernel/mm/virtual_page.h>
 
 #define MAX_MEMORY_AREAS		32
 #define MAX_PHYSICAL_REGIONS	16
@@ -42,5 +43,8 @@ extern int memory_area_count;
 
 void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi);
 void InitPhysicalMemoryManagerPhaseII();
+
+ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UINT32 protection);
+ERROR_CODE RemovePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va);
 
 #endif

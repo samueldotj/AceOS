@@ -17,6 +17,10 @@ void panic(char * message);
 void ArchInit();
 void ArchHalt();
 
+void InvalidateTlb(void * va);
+void InvalidateAllTlb();
+void FlushCpuCache();
+
 #ifdef __cplusplus
 	}
 #endif

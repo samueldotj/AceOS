@@ -55,3 +55,20 @@ void ArchHalt()
 	asm("cli;hlt");
 }
 
+/*! Flushes the currently executing CPU's cache
+	\note use it care fully to avoid performance impact
+*/
+void FlushCpuCache()
+{
+	asm("wbnd");
+}
+/*! Invalidates all the tlb in the CPU
+*/
+void InvalidateAllTlb()
+{
+}
+/*! Invalidates the tlb for a given va in the CPU
+*/
+void InvalidateTlb(void * va)
+{
+}

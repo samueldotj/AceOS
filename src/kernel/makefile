@@ -8,7 +8,7 @@
 include $(ACE_ROOT)/make.conf
 
 #clean dirs 
-CLEAN_DIRS=	generic rtc pit $(ARCH) $(ARCH)/debug $(ARCH)/mm 
+CLEAN_DIRS=	generic rtc pit acpi $(ARCH) $(ARCH)/debug $(ARCH)/mm $
 
 #path for the output kernel
 TARGET= $(OBJ)/kernel.sys
@@ -26,11 +26,15 @@ ARCH_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/*.c)) $(patsubst %.asm,%.o,$(wi
 OBJS= $(KERNEL_OBJ) $(ARCH_OBJ) $(DEBUG_OBJ) $(RTC_OBJ) $(PIT_OBJ) $(GENERIC_OBJ) 
 
 #phony command - all - makes all object
-all:    generic $(TARGET)
+all:    generic acpi $(TARGET)
 
 #phony command - generic
 generic:	always
 	@make -C generic
+	
+acpi: 		always
+	echo "Compiling ACPI ..."
+	@make -C acpi
 
 #phony commmand - clean - remove all .o, .d in all directories
 clean:	always
@@ -41,7 +45,7 @@ clean:	always
 #increment the build number, link the kernel and copy the kernel to image file
 $(TARGET):  $(OBJS)
 	@$(INCLUDE)/version.sh $(INCLUDE)
-	@$(LD) -T kernel.ld $(LDFLAGS) -o $(TARGET) $(OBJS) $(LIBS) -Map kernel.map
+	@$(LD) -T kernel.ld $(LDFLAGS) -o $(TARGET) $(OBJS) $(OBJ)/acpi.sys $(LIBS) -Map kernel.map
 	@$(ACE_ROOT)/img/copy_file_to_image.sh $(ACE_ROOT)/img/floppy.ima $(TARGET) .
 	@echo "New kernel($(TARGET)) copied into $(ACE_ROOT)/img/floppy.ima"
 

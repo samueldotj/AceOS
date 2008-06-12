@@ -140,7 +140,7 @@
 typedef UINT32 FILE;
 #define vfprintf(file, fmt, args)	kprintf(fmt, args)
 
-#define ACPI_FLUSH_CPU_CACHE()		FlushCpuCache();
+#define ACPI_FLUSH_CPU_CACHE()		FlushCpuCache(TRUE);
 
 #else /* !__KERNELBUILT__ */
 

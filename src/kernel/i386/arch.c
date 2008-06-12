@@ -58,17 +58,30 @@ void ArchHalt()
 /*! Flushes the currently executing CPU's cache
 	\note use it care fully to avoid performance impact
 */
-void FlushCpuCache()
+void FlushCpuCache(BOOLEAN write_back)
 {
-	asm("wbnd");
+	if ( write_back )
+		asm volatile ("wbinvd");
+	else
+		asm volatile ("invd");
 }
 /*! Invalidates all the tlb in the CPU
 */
 void InvalidateAllTlb()
 {
+	/*there is no instruction to clear all TLB in i386, so just rewrite the cr3 
+	which will clear all the TLBs	*/
+	asm volatile("mov %%cr3, %%eax;\
+				  mov %%eax, %%cr3"
+				:);
 }
 /*! Invalidates the tlb for a given va in the CPU
 */
 void InvalidateTlb(void * va)
 {
+	asm volatile (
+				"invlpg %0"
+				:
+				: "m" (va)
+				);
 }

@@ -19,7 +19,7 @@ void ArchHalt();
 
 void InvalidateTlb(void * va);
 void InvalidateAllTlb();
-void FlushCpuCache();
+void FlushCpuCache(BOOLEAN write_back);
 
 #ifdef __cplusplus
 	}

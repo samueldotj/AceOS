@@ -12,6 +12,7 @@
 */
 
 #include <kernel/time.h>
+#include <kernel/pit.h>
 #include <string.h>
 
 void InitMC146818();

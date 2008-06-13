@@ -32,7 +32,8 @@ inline int SpinLock(SPIN_LOCK_PTR pSpinLock)
 	{
 		asm volatile("\
 			movl $1, %%eax;\
-        	lock xchgl %%eax, (%%edx);"
+        	lock xchgl %%eax, (%%edx);\
+			pause"
             :"=a"(result)
             :"d"(pSpinLock)
 			);
@@ -86,7 +87,8 @@ inline int BitSpinLock(void * pBitData, int iPos)
 		asm volatile("\
 			lock bts %%ecx, (%%edx);\
 			mov $1, %%ebx;\
-			cmovcl %2, %%ebx;"
+			cmovcl %2, %%ebx;\
+			pause"
 			:
 			:"c"(iPos), "d"(pBitData), "m"(i)
 		);

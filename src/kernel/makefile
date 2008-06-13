@@ -33,8 +33,9 @@ generic:	always
 	@make -C generic
 	
 acpi: 		always
-	echo "Compiling ACPI ..."
+	echo -n "Compiling ACPI ..."
 	@make -C acpi
+	echo "done"
 
 #phony commmand - clean - remove all .o, .d in all directories
 clean:	always

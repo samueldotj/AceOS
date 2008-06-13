@@ -597,7 +597,7 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	slab_ptr = SearchBufferInTree( (VADDR)(buffer), cache_ptr);
 	if ( slab_ptr == NULL )
 	{
-		printf("slab not found in tree\n");
+		//printf("slab not found in tree\n");
 		return -1;
 	}
 
@@ -608,7 +608,7 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 	byte = GetBitFromBitArray( (void*)(slab_ptr->buffer_usage_bitmap), buffer_index );
 	if(byte == 0)
 	{
-		printf("I can't free a buffer which is not allocated %d!\n", buffer_index);
+		//printf("I can't free a buffer which is not allocated %d!\n", buffer_index);
 		return -1;
 	}
 

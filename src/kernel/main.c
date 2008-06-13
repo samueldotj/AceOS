@@ -30,13 +30,13 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	if ( magic != MULTIBOOT_BOOTLOADER_MAGIC )
 	{
 		kprintf("Boot loader error (%x). Magic != %x", magic, MULTIBOOT_BOOTLOADER_MAGIC);
-		while(1);
+		goto fatal_boot_error;
 	}
 	kprintf( ACE_NAME" Version %d.%d Build%s\n", ACE_MAJOR, ACE_MINOR, ACE_BUILD);
 	if ( InitRtc() )
 	{
 		kprintf("RTC Initialization failed.");
-		while(1);
+		goto fatal_boot_error;
 	}
 	GetBootTime( &boot_time );
 	kprintf("Boot time : %d-%d-%d %d:%d\n", boot_time.day, boot_time.month, boot_time.year, boot_time.hour, boot_time.minute);
@@ -45,7 +45,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	if ( InitPit(TIMER_FREQUENCY) )	
 	{
 		kprintf("PIT Initialization failed");
-		while(1);
+		goto fatal_boot_error;
 	}
 
 	/*initialize kernel parameters and parse boot parameters*/
@@ -57,6 +57,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 		InitGdb();
 	
 	InitVm();
-	
+
+fatal_boot_error:
 	while(1);
 }

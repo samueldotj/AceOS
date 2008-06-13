@@ -14,8 +14,9 @@
 #include <ace.h>
 #include <ds/list.h>
 #include <sync/spinlock.h>
+#include <kernel/mm/vm_types.h>
 
-typedef struct virtual_page
+struct virtual_page
 {
 	SPIN_LOCK		lock;
 	
@@ -36,10 +37,18 @@ typedef struct virtual_page
 					error:1,			/*if set a page error occurred during last IO*/
 					reserved;
 
-	//PVA_MAP			pMapList;			/*list of VAs associated with this page*/
+	VA_MAP_PTR		va_map_list;		/*list of VAs associated with this page*/
 
 	UINT32 			physical_address;	/*Physical address this page managing*/
-}VIRTUAL_PAGE, * VIRTUAL_PAGE_PTR;
+};
+
+struct va_map
+{
+	UINT32				va;					//virtual address for the mapping
+	PHYSICAL_MAP_PTR	physical_map;		//pointer to the physical map for va
+	
+	LIST				list;				//list of all va_map for the virtual page
+};
 
 void InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 start_physical_address);
 

@@ -12,8 +12,9 @@
 
 #include <ace.h>
 #include <ds/list.h>
+#include <ds/avl_tree.h>
 #include <sync/spinlock.h>
-#include <kernel/mm/virtual_page.h>
+#include <kernel/mm/vm_types.h>
 
 #if	ARCH == i386
 	#define PAGE_SIZE	4096
@@ -28,14 +29,77 @@
 
 #define NUMBER_OF_PAGES(size)		(PAGE_ALIGN_UP(size) >> PAGE_SHIFT)
 
-typedef struct vm_data
+struct vm_data
 {
 	SPIN_LOCK			lock;				//lock for entire structure
 
 	VIRTUAL_PAGE_PTR	free_page_head;		//points to the first free page
 	VIRTUAL_PAGE_PTR	inuse_page_head;	//points to the first in use page
+};
 
-}VM_DATA, * VM_DATA_PTR;
+struct vm_protection 
+{
+	int user_write:1,
+		user_read:1,
+		kernel_write:1,
+		kernel_read:1;
+};
+
+struct virtual_map
+{
+	SPIN_LOCK			lock;				//lock for the entire structure
+	int					reference_count;	//total number of references
+	
+	UINT32				start;				//start virtual address
+	UINT32				end;				//end virtual address
+	
+	VM_DESCRIPTOR_PTR	descriptors;		//root of the descriptor tree
+	UINT32 				descriptor_count;	//total number of descriptors
+	
+	PHYSICAL_MAP_PTR	physical_map;		//pointer to the physical map
+};
+
+struct vm_descriptor
+{
+	SPIN_LOCK			lock;				//lock for the entire structure
+	int					reference_count;	//total number of references
+	
+	VIRTUAL_MAP_PTR		virtual_map;		//pointer to the virtual map
+	AVL_TREE_PTR		tree_node;			//avl tree for all descriptor in the map
+	
+	UINT32				start;				//start virtual address
+	UINT32				end;				//end virtual address
+	
+	VM_PROTECTION		protection;			//protection for this range
+	
+	VM_UNIT_PTR			unit;				//pointer to the vm_unit
+};
+
+struct vm_unit
+{
+	SPIN_LOCK			lock;				//lock for the entire structure
+	int					reference_count;	//total number of references
+	
+	UINT32				type;				//type - text, code, heap...
+	UINT32				flag;				//flag - shared, private....
+		
+	UINT32				size;				//total size of this unit
+	
+	SPIN_LOCK			vtop_lock;			//lock to protect array and page_count
+	VM_VTOP_PTR			vtop_array;			//pointer to the virtual page array
+	int					page_count;			//to pages in memory
+	
+};
+
+struct vm_vtop 
+{
+	union
+	{
+		int 				in_memory;		//if 1 means it is in memory
+		VIRTUAL_PAGE_PTR	vpage;			//pointer to the virtual page
+	}p;
+};
+
 
 extern VM_DATA vm_data;
 #ifdef __cplusplus

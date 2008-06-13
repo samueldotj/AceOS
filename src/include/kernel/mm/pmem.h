@@ -14,28 +14,27 @@
 #include <ace.h>
 #include <kernel/multiboot.h>
 #include <kernel/error.h>
-#include <kernel/mm/virtual_page.h>
+#include <kernel/mm/vm_types.h>
 
 #define MAX_MEMORY_AREAS		32
 #define MAX_PHYSICAL_REGIONS	16
 
 typedef struct physical_memory_region
 {
-	UINT32	start_physical_address;			//starting physical address
-	UINT32	end_physical_address;			//ending physical address
+	UINT32				start_physical_address;			//starting physical address
+	UINT32				end_physical_address;			//ending physical address
 
-	VIRTUAL_PAGE_PTR	virtual_page_array;	//virutal page array for this region
-	UINT32	virtual_page_count;
+	VIRTUAL_PAGE_PTR	virtual_page_array;				//virutal page array for this region
+	UINT32				virtual_page_count;
 	
 }PHYSICAL_MEMORY_REGION, * PHYSICAL_MEMORY_REGION_PTR;
 
 typedef struct memory_area
 {
-	int	physical_memory_regions_count;		//total regions
-	PHYSICAL_MEMORY_REGION physical_memory_regions[MAX_PHYSICAL_REGIONS];
+	int						physical_memory_regions_count;		//total regions
+	PHYSICAL_MEMORY_REGION 	physical_memory_regions[MAX_PHYSICAL_REGIONS];
 }MEMORY_AREA, * MEMORY_AREA_PTR;
 
-typedef struct physical_map PHYSICAL_MAP, * PHYSICAL_MAP_PTR;
 extern PHYSICAL_MAP kernel_physical_map;;
 
 extern MEMORY_AREA memory_areas[MAX_MEMORY_AREAS];

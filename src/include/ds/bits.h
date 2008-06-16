@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: 3:29 PM 07-Apr-08
-  			Last modified: Wed Apr 09, 2008  01:33AM
+  			Last modified: Mon Jun 16, 2008  10:44AM
   \brief	Contains bit manipulation macros.
 */
 
@@ -12,6 +12,12 @@
 #define _BITS_H_
 
 #include <ace.h>
+
+/* Extracts bit value in src from xth bit to yth bit inclusive.
+ * x and y are measured from lsb and x < y. x=1 means 1st bit.
+ */
+#define EXTRACT_BITS(src, x, y) \
+    (((unsigned long int)src<<(32-y))>>(32-y+x-1))
 
 inline int GetBitFromBitArray(void * bit_array, UINT32 bit_index);
 inline void SetBitInBitArray(void * bit_array, UINT32 bit_index);

@@ -4,13 +4,13 @@
   \version 	3.0
   \date	
   			Created: Sun Jun 15, 2008  12:23PM
-  			Last modified: Mon Jun 16, 2008  10:29AM
+  			Last modified: Tue Jun 17, 2008  09:03AM
   \brief	Provides support for cpu identification.
 */
 
 #include <ace.h>
 #include <string.h>
-#include <kernel/cpuid.h>
+#include <kernel/i386/cpuid.h>
 
 static CPUID_INFO cpuid_info;
 

@@ -11,121 +11,241 @@
 
 #ifndef _CPUID_H_
 #define _CPUID_H_
+
 #include <ace.h>
 
-typedef union feature_flags_edx
-{
-	UINT32 feature_flags; /* Placeholder to split the integer into bits */
-	struct
-	{
-		UINT32 fpu_on_chip: 1; //0
-		UINT32 virtual_mode_extn: 1; //1
-		UINT32 debugging_exten: 1; //2
-		UINT32 page_size_exten: 1; //3
-		UINT32 time_stamp_counter: 1; //4
-		UINT32 model_specific_registers: 1; //5
-		UINT32 physical_address_exten: 1; //6
-		UINT32 machine_check_exten: 1; //7
-		UINT32 cmpxchg8: 1; //8
-		UINT32 apic : 1; //9
-		UINT32 reserved1 : 1; //10
-		UINT32 fast_system_call : 1; //11
-		UINT32 memory_type_range_registers : 1; //12
-		UINT32 page_global_enable : 1; //13
-		UINT32 machine_check_architecture : 1; //14
-		UINT32 conditional_move_instr : 1; //15
-		UINT32 page_attribute_table : 1; //16
-		UINT32 page_size_extn_32bit : 1; //17
-		UINT32 processor_serial_number : 1; //18
-		UINT32 clflush_instr : 1; //19
-		UINT32 reserved2 : 1; //20
-		UINT32 debug_store : 1; //21
-		UINT32 acpi : 1; //22
-		UINT32 mmx : 1; //23
-		UINT32 fast_floating_point : 1; //24
-		UINT32 sse : 1; //streaming SIMD extension //25
-		UINT32 sse2 : 1; //26
-		UINT32 self_snoop : 1; //27
-		UINT32 multi_threading : 1; //28
-		UINT32 thermal_monitor : 1; //29
-		UINT32 ia64 : 1; //30
-		UINT32 pending_break_enable : 1; //31
-	};
-}FEATURE_FLAGS_EDX, * FEATURE_FLAGS_EDX_PTR;
+#define CPUID_MAX_STD_LEVELS			0x0A
+#define CPUID_MAX_EXT_LEVELS			0x1A
 
+#define CPUID_MAX_CACHE_CONFIGURATION	0x3
 
-typedef union feature_flags_ecx
+enum
 {
-	UINT32 feature_flags;  /* Placeholder to split the integer into bits */
-	struct
-	{
-		UINT32  sse3:1 ; //0
-		UINT32  reserved1:1 ; //1
-		UINT32  debug_store_64bit:1 ; //2
-		UINT32  monitor_mwait:1 ; //3
-		UINT32  ds_cpl:1 ; //CPL qualified debug store //4
-		UINT32  virtual_machine_extn:1 ; //5
-		UINT32  safer_mode_extn:1 ; //6
-		UINT32  est:1 ; //enhanced Intel SpeedStep technology //7
-		UINT32  thermal_monitor2:1 ; //8
-		UINT32  ssse3:1 ; //Supplemental Streaming SIMD Extensions 3 //9
-		UINT32  context_id:1 ; //10
-		UINT32  reserved2:2 ; //11,12
-		UINT32  cmpxchg_16bytes:1 ; //13
-		UINT32  send_task_priority_msg:1 ; //14
-		UINT32  perfromance_capability_msr:1 ; //15
-		UINT32  reserved3:2 ; //16,17
-		UINT32  direct_cache_access:1 ; //18
-		UINT32  reserved4:13 ; //19-31
-	};
-}FEATURE_FLAGS_ECX, * FEATURE_FLAGS_ECX_PTR;
+	CPUID_STD_VENDOR_ID = 0,
+	CPUID_STD_PROCESSOR_TYPE,
+	CPUID_STD_PROCESSOR_CONFIGURATION_DESCRIPTORS,
+	CPUID_STD_PROCESSOR_SERIAL_NUMBER,
+	CPUID_STD_CACHE_CONFIGURATION_DESCRIPTORS,
+	CPUID_STD_MONITOR_INFORMATION,
+	CPUID_STD_POWER_MANAGEMENT_INFORMATION,
+	CPUID_STD_DCA_PARAMETER,
+	CPUID_STD_PERFORMANCE_MONITOR_INFORMATION,
+	CPUID_STD_TOPOLOGY_ENUMERATION_INFORMATION,
+	CPUID_STD_EXTENDED_STATE_ENUMERATION
+}CPUID_LEVELS;
+
+typedef struct cpuid_result
+{
+	UINT32	eax, ebx, ecx, edx;
+}CPUID_RESULT, * CPUID_RESULT_PTR;
 
 typedef struct cpuid_info
 {
-    UINT32 eax_max;
-    char vendor_id[20];
-    UINT32 stepping_id;
-    UINT32 model_number;
-    UINT32 family_code;
-    UINT32 processor_type;
-    UINT32 extended_model;
-    UINT32 extended_family;
-    UINT32 brand_id;
-    UINT32 cache_line_size;
-    UINT32 count_logical_processors;
-    UINT32 apic_id;
-	FEATURE_FLAGS_EDX feature_flags_edx;
-	FEATURE_FLAGS_ECX feature_flags_ecx;
-    UINT32 serial_number_low;
-    UINT32 serial_number_high;
-    UINT32 processor_label;
-	UINT32 local_apic_present;
+	union
+	{
+		CPUID_RESULT	raw;
+		struct
+		{
+			UINT32	max_std_level;
+			char 	vendor_id[3*sizeof(UINT32)];
+		}_;
+	}basic;
+    
+	union
+	{
+		CPUID_RESULT	raw;
+	    struct
+		{
+			UINT32	
+				stepping:4,
+				model:4,
+				family:4,
+				type:2,
+				reserved_1:2,
+				extended_model:4,
+				extended_family:8,
+				reserved_2:4;
+			UINT32
+				brand_id:8,
+				clflush:8,
+				logical_processor_count:8,
+				apic_id:8;
+			UINT32  
+				sse3:1,
+				pclmulqdq:1,
+				debug_store_64bit:1,
+				monitor_mwait:1,
+				ds_cpl:1,
+				virtual_machine_extn:1,
+				safer_mode_extn:1,
+				eist:1,
+				thermal_monitor:1,
+				ssse3:1,
+				context_id:1,
+				fma:1,
+				cmpxchg_16bytes:1,
+				send_task_priority_msg:1,
+				perfromance_capability_msr:1,
+				reserved_3:2,
+				direct_cache_access:1,
+				reserved_4:13;
+			UINT32  
+				fpu_on_chip: 1,
+				virtual_mode_extension:1,
+				debugging_extension:1,
+				page_size_extension:1,
+				time_stamp_counter:1,
+				model_specific_registers:1,
+				physical_address_extension:1,
+				machine_check_extension:1,
+				cmpxchg8:1,
+				apic:1,
+				reserved_5:1,
+				sysenter:1,
+				memory_type_range_registers:1,
+				page_global_enable:1,
+				machine_check_architecture:1,
+				conditional_move_instruction:1,
+				page_attribute_table:1,
+				page_size_extension_32bit:1,
+				processor_serial_number:1,
+				clflush_instruction:1,
+				reserved_6:1,
+				dte:1,
+				acpi_thermal_control_msr:1,
+				mmx:1,
+				fast_floating_point:1,
+				sse:1,
+				sse2:1,
+				self_snoop:1,
+				hyper_threading_technology:1,
+				thermal_interrupt:1,
+				ia64:1,
+				pending_break_enable:1;
+		}_;
+	}feature;
+	
+	union
+	{
+		CPUID_RESULT raw;
+		char string[4*sizeof(UINT32)];
+	}processor_serial_number;
+	
+	union
+	{
+		CPUID_RESULT raw;
+		struct
+		{
+			UINT32
+				cache_type:5,
+				cache_level:3,
+				self_initializing:1,
+				fully_associative:1,
+				reserved_1:4,
+				threads_per_cache:10,
+				cores_per_package:6;
+			UINT32
+				system_coherency_line_size:12,
+				physical_line_partitions:10,
+				ways_of_associativity:10;
+			UINT32
+				sets;
+			UINT32
+				write_back_invalidate:1,
+				inclusive_of_lower_levels:1,
+				reserved_2:30;
+		}_;
+	}cache_configuration_descriptor[CPUID_MAX_CACHE_CONFIGURATION];
+	
+	union
+	{
+		CPUID_RESULT raw;
+		struct
+		{
+			UINT32
+				smallest_monitor_line_size:16,
+				reserved_1:16;
+			UINT32
+				largest_monitor_line_size:16,
+				reserved_2:16;
+			UINT32
+				mwait_extensions:1,
+				break_on_interrupt:1,
+				reserved_3:30;
+			UINT32
+				c0_substates:4,
+				c1_substates:4,
+				c2_substates:4,
+				c3_substates:4,
+				c4_substates:4,
+				reserved_4:12;
+		}_;
+	}monitor_information;
+	
+	union
+	{
+		CPUID_RESULT raw;
+		struct
+		{
+			UINT32
+				digital_thermometer:1,
+				dynamic_acceleration_enabled:1,
+				operating_point_protection:1,
+				reserved_1:29;
+			UINT32
+				thermometer_interrupt_thresholds:4,
+				reserved_2:28;
+			UINT32
+				acnt:1,
+				reserved_3:31;
+			UINT32
+				reserved_4;
+		}_;
+	}power_management_information;
+	
+	union
+	{
+		CPUID_RESULT raw;
+		struct
+		{
+			UINT32 platform_dca_cap;
+			UINT32 reserved_1;
+			UINT32 reserved_2;
+			UINT32 reserved_3;
+		}_;
+	}dca_information;
+	
+	union
+	{
+		CPUID_RESULT raw;
+		struct
+		{
+			UINT32
+				revision:8,
+				counters_per_logical_processors:8,
+				bit_width:8,
+				ebx_bit_vector_length:8;
+			UINT32
+				core_cycles_event_unavailable:1,
+				instructions_retired_event_unavailable:1,
+				reference_cycles_event_unavailable:1,
+				last_level_cache_references_event_unavailable:1,
+				last_level_cache_misses_event_unavailable:1,
+				branch_instructions_retired_event_unavailable:1,
+				branch_mispredicts_retired_event_unavailable:1,
+				reserved_1:25;
+			UINT32
+				reserved_2;
+			UINT32
+				fixed_function_performance_monitor_counters:5,
+				fixed_function_performance_monitor_counter_bit_width:8,
+				reserved_3:19;
+		}_;
+	}performance_monitor_information;
+	
 }CPUID_INFO, * CPUID_INFO_PTR;
 
-
-enum cpuid_command
-{
-    EAX_MAX,
-    APIC_ID,
-    VENDOR_ID,
-    STEPPING_ID,
-    MODEL_NUMBER,
-    FAMILY_CODE,
-    PROCESSOR_TYPE,
-    EXTENDED_MODEL,
-    EXTENDED_FAMILY,
-    BRAND_ID,
-    CACHE_LINE_SIZE,
-    COUNT_LOGICAL_PROCESSORS,
-    BIT_ARRAY,
-    SERIAL_NUMBER_LOW,
-    SERIAL_NUMBER_HIGH,
-    PROCESSOR_LABEL,
-	LOCAL_APIC_PRESENT
-};
-
-void LoadDataStructureFromCpuID();
-void * GetFromCpuId(int command);
-int DetectCpuId(void);
+extern CPUID_INFO cpuid_info;
+void LoadCpuIdInfo();
 
 #endif

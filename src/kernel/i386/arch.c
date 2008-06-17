@@ -35,6 +35,10 @@ void ArchInit(MULTIBOOT_INFO_PTR mbi)
 	
 	/*load the Interrupt descriptor table into IDTR*/
     LoadIdt();
+	
+	/*execute cpuid and load the data structure*/
+	LoadCpuIdInfo();
+	
 	/*setup exception handlers and interrupt hanlders*/
 	SetupExceptionHandlers();
 	SetupInterruptHandlers();

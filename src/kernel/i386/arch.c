@@ -19,6 +19,7 @@
 #include <kernel/i386/exception.h>
 #include <kernel/i386/pmem.h>
 #include <kernel/i386/interrupt.h>
+#include <kernel/i386/cpuid.h>
 
 
 /*! This is the startup module for i386 architecture
@@ -36,8 +37,8 @@ void ArchInit(MULTIBOOT_INFO_PTR mbi)
 	/*load the Interrupt descriptor table into IDTR*/
     LoadIdt();
 	
-	/*execute cpuid and load the data structure*/
-	LoadCpuIdInfo();
+	/*execute cpuid and load the data structure for master cpu*/
+	LoadCpuIdInfo(&cpuid_info[0]);
 	
 	/*setup exception handlers and interrupt hanlders*/
 	SetupExceptionHandlers();

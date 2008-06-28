@@ -1,5 +1,9 @@
 default 0
-timeout 1
+timeout 10
 title Ace OS 3.0.0
-kernel /kernel.sys
+kernel /kernel.sys 
+boot
+
+title Ace OS 3.0.0 (DEBUG)
+kernel /kernel.sys /gdb_port 0x3f8 
 boot

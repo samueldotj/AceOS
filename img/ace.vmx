@@ -1,0 +1,39 @@
+#!/usr/bin/vmware
+displayName = "Ace"
+guestOS = "other"
+
+memsize = "64"
+
+# DEFAULT SETTINGS UNDER THIS LINE
+config.version = "8"
+virtualHW.version = "3"
+
+MemAllowAutoScaleDown = "FALSE"
+MemTrimRate = "-1"
+
+uuid.location = "56 4d 81 d1 5b c1 98 44-da 19 44 0e f2 28 29 87"
+uuid.bios = "56 4d 81 d1 5b c1 98 44-da 19 44 0e f2 28 29 87"
+
+uuid.action = "create"
+checkpoint.vmState = ""
+
+usb.present = "FALSE"
+sound.present = "FALSE"
+
+floppy0.present = "false"
+
+ide0:1.present = "FALSE"
+ide1:1.present = "FALSE"
+
+ide1:0.present = "TRUE"
+ide1:0.deviceType = "cdrom-image"
+ide1:0.fileName = "bootcd.iso"
+ide1:0.fileType = "file"
+ide1:0.autodetect = "true"
+ide1:0.startConnected = "TRUE"
+
+ide0:0.redo = ""
+
+extendedConfigFile = "ace.vmxf"
+virtualHW.productCompatibility = "hosted"
+tools.upgrade.policy = "manual"

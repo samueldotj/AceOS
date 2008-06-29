@@ -12,4 +12,4 @@ cp $ACE_ROOT/img/boot/grub/stage2_eltorito $ACE_ROOT/img/iso/boot/grub
 cp $ACE_ROOT/img/boot/grub/menu.lst $ACE_ROOT/img/iso/boot/grub
 cp $ACE_ROOT/obj/kernel.sys $ACE_ROOT/img/iso/
 
-mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o bootcd.iso iso
+mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $ACE_ROOT/img/bootcd.iso $ACE_ROOT/img/iso

@@ -14,12 +14,21 @@
 #include <ds/list.h>
 #include <ds/avl_tree.h>
 #include <sync/spinlock.h>
+#include <kernel/error.h>
 #include <kernel/mm/vm_types.h>
 
 #if	ARCH == i386
-	#define PAGE_SIZE	4096
-	#define PAGE_SHIFT	12
+	#define PAGE_SIZE					4096
+	#define PAGE_SHIFT					12
+
+	#define KERNEL_MAP_START_VA			(0xC0000000)
+	#define KERNEL_MAP_END_VA			((UINT32)-1)
+	
+	#define USER_MAP_START_VA			(1024*1024)
+	#define USER_MAP_END_VA				(KERNEL_MAP_START_VA-1)
+		
 #endif
+
 
 #define PAGE_ALIGN(addr)			((UINT32)(addr) & -PAGE_SIZE)
 #define PAGE_ALIGN_UP(addr)			((UINT32)((addr) + PAGE_SIZE - 1) & -PAGE_SIZE)
@@ -28,6 +37,12 @@
 #define PAGE_ALIGN_UP_4MB(addr)		PAGE_ALIGN_4MB( (addr) + (1024*1024) - 1 )
 
 #define NUMBER_OF_PAGES(size)		(PAGE_ALIGN_UP(size) >> PAGE_SHIFT)
+
+
+#define VA_RANGE_SEARCH_FROM_TOP	1
+
+#define PROT_READ					1
+#define PROT_WRITE					2
 
 struct vm_data
 {
@@ -53,7 +68,7 @@ struct virtual_map
 	UINT32				start;				//start virtual address
 	UINT32				end;				//end virtual address
 	
-	VM_DESCRIPTOR_PTR	descriptors;		//root of the descriptor tree
+	AVL_TREE_PTR		descriptors;		//root of the descriptor tree
 	UINT32 				descriptor_count;	//total number of descriptors
 	
 	PHYSICAL_MAP_PTR	physical_map;		//pointer to the physical map
@@ -65,7 +80,7 @@ struct vm_descriptor
 	int					reference_count;	//total number of references
 	
 	VIRTUAL_MAP_PTR		virtual_map;		//pointer to the virtual map
-	AVL_TREE_PTR		tree_node;			//avl tree for all descriptor in the map
+	AVL_TREE			tree_node;			//avl tree for all descriptor in the map
 	
 	UINT32				start;				//start virtual address
 	UINT32				end;				//end virtual address
@@ -88,7 +103,6 @@ struct vm_unit
 	SPIN_LOCK			vtop_lock;			//lock to protect array and page_count
 	VM_VTOP_PTR			vtop_array;			//pointer to the virtual page array
 	int					page_count;			//to pages in memory
-	
 };
 
 struct vm_vtop 
@@ -100,13 +114,27 @@ struct vm_vtop
 	}p;
 };
 
-
 extern VM_DATA vm_data;
+extern VIRTUAL_MAP kernel_map;
+
+extern VM_PROTECTION protection_kernel_write;
+extern VM_PROTECTION protection_kernel_read;
+extern VM_PROTECTION protection_user_write;
+extern VM_PROTECTION protection_user_read;
+
 #ifdef __cplusplus
     extern "C" {
 #endif
 
 void InitVm();
+
+VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, UINT32 start, UINT32 end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection);
+void * FindFreeVmRange(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 size, UINT32 option);
+
+VM_UNIT_PTR CreateVmUnit(UINT32 type, UINT32 size);
+
+ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR preferred_start, UINT32 size, UINT32 protection, UINT32 flags);
+ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32 flags);
 
 #ifdef __cplusplus
 	}

@@ -14,7 +14,7 @@ CLEAN_DIRS=	generic rtc pit acpi $(ARCH) $(ARCH)/debug $(ARCH)/mm $
 TARGET= $(OBJ)/kernel.sys
 
 #libiraries needed to included in kernel linking
-LIBS= $(ACE_ROOT)/obj/libds.a $(ACE_ROOT)/obj/libstring.a $(ACE_ROOT)/obj/libsync.a
+LIBS= $(ACE_ROOT)/obj/libheap.a $(ACE_ROOT)/obj/libds.a $(ACE_ROOT)/obj/libstring.a $(ACE_ROOT)/obj/libsync.a 
 
 #kernel object files
 DEBUG_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/debug/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/debug/*.asm))

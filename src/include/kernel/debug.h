@@ -48,6 +48,8 @@ int _doprint(const char *fmt0, void (*putc)(BYTE ch), va_list argp);
 int kprintf(const char *fmt, ...);
 int ktrace(const char *fmt, ...);
 
+void panic(char * message);
+
 /*architecture depended function declarations*/
 void KtracePrint(BYTE ch);
 void InitKtrace();

@@ -32,7 +32,7 @@ all:    generic acpi $(TARGET)
 generic:	always
 	@make -C generic
 	
-acpi: 		always
+acpi: 	$(OBJ)/acpi.sys
 	echo -n "Compiling ACPI ..."
 	@make -C acpi
 	echo "done"

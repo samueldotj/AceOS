@@ -9,6 +9,7 @@
 */
 #include <kernel/mm/vm.h>
 #include <kernel/mm/virtual_page.h>
+#include <kernel/mm/pmem.h>
 #include <kernel/debug.h>
 #include <string.h>
 
@@ -92,4 +93,31 @@ UINT32 FreeVirtualPage(VIRTUAL_PAGE_PTR vp)
 	SpinUnlock( &vm_data.lock );
 	
 	return 0;
+}
+
+/*! Finds the Virtual Page for a given physical address
+	\param pysical_address - physical address for which virtual page to find
+	
+	\return NULL on failure
+			virtual page ptr on success
+*/
+VIRTUAL_PAGE_PTR PhysicalToVirtualPage(UINT32 physical_address)
+{
+	int i,j;
+	for(i=0; i<memory_area_count; i++ )
+	{
+		PHYSICAL_MEMORY_REGION_PTR pmr;
+		for(j=0;j<memory_areas[i].physical_memory_regions_count;j++)
+		{
+			pmr = memory_areas[i].physical_memory_regions;
+			if ( physical_address >= pmr->start_physical_address && physical_address < pmr->end_physical_address )
+			{
+				UINT32 index;
+				index = (physical_address - pmr->start_physical_address)/PAGE_SIZE;
+				assert ( index <= pmr->virtual_page_count);
+				return &pmr->virtual_page_array[index];
+			}
+		}
+	}
+	return NULL;
 }

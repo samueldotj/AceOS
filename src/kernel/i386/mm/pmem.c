@@ -40,6 +40,8 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 	PAGE_TABLE_ENTRY_PTR mapped_pte = NULL;
 	PAGE_TABLE_ENTRY pte;
 	
+	assert( pmap != NULL );
+	
 	if ( IS_KERNEL_ADDRESS(va) )
 	{
 		mapped_pte = (PAGE_TABLE_ENTRY_PTR)KERNEL_MAPPED_PTE_VA(va);
@@ -69,6 +71,30 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 	}
 
 	return ERROR_SUCCESS;
+}
+
+/*! Maps the given virtual address range by allocating physical addresses and entering page table entires
+	\param pmap - Physical map on which the mapping should be placed
+	\param va - Staring virtual addresss range
+	\param size - size of the virtual adddress range
+	\param protection - protection for this mapping.
+*/
+ERROR_CODE MapVirtualAddressRange(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 size, UINT32 protection)
+{
+	UINT32 i;
+	ERROR_CODE ret = ERROR_SUCCESS;
+	
+	for(i=0; i<size; i+=PAGE_SIZE )
+	{
+		VIRTUAL_PAGE_PTR vp;
+		vp = AllocateVirtualPage();
+		if ( vp == NULL )
+			return ERROR_NOT_ENOUGH_MEMORY;
+		ret = CreatePhysicalMapping( pmap, va+i, VP_TO_PHYS(vp), protection );
+		if ( ret != ERROR_SUCCESS )
+			return ret;
+	}
+	return ret;
 }
 ERROR_CODE RemovePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va)
 {

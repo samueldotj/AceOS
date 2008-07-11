@@ -7,22 +7,28 @@
   			Last modified: 07-Jul-2008 9:16PM
   \brief		
 */
-#include <kernel/mm/kmem.h>
+#include <ds/align.h>
 #include <kernel/debug.h>
+#include <kernel/mm/kmem.h>
+#include <kernel/mm/pmem.h>
 
 static void * kmem_page_alloc(int size);
 static int kmem_page_free(void * va, int size);
 static int kmem_page_protect(void * va, int size, int protection);
+UINT32 kmem_reserved_mem_size=0;
 
-void InitKmem()
+void InitKmem(VADDR kmem_start_va, UINT32 total_mem)
 {
-	int result;
+	if ( kmem_reserved_mem_size==0 )
+		kmem_reserved_mem_size = (KMEM_RESERVED_MEM_PERCENTAGE/100)*total_mem;
 		
-	result = InitHeap(PAGE_SIZE, kmem_page_alloc, kmem_page_free, kmem_page_protect);
-	if ( result )
-	{
-		panic("InitKmem() - InitHeap failed\n");
-	}
+	kmem_reserved_mem_size = PAGE_ALIGN_UP(kmem_reserved_mem_size);
+	
+	if ( MapVirtualAddressRange( &kernel_physical_map, kmem_start_va, kmem_reserved_mem_size/PAGE_SIZE, PROT_WRITE) != ERROR_SUCCESS )
+		panic("InitKmem() - MapVirtualAddressRange() failed");
+		
+	if ( InitHeap(PAGE_SIZE, kmem_page_alloc, kmem_page_free, kmem_page_protect) )
+		panic("InitKmem() - InitHeap() failed\n");
 }
 static void * kmem_page_alloc(int size)
 {

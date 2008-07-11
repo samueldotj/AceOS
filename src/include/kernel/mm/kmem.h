@@ -21,6 +21,12 @@
 #define	KMEM_NO_FAIL	1
 #define	KMEM_NO_SLEEP	2
 
+#define	KMEM_RESERVED_MEM_PERCENTAGE	5
+	
+extern UINT32 kmem_reserved_mem_size;
+
+void InitKmem(VADDR kmem_start_va, UINT32 total_mem);
+
 void * kmalloc(int size, UINT32 flag);
 int kfree(void * buffer);
 

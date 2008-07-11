@@ -16,6 +16,9 @@
 #include <sync/spinlock.h>
 #include <kernel/mm/vm_types.h>
 
+#define VP_TO_PHYS(vp)		(vp->physical_address)
+#define PHYS_TO_VP(phys)	(PhysicalToVirtualPage(phys))
+
 struct virtual_page
 {
 	SPIN_LOCK		lock;

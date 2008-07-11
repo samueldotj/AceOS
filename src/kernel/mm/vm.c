@@ -12,6 +12,7 @@
 #include <kernel/debug.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/pmem.h>
+#include <kernel/mm/kmem.h>
 
 VM_DATA vm_data;
 
@@ -36,6 +37,25 @@ void InitVm()
 	InitPhysicalMemoryManagerPhaseII();
 }
 
+/*! maps the static code/data of the kernel
+	and also reserved kmem
+*/
+static ERROR_CODE MapKernel()
+{
+	
+}
+
+/*! Allocates virtual memory of given size 
+	\param vmap   - Virtual Map from on which allocation is done
+	\param va_ptr - Out parameter - returned va address is stored here
+	\param preferred_start - preferred starting va
+	\param size - required size ( in multiple of PAGE_SIZE)
+	\param protection - page protection
+	\param flags - private or shared or other flags..
+	
+	\return ERROR_SUCCESS  - sucess
+			ERROR_NOT_ENOUGH_MEMORY - no free space on the map
+*/
 ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR preferred_start, UINT32 size, UINT32 protection, UINT32 flags)
 {
 	VADDR start;

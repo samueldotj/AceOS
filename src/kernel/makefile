@@ -47,8 +47,7 @@ clean:	always
 $(TARGET):  $(OBJS)
 	@$(INCLUDE)/version.sh $(INCLUDE)
 	@$(LD) -T kernel.ld $(LDFLAGS) -o $(TARGET) $(OBJS) $(OBJ)/acpi.sys $(LIBS) -Map kernel.map
-	@$(ACE_ROOT)/img/copy_file_to_image.sh $(ACE_ROOT)/img/floppy.ima $(TARGET) .
-	@echo "New kernel($(TARGET)) copied into $(ACE_ROOT)/img/floppy.ima"
+	@echo "New kernel is at $(TARGET)"
 
 #include dependency files
 -include $(OBJS:.o=.d)

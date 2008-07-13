@@ -14,14 +14,18 @@
 
 #include <ace.h>
 
+/*maximum supported CPUID levels by Ace*/
 #define CPUID_MAX_STD_LEVELS			0x0A
 #define CPUID_MAX_EXT_LEVELS			0x1A
-
+/*maximum supported cache configuration by Ace*/
 #define CPUID_MAX_CACHE_CONFIGURATION	0x3
 
+/*checks for the given cpuid level is supported by the processor*/
 #define CPUID_IS_STD_LEVEL_SUPPORTED(cpu, level)	(cpuid_info[(cpu)].basic._.max_std_level >= (level))
+
 #define CPUID_VALUE(cpu, level, true, false)		(CPUID_IS_STD_LEVEL_SUPPORTED(cpu, level) ? true : false)
 
+/*macros to get CPUID values for a given cpu number*/
 #define CPU_VENDOR_ID(cpu_no)					(cpuid_info[(cpu_no)].basic._.vendor_id)
 
 #define CPU_STEPPING(cpu_no)					(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.stepping, 0) )

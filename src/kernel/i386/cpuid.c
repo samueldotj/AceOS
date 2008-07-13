@@ -13,8 +13,14 @@
 #include <kernel/i386/cpuid.h>
 #include <ds/bits.h>
 
+/*! cache to hold all processor's CPUID_INFO	
+*/
 CPUID_INFO cpuid_info[MAX_PROCESSORS];
 
+/*! Executes CPUID instruction and stores the result
+	\param raw - buffer to store the result
+	\note raw->eax and raw->ecx are used to select the CPUID level
+*/
 static inline void ExecuteCpuId(CPUID_RESULT_PTR raw)
 {
 	__asm__ volatile("cpuid"
@@ -28,6 +34,9 @@ static inline void ExecuteCpuId(CPUID_RESULT_PTR raw)
 			"c" ( raw->ecx )
 		);
 }
+/*! Executes CPUID instruction on the current cpu and fills given cpuid_info structure.
+	\param cpuid_info - CPUID information will be filled in this structure.
+*/
 void LoadCpuIdInfo(CPUID_INFO_PTR cpuid_info)
 {
 	int i,j;
@@ -84,11 +93,4 @@ void LoadCpuIdInfo(CPUID_INFO_PTR cpuid_info)
 		data->eax = i;
 		ExecuteCpuId( data );
 	}
-	kprintf("%s cpuid %d stepping %d model %d family %d\n", 
-							cpuid_info->basic._.vendor_id, 
-							cpuid_info->basic._.max_std_level,
-							cpuid_info->feature._.stepping, 
-							cpuid_info->feature._.model,
-							cpuid_info->feature._.family);
-	kprintf("%X brand Id %d logical processor count %d SSE %d\n", cpuid_info->feature.raw.ebx, cpuid_info->feature._.brand_id, CPU_LOGICAL_PROCESSOR_COUNT(0), CPU_FEATURE_SSE(0) );
 }

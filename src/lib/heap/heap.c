@@ -62,6 +62,7 @@ int InitHeap( int page_size, void * (*v_alloc)(int size),
 		)
 {
 	int i;
+	
 	if ( InitSlabAllocator(page_size, v_alloc, v_free, v_protect ) == -1 )
 		return -1;
 	for(i=0; i<MAX_HEAP_BUCKETS; i++ )
@@ -105,3 +106,34 @@ int FreeToHeap(void * free_buffer)
 	return FreeBuffer(heap_data_ptr, &CACHE_FROM_INDEX(heap_data_ptr->bucket_index) );
 }
 
+/*!  Adds preallocated memory pages to heap
+	\param start_address - starting address of the memory page
+	\param end_address - end address of the memory
+	
+	\return 0 on success
+*/
+int AddMemoryToHeap(char * start_address, char * end_address )
+{
+	int bucket_index=0;
+	char * addr;
+	for(addr=start_address; addr<end_address; )
+	{
+		CACHE_PTR cache_ptr = &CACHE_FROM_INDEX(bucket_index);
+		
+		/*add one more page to the cache*/
+		if ( addr+cache_ptr->slab_size <= end_address )
+		{
+			/*add the pages to the cache*/
+			if ( AddSlabToCache(cache_ptr, (VADDR)addr) != 0 )
+				return -1;
+			/*increment the address by allocated size*/
+			addr += cache_ptr->slab_size;
+		}
+		
+		/*next bucket */
+		bucket_index++;
+		if ( bucket_index >= MAX_HEAP_BUCKETS )
+			bucket_index=0;
+	}
+	return 0;
+}

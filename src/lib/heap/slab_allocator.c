@@ -47,7 +47,7 @@ static SLAB_ALLOCATOR_METADATA slab_alloactor_metadata;
 #define SLAB_START(slab_metadata_ptr, cache_ptr)	( ((UINT32)slab_metadata_ptr) - cache_ptr->slab_metadata_offset )
 
 static void InitSlab(SLAB_PTR s, UINT32 buffer_count);
-static int AddSlabToCache(CACHE_PTR cache_ptr, int immediate_use);
+static int AllocateSlabToCache(CACHE_PTR cache_ptr, int immediate_use);
 static VADDR GetFreeBufferFromCache(CACHE_PTR cache_ptr);
 static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr );
 
@@ -262,7 +262,7 @@ static void InitSlab(SLAB_PTR slab_ptr, UINT32 buffer_count)
 }
 
 /*!
-	\brief	 Adds slabs to cache by requesting memory from VM.
+	\brief	 Allocates a PAGE from VM and Adds it to the cache
 	\param	cache_ptr - Pointer to my cache entry.
 	\param	immediate_use- Are you using a free buffer from the new slab immediately?
 	\return
@@ -271,26 +271,20 @@ static void InitSlab(SLAB_PTR slab_ptr, UINT32 buffer_count)
 	\note 	Holds a lock to cache pointer.
 	\todo - for performance the flag immediate use can be used as hint...
 */
-static int AddSlabToCache(CACHE_PTR cache_ptr, int immediate_use)
+static int AllocateSlabToCache(CACHE_PTR cache_ptr, int immediate_use)
 {
 	VADDR slab_start;
-	SLAB_PTR slab_ptr;
+	
 	/* TBD. Add conditon to check max_slabs count and exit */
-
 #ifdef SLAB_STAT_ENABLED
 	cache_ptr->stat.vm_alloc_calls++;
 #endif
 	slab_start = (VADDR) VM_ALLOC( cache_ptr->slab_size );
 	if ( slab_start == NULL )
-	{
 		return -1;
-	}
 
-	/*calculate the correct slab meta data and initialize it*/
-	slab_ptr = (SLAB_PTR) (slab_start + cache_ptr->slab_metadata_offset);
-	InitSlab(slab_ptr, cache_ptr->slab_buffer_count);
-	
-	ManageSlabStateTransition( cache_ptr, slab_ptr, SLAB_STATE_NEW, SLAB_STATE_FREE );
+	if( AddSlabToCache(cache_ptr, slab_start) != NULL )
+		return -1;
 	
 	return 0;
 }
@@ -515,6 +509,28 @@ void DestroyCache(CACHE_PTR rem_cache)
 	return;
 }
 
+/*!
+	\brief	 Adds the given slab to cache.
+	\param	cache_ptr - Pointer to my cache entry.
+	\return
+		0	if successfully fetched from VM 
+		-1 	if failure.
+*/
+int AddSlabToCache(CACHE_PTR cache_ptr, VADDR slab_start)
+{
+	SLAB_PTR slab_ptr;
+	
+	if ( slab_start == NULL )
+		return -1;
+	
+	/*calculate the correct slab meta data and initialize it*/
+	slab_ptr = (SLAB_PTR) (slab_start + cache_ptr->slab_metadata_offset);
+	InitSlab(slab_ptr, cache_ptr->slab_buffer_count);
+	
+	ManageSlabStateTransition( cache_ptr, slab_ptr, SLAB_STATE_NEW, SLAB_STATE_FREE );
+	
+	return 0;
+}
 
 /*!
 	\brief	Gets a free buffer from cache. 
@@ -545,7 +561,7 @@ void* AllocateBuffer(CACHE_PTR cache_ptr, UINT32 flag)
 			}
 		
 			/* Allocate a slab by calling VM */
-			if ( AddSlabToCache(cache_ptr, TRUE) == -1 )
+			if ( AllocateSlabToCache(cache_ptr, TRUE) == -1 )
 			{
 				goto FINDING_BUFFER_DONE;
 			}

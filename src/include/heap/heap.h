@@ -37,4 +37,6 @@ int InitHeap(int page_size, void * (*v_alloc)(int size),
 void * AllocateFromHeap(int size);
 int FreeToHeap(void * buffer);
 
+int AddMemoryToHeap(char * start_address, char * end_address );
+
 #endif

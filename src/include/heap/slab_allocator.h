@@ -128,4 +128,7 @@ void DestroyCache(CACHE_PTR);
 /*returns the cache statistics*/
 CACHE_STATISTICS_PTR GetCahcheStatistics(CACHE_PTR cache_ptr);
 
+/*gives a page to cache*/
+int AddSlabToCache(CACHE_PTR cache_ptr, VADDR slab_start);
+
 #endif

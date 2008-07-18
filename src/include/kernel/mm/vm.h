@@ -46,10 +46,13 @@
 
 struct vm_data
 {
-	SPIN_LOCK			lock;				//lock for entire structure
+	SPIN_LOCK			lock;					//lock for entire structure
+	
+	UINT32				total_memory_pages;		//total system memory in PAGE_SIZE unit
+	UINT32				total_free_pages;		//total free memory in PAGE_SIZE unit
 
-	VIRTUAL_PAGE_PTR	free_page_head;		//points to the first free page
-	VIRTUAL_PAGE_PTR	inuse_page_head;	//points to the first in use page
+	VIRTUAL_PAGE_PTR	free_page_head;			//points to the first free page
+	VIRTUAL_PAGE_PTR	inuse_page_head;		//points to the first in use page
 };
 
 struct vm_protection 
@@ -116,6 +119,8 @@ struct vm_vtop
 
 extern VM_DATA vm_data;
 extern VIRTUAL_MAP kernel_map;
+
+extern VADDR kernel_free_virtual_address;
 
 extern VM_PROTECTION protection_kernel_write;
 extern VM_PROTECTION protection_kernel_read;

@@ -54,17 +54,15 @@ so to map kernel and 0-1MB we are using kernel virtual address as the following*
 /*maxium kernel va size - 1gb*/
 #define KERNEL_MAX_SIZE						(0x40000000)
 
-/*end address of the kernel mapped ptes - 4GB*/
-#define KERNEL_MAPPED_PTE_VA_END			( KERNEL_VIRTUAL_ADDRESS_START + (KERNEL_MAX_SIZE-1) ) 
-/*start address of the kernel mapped ptes		( 4GB - MB required to manage 1GB )*/
-#define KERNEL_MAPPED_PTE_VA_START			( KERNEL_MAPPED_PTE_VA_END - ((KERNEL_MAX_SIZE/PAGE_SIZE)*sizeof(PAGE_DIRECTORY_ENTRY) ))
-/*PTE's va for a given address*/
-#define KERNEL_MAPPED_PTE_VA(addr)			( (UINT32)KERNEL_MAPPED_PTE_VA_START + (UINT32)(((UINT32)addr)-(UINT32)KERNEL_VIRTUAL_ADDRESS_START)/PAGE_SIZE )
-
 /*returns physical address for a given kernel virtual address*/
 #define KERNEL_VTOP(k_addr)					( (k_addr) - KERNEL_VIRTUAL_ADDRESS_START + KERNEL_PHYSICAL_ADDRESS_LOAD )
 
 #define BOOT_TO_KERNEL_ADDRESS(addr)		(((UINT32)addr + KERNEL_VIRTUAL_ADDRESS_TEXT_START)-KERNEL_PHYSICAL_ADDRESS_LOAD )
+
+/*page directory entry index for a given va*/
+#define PAGE_DIRECTORY_ENTRY_INDEX(va)		( ((UINT32)va) >> 22 )
+/*page table entry index for a given va*/
+#define PAGE_TABLE_ENTRY_INDEX(va)			( (((UINT32)va) >> PAGE_SHIFT ) & 0x03FF )
 
 /*one entry in the page table should point to itself so that it is easy to modify
 the page tables = ((KERNEL_VIRTUAL_ADDRESS / (PAGE_TABLE_ENTRIES * PAGE_SIZE)) -1) */
@@ -72,16 +70,10 @@ the page tables = ((KERNEL_VIRTUAL_ADDRESS / (PAGE_TABLE_ENTRIES * PAGE_SIZE)) -
 
 #define PT_SELF_MAP_ADDRESS					((UINT32)PT_SELF_MAP_INDEX * PAGE_TABLE_ENTRIES * PAGE_SIZE)
 
-/*Get the page directory pointer va for a given va*/
-#define PT_SELF_MAP_PAGE_DIRECTORY(va)		( (PT_SELF_MAP_INDEX << 22) | (PT_SELF_MAP_INDEX << PAGE_SHIFT) )
-
 /*Get the level 1 page table pointer va for a given va*/
-#define PT_SELF_MAP_PAGE_TABLE1(va)			( (((UINT32)va) & 0xFFC00000) & (PT_SELF_MAP_INDEX << PAGE_SHIFT) )
+#define PT_SELF_MAP_PAGE_TABLE1(va)			( (PT_SELF_MAP_INDEX << 22) | (PAGE_DIRECTORY_ENTRY_INDEX(va) << PAGE_SHIFT) )
 
-/*directory entry index for a given va*/
-#define PAGE_DIRECTORY_ENTRY_INDEX(va)		( ((UINT32)va) >> 22 )
-
-#define PAGE_TABLE_ENTRY_INDEX(va)			( (((UINT32)va) >> PAGE_SHIFT ) & 0x03FF )
+#define PT_SELF_MAP_PAGE_TABLE1_PTE(va)		( &(((PAGE_TABLE_ENTRY_PTR)PT_SELF_MAP_PAGE_TABLE1(va))[PAGE_TABLE_ENTRY_INDEX(va)] ))
 
 #define PFN_TO_PA(pfn)						( ((UINT32)pfn) << PAGE_SHIFT )
 #define PA_TO_PFN(pa)						( ((UINT32)pa) >> PAGE_SHIFT )

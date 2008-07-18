@@ -42,16 +42,11 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 	
 	assert( pmap != NULL );
 	
+	mapped_pte = PT_SELF_MAP_PAGE_TABLE1_PTE(va);
 	if ( IS_KERNEL_ADDRESS(va) )
-	{
-		mapped_pte = (PAGE_TABLE_ENTRY_PTR)KERNEL_MAPPED_PTE_VA(va);
 		pte.all = pa | KERNEL_PTE_FLAG;
-	}
 	else
-	{
-		//todo - get user space mapped pte here
 		pte.all = pa | USER_PTE_FLAG;
-	}
 	
 	mapped_pde = &pmap->page_directory[PAGE_DIRECTORY_ENTRY_INDEX(va)];
 	//create page table if not present
@@ -83,7 +78,6 @@ ERROR_CODE MapVirtualAddressRange(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 size,
 {
 	UINT32 i;
 	ERROR_CODE ret = ERROR_SUCCESS;
-	
 	for(i=0; i<size; i+=PAGE_SIZE )
 	{
 		VIRTUAL_PAGE_PTR vp;
@@ -96,13 +90,19 @@ ERROR_CODE MapVirtualAddressRange(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 size,
 	}
 	return ret;
 }
+/*! Removes the page table entries so that the virtual to physical mapping will be invalidated
+	\param pmap - physical map from the which the mapping should be removed
+	\param va - for which virtual address the mapping should be invalidated
+	\return ERROR_CODE
+	\todo TLB invalidation
+*/
 ERROR_CODE RemovePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va)
 {
 	PAGE_DIRECTORY_ENTRY_PTR mapped_pde = NULL;
 	PAGE_TABLE_ENTRY_PTR mapped_pte = NULL;
 	
 	if ( IS_KERNEL_ADDRESS(va) )
-		mapped_pte = (PAGE_TABLE_ENTRY_PTR)KERNEL_MAPPED_PTE_VA(va);
+		mapped_pte = PT_SELF_MAP_PAGE_TABLE1_PTE(va);
 	else
 	{
 		//todo - get user space mapped pte here
@@ -139,37 +139,17 @@ static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
 {
 	int pd_index;
 	PAGE_DIRECTORY_ENTRY_PTR page_dir;
-	UINT32 mapped_va = NULL;
 	
 	page_dir = pmap->page_directory;
 	pd_index = PAGE_DIRECTORY_ENTRY_INDEX(va);
 	
-	if ( IS_KERNEL_ADDRESS(va) )
-	{
-		mapped_va = KERNEL_MAPPED_PTE_VA(va);
-	}
-	else
-	{
-		//todo - get user space mapped pte va here
-	}
-	
 	//if we dont have a page table, create it
 	if ( !page_dir[ pd_index ]._.present )
 	{
-		PAGE_TABLE_ENTRY_PTR pagetable_self;
-		UINT32 pa;
-
 		/*allocate page table*/
-		pa = AllocatePageTable();
+		UINT32 pa = AllocatePageTable();
 		
 		/*enter pde*/
 		page_dir[pd_index].all = pa | USER_PDE_FLAG;
-		
-		/*mapping for kernel mapped pte*/
-		CreatePhysicalMapping( pmap, mapped_va, pa, USER_PDE_FLAG);
-		
-		/*self mapping*/
-		pagetable_self = PT_SELF_MAP_PAGE_TABLE1(va);
-		pagetable_self->all = pa | USER_PDE_FLAG;
 	}
 }

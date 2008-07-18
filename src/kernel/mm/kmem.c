@@ -17,18 +17,22 @@ static int kmem_page_free(void * va, int size);
 static int kmem_page_protect(void * va, int size, int protection);
 UINT32 kmem_reserved_mem_size=0;
 
-void InitKmem(VADDR kmem_start_va, UINT32 total_mem)
+void InitKmem(VADDR kmem_start_va)
 {
 	if ( kmem_reserved_mem_size==0 )
-		kmem_reserved_mem_size = (KMEM_RESERVED_MEM_PERCENTAGE/100)*total_mem;
+		kmem_reserved_mem_size = (KMEM_RESERVED_MEM_PERCENTAGE * vm_data.total_memory_pages) /100;
 		
-	kmem_reserved_mem_size = PAGE_ALIGN_UP(kmem_reserved_mem_size);
+	kmem_reserved_mem_size = PAGE_ALIGN_UP(kmem_reserved_mem_size*PAGE_SIZE);
 	
-	if ( MapVirtualAddressRange( &kernel_physical_map, kmem_start_va, kmem_reserved_mem_size/PAGE_SIZE, PROT_WRITE) != ERROR_SUCCESS )
-		panic("InitKmem() - MapVirtualAddressRange() failed");
-		
+	kprintf("kmem: preallocating memory from 0x%p to 0x%p (%d KB)\n", kmem_start_va, ((char*)kmem_start_va)+kmem_reserved_mem_size, kmem_reserved_mem_size/1024 );
+	if ( MapVirtualAddressRange( &kernel_physical_map, kmem_start_va, kmem_reserved_mem_size, PROT_WRITE) != ERROR_SUCCESS )
+		panic("InitKmem() - MapVirtualAddressRange() failed.");
+
 	if ( InitHeap(PAGE_SIZE, kmem_page_alloc, kmem_page_free, kmem_page_protect) )
-		panic("InitKmem() - InitHeap() failed\n");
+		panic("InitKmem() - InitHeap() failed.");
+	
+	if ( AddMemoryToHeap((char *)kmem_start_va, ((char*)kmem_start_va)+kmem_reserved_mem_size ) != 0 )
+		panic("InitKmem() -  AddMemoryToHeap() failed.");
 }
 static void * kmem_page_alloc(int size)
 {

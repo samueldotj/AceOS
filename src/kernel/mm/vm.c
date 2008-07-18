@@ -16,15 +16,16 @@
 
 VM_DATA vm_data;
 
+VADDR kernel_free_virtual_address = NULL;
+
 VM_PROTECTION protection_kernel_write = {0,0,1,1};
 VM_PROTECTION protection_kernel_read = {0,0,1,0};
 VM_PROTECTION protection_user_write = {1,1,0,0};
 VM_PROTECTION protection_user_read = {1,0,0,0};
 
-void InitVirtualMap(VIRTUAL_MAP_PTR vmap, PHYSICAL_MAP_PTR pmap);
-void InitVmUnit(VM_UNIT_PTR unit, UINT32 type, UINT32 size);
-/*! initializes the Virtual memory subsystem
+static ERROR_CODE MapKernel();
 
+/*! initializes the Virtual memory subsystem
 */
 void InitVm()
 {
@@ -32,9 +33,19 @@ void InitVm()
 	InitSpinLock(&vm_data.lock);
 	vm_data.free_page_head = NULL;
 	vm_data.inuse_page_head = NULL;
+	
+	vm_data.total_memory_pages = 0;
+	vm_data.total_free_pages = 0;
 
 	/*complete physical memory initialization*/
 	InitPhysicalMemoryManagerPhaseII();
+	kprintf("System memory: %dMB (PAGE_SIZE %d)\n", (vm_data.total_memory_pages * PAGE_SIZE) / (1024*1024), PAGE_SIZE );
+	
+	/*Initialize the kernel memory allocator*/
+	InitKmem(kernel_free_virtual_address);
+	
+	/*map the kernel text, data*/
+	MapKernel();
 }
 
 /*! maps the static code/data of the kernel
@@ -42,7 +53,7 @@ void InitVm()
 */
 static ERROR_CODE MapKernel()
 {
-	
+	return ERROR_SUCCESS;
 }
 
 /*! Allocates virtual memory of given size 
@@ -62,13 +73,17 @@ ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR pre
 	VM_PROTECTION_PTR prot;
 	VM_UNIT_PTR unit;
 	
+	/*assume error*/
 	* (va_ptr) = NULL;
+	
+	/*find a free vm range in the current virtual map*/
 	start = (VADDR)FindFreeVmRange(vmap, preferred_start, size, VA_RANGE_SEARCH_FROM_TOP);
 	if ( start == NULL )
 	{
 		kprintf("AllocateVirtualMemory() - No memory range available\n");
 		return ERROR_NOT_ENOUGH_MEMORY;
 	}
+	
 	if ( vmap == &kernel_map )
 		prot = &protection_kernel_write;
 	else
@@ -78,6 +93,7 @@ ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR pre
 		else
 			prot = &protection_user_read;
 	}
+	
 	if ( flags )
 	{
 	}
@@ -91,6 +107,9 @@ ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR pre
 	* (va_ptr) = start;
 	return ERROR_SUCCESS;
 }
+
+/*! Free the already allocated virtual memory range
+*/
 ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32 flags)
 {
 	return ERROR_SUCCESS;

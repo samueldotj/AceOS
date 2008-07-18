@@ -183,7 +183,7 @@ static void InitKernelPageDirectory(UINT32 k_map_end)
 		}while( physical_address <= ((UINT32)pmr_pa->virtual_page_array + (pmr_pa->virtual_page_count * sizeof(VIRTUAL_PAGE)) ) );
 	}
 	/*self mapping*/
-	EnterKernelPageTableEntry( PT_SELF_MAP_ADDRESS, (UINT32)k_page_dir );
+	k_page_dir[PT_SELF_MAP_INDEX] = ((UINT32)k_page_dir) | KERNEL_PTE_FLAG;
 	
 	/*activate paging*/	
 	asm volatile(" movl %0, %%eax; movl %%eax, %%cr3; /*load cr3 with page directory address*/ \
@@ -192,6 +192,10 @@ static void InitKernelPageDirectory(UINT32 k_map_end)
                 :"m"(k_page_dir), "c" (CR4_PAGE_SIZE_EXT | CR4_PAGE_GLOBAL_ENABLE) );
 }
 
+/*! Helper function to enter kernel page table entry during boot
+	\param va - virtual address for which translation needs to be added
+	\param pa - physical address needs to be filled
+*/
 static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 {
 	int pd_index, pt_index;
@@ -210,12 +214,6 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 		
 		/*enter pde*/
 		k_page_dir[pd_index].all = pa | KERNEL_PTE_FLAG;
-		
-		/*self mapping*/
-		page_table[PT_SELF_MAP_INDEX].all = pa | KERNEL_PTE_FLAG;
-		
-		/*mapping for kernel mapped pte*/
-		EnterKernelPageTableEntry( KERNEL_MAPPED_PTE_VA(va), pa );
 	}
 	else
 	{
@@ -244,7 +242,7 @@ void InitPhysicalMemoryManagerPhaseII()
 	kernel_page_directory[0].all = 0;
 	/*invalidate the TLB*/
 	asm volatile("invlpg 0");
-	
+
 	/*initialize the virtual page array*/
 	for(i=0; i<memory_area_count; i++ )
 	{
@@ -254,6 +252,11 @@ void InitPhysicalMemoryManagerPhaseII()
 			PHYSICAL_MEMORY_REGION_PTR pmr = &memory_areas[i].physical_memory_regions[j];
 			pmr->virtual_page_array = (VIRTUAL_PAGE_PTR)BOOT_TO_KERNEL_ADDRESS(pmr->virtual_page_array);
 			InitVirtualPageArray(pmr->virtual_page_array, pmr->virtual_page_count, pmr->start_physical_address);
+			
+			vm_data.total_memory_pages += pmr->virtual_page_count;
 		}
 	}
+	
+	vm_data.total_free_pages = vm_data.total_memory_pages;
+	kernel_free_virtual_address = PAGE_ALIGN_UP(&ebss) + (memory_areas[0].physical_memory_regions[0].virtual_page_count*PAGE_SIZE);
 }

@@ -33,13 +33,16 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 		goto fatal_boot_error;
 	}
 	kprintf( ACE_NAME" Version %d.%d Build%s\n", ACE_MAJOR, ACE_MINOR, ACE_BUILD);
+
+	InitVm();
+		
 	if ( InitRtc() )
 	{
 		kprintf("RTC Initialization failed.");
 		goto fatal_boot_error;
 	}
 	GetBootTime( &boot_time );
-	kprintf("Boot time : %d-%d-%d %d:%d\n", boot_time.day, boot_time.month, boot_time.year, boot_time.hour, boot_time.minute);
+	kprintf("Boot time: %d-%d-%d %d:%d\n", boot_time.day, boot_time.month, boot_time.year, boot_time.hour, boot_time.minute);
 
 	/* Initialize PIT with the specified frequency */
 	if ( InitPit(TIMER_FREQUENCY) )	
@@ -51,13 +54,12 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	/*initialize kernel parameters and parse boot parameters*/
 	InitKernelParameters();
 	ParaseBootParameters();
-	
+
 	/*start gdb as soon as possible*/
 	if ( sys_gdb_port )
 		InitGdb();
 	
-	InitVm();
-
+	kprintf("Kernel initialization complete\n");
 fatal_boot_error:
 	while(1);
 }

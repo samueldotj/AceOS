@@ -25,7 +25,7 @@
 	
 extern UINT32 kmem_reserved_mem_size;
 
-void InitKmem(VADDR kmem_start_va, UINT32 total_mem);
+void InitKmem(VADDR kmem_start_va);
 
 void * kmalloc(int size, UINT32 flag);
 int kfree(void * buffer);

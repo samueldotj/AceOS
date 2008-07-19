@@ -6,13 +6,15 @@
   			Created: 28-Apr-2008 18:18
   			Last modified: 28-Apr-2008 18:29
   \brief	Array Sort using Heap sort - http://en.wikipedia.org/wiki/Heapsort
+		http://www.iti.fh-flensburg.de/lang/algorithmen/sortieren/heap/heapen.htm
 */
 #include <ace.h>
 #include <ds/sort.h>
 #include <string.h>
 
-static void sift_down(char * data_array, char * temp_data, int root, int bottom, int data_size, COMPARISION_RESULT (*compare_data)(char * data1, char * data2) );
 static void swap(char * data_array, int pos1, int pos2, char * temp, int data_size);
+static void downheap(int v, char * data_array, int data_size, int total_elements, char * temp_data, COMPARISION_RESULT (*compare_data)(char * data1, char * data2));
+static void buildheap(char * data_array, int data_size, int total_elements, char * temp_data, COMPARISION_RESULT (*compare_data)(char * data1, char * data2));
 
 /*! Sorts a array - using heap sort algorithm
 	\param data_array - array of data structure
@@ -20,43 +22,45 @@ static void swap(char * data_array, int pos1, int pos2, char * temp, int data_si
 	\param data_size - size of a single data structure
 	\param total_elements - total_elements in the array
 */
-void SortArray(char * data_array, char * temp_data, int data_size, int total_elements, COMPARISION_RESULT (*compare_data)(char * data1, char * data2) )
+void SortArray(char * data_array, char * temp_data, int data_size, int total_elements, COMPARISION_RESULT (*compare_data)(char * data1, char * data2))
 {
-	int i;
-	
-	for (i = (total_elements / 2)-1; i >= 0; i--)
-		sift_down(data_array, temp_data, i, total_elements, data_size, compare_data);
-
-	for (i = total_elements-1; i >= 1; i--)
+	buildheap(data_array, data_size, total_elements, temp_data, compare_data);
+	while (total_elements>1)
 	{
-		swap( data_array, 0, i, temp_data, data_size );
-		sift_down(data_array, temp_data, 0, i-1, data_size, compare_data);
-	}
+		total_elements--;
+		swap( data_array, 0, total_elements, temp_data, data_size );
+		downheap (0, data_array, data_size, total_elements, temp_data, compare_data);
+	} 
 }
-static void sift_down(char * data_array, char * temp_data, int root, int bottom, int data_size, COMPARISION_RESULT (*compare_data)(char * data1, char * data2) )
+
+static void buildheap(char * data_array, int data_size, int total_elements, char * temp_data, COMPARISION_RESULT (*compare_data)(char * data1, char * data2))
 {
-	int done, maxChild;
+	int v;
+	for (v=total_elements/2-1; v>=0; v--)
+		downheap (v, data_array, data_size, total_elements, temp_data, compare_data);
+}
 
-	done = 0;
-	while ( (root*2) <= bottom && !done )
+static void downheap(int v, char * data_array, int data_size, int total_elements, char * temp_data, COMPARISION_RESULT (*compare_data)(char * data1, char * data2))
+{
+	int w=2*v+1;    // first descendant of v
+	while (w<total_elements)
 	{
-		if ( (root*2) == bottom)
-			maxChild = root * 2;
-		else if( compare_data( &data_array[ (root*2)*data_size ] , &data_array[ (root*2+1) * data_size ] ) == GREATER_THAN )
-			maxChild = root * 2;
-		else
-			maxChild = root * 2 + 1;
-
-		if( compare_data( &data_array[root * data_size], &data_array[maxChild * data_size] ) == LESS_THAN )
+		if (w+1<total_elements)    // is there a second descendant?
 		{
-			swap( data_array, root, maxChild, temp_data, data_size);
-			root = maxChild;
+			if( compare_data( &data_array[ (w+1)*data_size ] , &data_array[ w * data_size ] ) == GREATER_THAN )
+				w++;
 		}
-		else
-			done = 1;
+		
+		// w is the descendant of v with maximum label
+		if( compare_data( &data_array[ (v)*data_size ] , &data_array[ w * data_size ] ) != LESS_THAN )
+			return; // v has heap property
+		
+		// otherwise
+		swap( data_array, v, w, temp_data, data_size );
+		v=w;        // continue
+		w=2*v+1;
 	}
 }
-
 static void swap(char * data_array, int pos1, int pos2, char * temp, int data_size)
 {
 	memmove( temp, &data_array[pos1*data_size], data_size );

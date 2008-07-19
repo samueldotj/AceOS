@@ -13,6 +13,7 @@
 #include <ds/sort.h>
 #include <kernel/debug.h>
 #include <kernel/gdb.h>
+#include <kernel/mm/kmem.h>
 #include <kernel/parameter.h>
 
 char * sys_kernel_cmd_line = NULL;
@@ -21,15 +22,18 @@ static COMPARISION_RESULT compare_kernel_parameter(char * data1, char * data2);
 static KERNEL_PARAMETER_PTR FindKernelParameter(char * parameter_name);
 /*global static array*/
 static KERNEL_PARAMETER kernel_parameters[] = {
-	{"gdb_port", &sys_gdb_port, UINT32Validator, {0, 0xFFFF, 0}, UINT32Assignor, NULL}
+	{"gdb_port", &sys_gdb_port, UINT32Validator, {0, 0xFFFF, 0}, UINT32Assignor, NULL},
+	{"kmem_reserved_mem_size", &kmem_reserved_mem_size, UINT32Validator, {0, 1024*1024*1024, 0}, UINT32Assignor, NULL}
 };
 
 void InitKernelParameters()
 {
 	KERNEL_PARAMETER temp;
-	SortArray( (char *)kernel_parameters, (char *)&temp, sizeof(KERNEL_PARAMETER), 
-					sizeof(kernel_parameters)/sizeof(KERNEL_PARAMETER),  compare_kernel_parameter );
-				
+
+	//todo - make the sorting work...
+	SortArray( (char *)kernel_parameters, (char *)&temp, sizeof(KERNEL_PARAMETER),  
+			sizeof(kernel_parameters)/sizeof(KERNEL_PARAMETER),  compare_kernel_parameter );
+	
 }
 
 void ParaseBootParameters()

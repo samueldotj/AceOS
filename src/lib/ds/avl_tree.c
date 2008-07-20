@@ -31,9 +31,9 @@ static void LeftRotateAvlTree(AVL_TREE_PTR  node, AVL_TREE_PTR *root_ptr);
 
 /*! Initializes the avl tree structure.
  */
-AVL_TREE_PTR InitAvlTreeNode(AVL_TREE_PTR node, void *compare_function_ptr)
+AVL_TREE_PTR InitAvlTreeNode(AVL_TREE_PTR node)
 {
-	InitBinaryTreeNode((BINARY_TREE_PTR)node, compare_function_ptr);
+	InitBinaryTreeNode((BINARY_TREE_PTR)node);
 	node->height=0;
 	
 	return node;
@@ -42,9 +42,9 @@ AVL_TREE_PTR InitAvlTreeNode(AVL_TREE_PTR node, void *compare_function_ptr)
 /*! Searches the AVL tree and returns the identified node
 		Searching AVL tree is same as searching a binary tree
 */
-AVL_TREE_PTR SearchAvlTree(AVL_TREE_PTR start, AVL_TREE_PTR search_node)
+AVL_TREE_PTR SearchAvlTree(AVL_TREE_PTR start, AVL_TREE_PTR search_node, void * fnCompare)
 {
-	return (AVL_TREE_PTR)SearchBinaryTree((BINARY_TREE_PTR)start, (BINARY_TREE_PTR)search_node);
+	return (AVL_TREE_PTR)SearchBinaryTree((BINARY_TREE_PTR)start, (BINARY_TREE_PTR)search_node, fnCompare);
 }
 
 /*! Removes the given node from the AVL tree.
@@ -52,11 +52,11 @@ AVL_TREE_PTR SearchAvlTree(AVL_TREE_PTR start, AVL_TREE_PTR search_node)
 		1) Remove the node using binary tree function
 		2) Balance the AVL Tree
 */
-int RemoveNodeFromAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR node)
+int RemoveNodeFromAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR node, void * fnCompare)
 {
 	AVL_TREE_PTR parent;
 	//printf("removing node %p from root=%p\n", node, root);
-	RemoveNodeFromBinaryTree((BINARY_TREE_PTR)node, (BINARY_TREE_PTR*)(&parent), (BINARY_TREE_PTR*)root);
+	RemoveNodeFromBinaryTree((BINARY_TREE_PTR)node, (BINARY_TREE_PTR*)(&parent), (BINARY_TREE_PTR*)root, fnCompare);
 	node->height = 0;
 	if (!parent) /* parent is null means I just removed root! */
 	{
@@ -81,12 +81,12 @@ int RemoveNodeFromAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR node)
 		1) Call Binary tree functions to insert node. 
 		2) Balance the tree and update height value.
  */
-int InsertNodeIntoAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR new_node)
+int InsertNodeIntoAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR new_node, void * fnCompare)
 {
 	AVL_TREE_PTR parent, grand_parent;
 
 	new_node->height=0;
-	if ( InsertNodeIntoBinaryTree( (BINARY_TREE_PTR *)(root), (BINARY_TREE_PTR)new_node)) 
+	if ( InsertNodeIntoBinaryTree( (BINARY_TREE_PTR *)(root), (BINARY_TREE_PTR)new_node, fnCompare) ) 
 	{
 		/*Failure: Duplicate value already exists, so return -1 */
 		return -1;

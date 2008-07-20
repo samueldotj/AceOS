@@ -25,8 +25,6 @@ typedef enum
 struct binary_tree {
 	LIST left;
 	LIST right;
-	
-	COMPARISION_RESULT (*fnCompareKey)(struct binary_tree * , struct binary_tree *);
 };
 typedef struct binary_tree BINARY_TREE, * BINARY_TREE_PTR;
 
@@ -46,11 +44,11 @@ typedef struct binary_tree BINARY_TREE, * BINARY_TREE_PTR;
     extern "C" {
 #endif
 
-BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_node);
-int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_node);
-void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, BINARY_TREE_PTR * root_ptr);
+BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_node, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR));
+int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_node, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR));
+void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, BINARY_TREE_PTR * root_ptr, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR));
 
-BINARY_TREE_PTR InitBinaryTreeNode(BINARY_TREE_PTR node, COMPARISION_RESULT (*compare_function_ptr)(struct binary_tree * , struct binary_tree *));
+BINARY_TREE_PTR InitBinaryTreeNode(BINARY_TREE_PTR node);
 BINARY_TREE_PTR GetTreeNodeParent(BINARY_TREE_PTR node, TREE_LIST_TYPE * list_type);
 
 void RotateRight(BINARY_TREE_PTR node, BINARY_TREE_PTR *root_ptr);

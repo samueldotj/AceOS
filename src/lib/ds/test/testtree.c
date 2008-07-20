@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
 		
 		InitBT_TestNode(new_node, numbers[i]);
 		if ( verbose_level > 1 ) printf("Adding node %p (%d) : ", &new_node->t, numbers[i] );
-		if ( InsertNodeIntoBinaryTree(&root_ptr, &new_node->t ) != 0 )
+		if ( InsertNodeIntoBinaryTree(&root_ptr, &new_node->t, compare_number ) != 0 )
 		{
 			printf("failure\n");
 			return 1;
@@ -65,12 +65,12 @@ int main(int argc, char* argv[])
 		InitBT_TestNode(&del_node, del_numbers[del_number_index]);
 		
 		if ( verbose_level > 1 ) printf("Searching %d : ", del_node.data);
-		BINARY_TREE_PTR del = SearchBinaryTree(root_ptr, &del_node.t);
+		BINARY_TREE_PTR del = SearchBinaryTree(root_ptr, &del_node.t, compare_number);
 		if ( del )
 		{
 			if ( verbose_level > 1 ) printf("found. Deleting it : ");
-			RemoveNodeFromBinaryTree(del, NULL, &root_ptr);
-			if ( SearchBinaryTree(root_ptr, &del_node.t) )
+			RemoveNodeFromBinaryTree(del, NULL, &root_ptr, compare_number);
+			if ( SearchBinaryTree(root_ptr, &del_node.t, compare_number) )
 			{
 				printf("Deleted node still exists\n");
 				print_tree(root_ptr);
@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
 
 BT_TEST_PTR InitBT_TestNode(BT_TEST_PTR node, int data)
 {
-	InitBinaryTreeNode(&node->t, compare_number);
+	InitBinaryTreeNode(&node->t);
 
 	node->data = data;
 	return node;

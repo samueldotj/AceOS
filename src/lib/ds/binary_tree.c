@@ -19,19 +19,19 @@
 
 #define REMOVE_END_MARK(list)		(list)->next = (LIST_PTR) (((unsigned long)(list)->next ) & ~1);
 
-#define COMPARE_NODE(root, search_node, result_node, result) 	\
-	result = root->fnCompareKey(root, search_node);				\
-	switch( result )											\
-	{															\
-		case LESS_THAN:											\
-			result_node = TREE_LEFT_NODE(root);					\
-			break;												\
-		case GREATER_THAN:										\
-			result_node = TREE_RIGHT_NODE(root);				\
-			break;												\
-		default:												\
-			result_node = NULL;									\
-			break;												\
+#define COMPARE_NODE(root, search_node, result_node, result, fnCompare) 	\
+	result = fnCompare(root, search_node);									\
+	switch( result )														\
+	{																		\
+		case LESS_THAN:														\
+			result_node = TREE_LEFT_NODE(root);								\
+			break;															\
+		case GREATER_THAN:													\
+			result_node = TREE_RIGHT_NODE(root);							\
+			break;															\
+		default:															\
+			result_node = NULL;												\
+			break;															\
 	}
 
 static void UnlinkTreeList(LIST_PTR list_node);
@@ -69,12 +69,10 @@ BINARY_TREE_PTR GetTreeNodeParent(BINARY_TREE_PTR node, TREE_LIST_TYPE * list_ty
 /*! Initializes the binary tree structure.
 
 */
-BINARY_TREE_PTR InitBinaryTreeNode(BINARY_TREE_PTR node, COMPARISION_RESULT (*compare_function_ptr)(struct binary_tree * , struct binary_tree *))
+BINARY_TREE_PTR InitBinaryTreeNode(BINARY_TREE_PTR node)
 {
 	InitList( &node->left );
 	InitList( &node->right );
-	
-	node->fnCompareKey = compare_function_ptr;
 	
 	MARK_TREE_NODE_AS_END(node);
 
@@ -85,7 +83,7 @@ BINARY_TREE_PTR InitBinaryTreeNode(BINARY_TREE_PTR node, COMPARISION_RESULT (*co
 /*! Searches the binary tree and returns the matching node if found.
 	If not found NULL is returned.
 */
-BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_node)
+BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_node, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR))
 {
 	COMPARISION_RESULT result;
 	BINARY_TREE_PTR next_node;
@@ -95,7 +93,7 @@ BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_no
 	
 	while(1)
 	{
-		COMPARE_NODE( root, search_node, next_node, result );
+		COMPARE_NODE( root, search_node, next_node, result, fnCompare );
 		/*node found*/
 		if ( result == EQUAL )
 			return root;
@@ -121,7 +119,7 @@ BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_no
 		1) Traverse through the node from root
 		2) Reset the root variable if the code branches to left on "right list" and right on "left list"
 */
-int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_node)
+int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_node, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR))
 {
 	COMPARISION_RESULT result;
 	BINARY_TREE_PTR root, next_node;
@@ -140,7 +138,7 @@ int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_nod
 	{
 		LIST_PTR parent_node_list;
 		
-		COMPARE_NODE( root, new_node, next_node, result);
+		COMPARE_NODE( root, new_node, next_node, result, fnCompare);
 		if ( result == EQUAL )
 			return -1;/*duplicate*/
 		
@@ -179,7 +177,7 @@ int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_nod
 		case 3(only right node)
 		case 4(both left and right nodes present)
 */
-void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, BINARY_TREE_PTR * root_ptr)
+void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, BINARY_TREE_PTR * root_ptr, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR))
 {
 	TREE_LIST_TYPE in_list_type;
 	BINARY_TREE_PTR left_node, right_node;
@@ -264,7 +262,7 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 	right_most_node = TREE_RIGHT_PARENT( left_node );
 
 	//remove right_most_node
-	RemoveNodeFromBinaryTree(right_most_node, leaf_node, root_ptr);
+	RemoveNodeFromBinaryTree(right_most_node, leaf_node, root_ptr, fnCompare);
 	if (leaf_node && *leaf_node == node)
 		*leaf_node = right_most_node;
 	

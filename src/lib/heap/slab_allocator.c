@@ -94,7 +94,7 @@ static int ManageSlabStateTransition(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr, SLA
 	{
 		AddToPartialList(cache_ptr, slab_ptr);
 		RemoveFromCompletelyFreeList(cache_ptr, slab_ptr);
-		InsertNodeIntoAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
+		InsertNodeIntoAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree), slab_inuse_tree_compare );
 		cache_ptr->free_buffer_count += cache_ptr->slab_buffer_count;
 	}
 	//mixed to free
@@ -102,7 +102,7 @@ static int ManageSlabStateTransition(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr, SLA
 	{
 		RemoveFromPartialList(cache_ptr, slab_ptr);
 		AddToCompletelyFreeList(cache_ptr, slab_ptr);
-		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree) );
+		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree), slab_inuse_tree_compare );
 		cache_ptr->free_buffer_count -= cache_ptr->slab_buffer_count;
 	}
 	//mixed to used
@@ -245,7 +245,7 @@ static void InitSlab(SLAB_PTR slab_ptr, UINT32 buffer_count)
 	int nbytes;
 	/*initialize the tree and list */
 	InitList( &(slab_ptr->partially_free_list) );
-	InitAvlTreeNode( &(slab_ptr->in_use_tree), slab_inuse_tree_compare);
+	InitAvlTreeNode( &(slab_ptr->in_use_tree) );
 	InitList( &(slab_ptr->completely_free_list) );
 	
 	/*todo - call the constructor on each buffer*/
@@ -302,7 +302,7 @@ static void RemoveInUseTree(CACHE_PTR cache_ptr)
 		SLAB_PTR slab_ptr;
 		int i, count;
 
-		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), root );
+		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), root, slab_inuse_tree_compare);
 		slab_ptr = STRUCT_FROM_MEMBER( SLAB_PTR, in_use_tree, root);
 		cache_ptr->free_buffer_count -= (cache_ptr->slab_buffer_count - slab_ptr->used_buffer_count);
 		/*clear the buffer usage bitmap */

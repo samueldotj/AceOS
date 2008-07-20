@@ -46,7 +46,7 @@ int main(int argc, char * argv[])
 		
 		if ( verbose_level > 1 ) printf("Adding node %p (%d) : ", &new_node->t, numbers[i] );
 		
-		if ( InsertNodeIntoAvlTree( &root, &new_node->t ) != 0 )
+		if ( InsertNodeIntoAvlTree( &root, &new_node->t, compare_number ) != 0 )
 		{
 			printf("failure\n");
 			return 1;
@@ -71,17 +71,17 @@ int main(int argc, char * argv[])
 		InitBT_TestNode(&del_node, del_numbers[del_number_index]);
 		
 		if ( verbose_level > 1 ) printf("Searching %d : ", del_node.data);
-		AVL_TREE_PTR del = SearchAvlTree( root, &del_node.t);
+		AVL_TREE_PTR del = SearchAvlTree( root, &del_node.t, compare_number);
 		if ( del )
 		{
 			if ( verbose_level > 1 ) printf("found. Deleting it : ");
-			RemoveNodeFromAvlTree( &root, del);
+			RemoveNodeFromAvlTree( &root, del, compare_number);
 			if (!root)
 			{
 				printf("Last node deleted and hence no root\n");
 				break;
 			}
-			if ( SearchAvlTree( root, &del_node.t) )
+			if ( SearchAvlTree( root, &del_node.t, compare_number) )
 			{
 				printf("Deleted node still exists(%d)\n", del_number_index);
 				print_tree( root );
@@ -108,7 +108,7 @@ int main(int argc, char * argv[])
 
 BT_TEST_PTR InitBT_TestNode(BT_TEST_PTR node, int data)
 {
-	InitAvlTreeNode(&node->t, compare_number);
+	InitAvlTreeNode(&node->t);
 
 	node->data = data;
 	return node;

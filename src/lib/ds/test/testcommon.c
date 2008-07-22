@@ -1,6 +1,6 @@
 #define MAX_NUMBER 			1000
-#define MAX_TREE_NUMBERS 	500
-#define MAX_DEL_NUMBERS  	500
+#define MAX_TREE_NUMBERS 	50
+#define MAX_DEL_NUMBERS  	50
 
 #include <assert.h>
 #include <stdio.h>
@@ -86,12 +86,17 @@ static void swap(int * a, int * b)
 	*a = *b;
 	*b = tmp;
 }
-static void fill_random_numbers(int * number_array, int capacity, int max_number)
+static void fill_random_numbers(int * number_array, int capacity, int max_number, int allow_duplicates)
 {
 	int i;
-	//fill in ascending order
+
 	for(i=0;i<MAX_TREE_NUMBERS;i++)
-		number_array[i] = i+1;
+	{
+		if ( allow_duplicates )
+			number_array[i] = rand()%max_number;
+		else
+			number_array[i] = i+1;
+	}
 	
 	//randomize
 	for(i=0;i<MAX_TREE_NUMBERS;i++)
@@ -101,8 +106,23 @@ static void fill_random_numbers(int * number_array, int capacity, int max_number
 	}
 
 }
-
-int * init_numbers(int * total_numbers, int ** del_numbers_ptr, int * total_del_numbers)
+static void select_random_numbers(int * number_array, int * base_array, int capacity, int base_capacity, int allow_duplicates)
+{
+	int i;
+	//fill unique numbers
+	for(i=0; i<base_capacity;i++)
+		number_array[i] = i;
+	//randomize it
+	for(i=0;i<base_capacity;i++)
+	{
+		int rand_number = rand()%base_capacity;
+		swap(&number_array[i] , &number_array[rand_number] );
+	}
+	//select numbers from the base array
+	for(i=0;i<capacity && i<base_capacity;i++)
+		number_array[i] = base_array[number_array[i]];
+}
+int * init_numbers(int * total_numbers, int ** del_numbers_ptr, int * total_del_numbers, int allow_duplicates)
 {
 	if ( !use_predefined_numbers )
 	{
@@ -114,7 +134,7 @@ int * init_numbers(int * total_numbers, int ** del_numbers_ptr, int * total_del_
 	srand ( time(NULL) );		
 	//initialize the numbers
 	if ( random_number_test )
-		fill_random_numbers( numbers, max_tree_numbers, MAX_NUMBER);
+		fill_random_numbers( numbers, max_tree_numbers, MAX_NUMBER, allow_duplicates);
 	else
 	{
 		if ( !use_predefined_numbers )
@@ -133,7 +153,7 @@ int * init_numbers(int * total_numbers, int ** del_numbers_ptr, int * total_del_
 	}
 	//initialize delete numbers
 	if ( !use_predefined_numbers )
-		fill_random_numbers( del_numbers, max_del_numbers, MAX_NUMBER);
+		select_random_numbers( del_numbers, numbers, max_del_numbers, MAX_TREE_NUMBERS, allow_duplicates);
 
 	* total_numbers = max_tree_numbers;
 	* del_numbers_ptr = del_numbers;

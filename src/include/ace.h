@@ -44,6 +44,10 @@ typedef UINT32 VADDR;
 #define STRUCT_ADDRESS_FROM_MEMBER(member_address, struct_name, member_name)	\
 		((struct_name *)( (BYTE *)member_address - ((UINT32) &(((struct_name *)0)->member_name)) ))
 
+/*! return the offset byte of a member from the structure starting.
+*/
+#define OFFSET_OF_MEMBER(struct_name, member_name)	((UINT32) &(((struct_name *)0)->member_name))
+
 /*! returns maximum of two numbers
 */
 #define MAX(a,b) (((a) > (b)) ? (a):(b))

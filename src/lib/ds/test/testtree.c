@@ -5,9 +5,16 @@
 #include <malloc.h>
 #include <ds/binary_tree.h>
 
+/*define the following to allow duplicate keys in the tree structure*/
+#define ALLOW_DUPLICATE		1
+
 struct bt_test
 {
 	BINARY_TREE t;
+#if ALLOW_DUPLICATE==1
+	LIST tree_sibling;
+#endif
+
 	int data;
 };
 typedef struct bt_test BT_TEST, * BT_TEST_PTR;
@@ -16,7 +23,7 @@ COMPARISION_RESULT compare_number(struct binary_tree * node1, struct binary_tree
 BT_TEST_PTR InitBT_TestNode(BT_TEST_PTR node, int data);
 
 void print_tree(BINARY_TREE_PTR node);
-int * init_numbers(int * total_numbers, int ** del_numbers_ptr, int * total_del_numbers);
+int * init_numbers(int * total_numbers, int ** del_numbers_ptr, int * total_del_numbers, int allow_duplicates);
 int parse_arguments(int argc, char * argv[]);
 
 extern int verbose_level;
@@ -27,11 +34,11 @@ int main(int argc, char* argv[])
 		
 	if ( parse_arguments(argc, argv) )
 		return 1;
-	numbers = init_numbers(&total_numbers, &del_numbers, &del_number_index);
+	numbers = init_numbers(&total_numbers, &del_numbers, &del_number_index, ALLOW_DUPLICATE);
 		
 	/*insert into list*/
 	if ( verbose_level > 0 ) printf("Inserting %d numbers between 0 to 100\n", total_numbers);
-	for(i=1;i<total_numbers;i++)
+	for(i=0;i<total_numbers;i++)
 	{
 		BT_TEST_PTR new_node;
 		
@@ -43,7 +50,7 @@ int main(int argc, char* argv[])
 		
 		InitBT_TestNode(new_node, numbers[i]);
 		if ( verbose_level > 1 ) printf("Adding node %p (%d) : ", &new_node->t, numbers[i] );
-		if ( InsertNodeIntoBinaryTree(&root_ptr, &new_node->t, compare_number ) != 0 )
+		if ( InsertNodeIntoBinaryTree(&root_ptr, &new_node->t, ALLOW_DUPLICATE, compare_number ) != 0 )
 		{
 			printf("failure\n");
 			return 1;
@@ -64,15 +71,20 @@ int main(int argc, char* argv[])
 		BT_TEST del_node;
 		InitBT_TestNode(&del_node, del_numbers[del_number_index]);
 		
-		if ( verbose_level > 1 ) printf("Searching %d : ", del_node.data);
+		if ( verbose_level > 1 ) printf("Searching %d (%d): ", del_node.data, del_number_index);
 		BINARY_TREE_PTR del = SearchBinaryTree(root_ptr, &del_node.t, compare_number);
 		if ( del )
 		{
 			if ( verbose_level > 1 ) printf("found. Deleting it : ");
-			RemoveNodeFromBinaryTree(del, NULL, &root_ptr, compare_number);
-			if ( SearchBinaryTree(root_ptr, &del_node.t, compare_number) )
+			RemoveNodeFromBinaryTree(del, NULL, &root_ptr, ALLOW_DUPLICATE, compare_number);
+			if ( root_ptr == NULL )
 			{
-				printf("Deleted node still exists\n");
+				printf("Root node deleted\n");
+				break;
+			}
+			if ( !ALLOW_DUPLICATE && SearchBinaryTree(root_ptr, &del_node.t, compare_number) )
+			{
+				printf("Deleted node still exists(%d)\n", del_node.data);
 				print_tree(root_ptr);
 				return 1;
 			}
@@ -81,14 +93,14 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			printf("Node (%d) not found while deleting \n", del_node.data);
+			printf("Node (%d) index %d not found while deleting \n", del_node.data, del_number_index);
 			return 1;
 		}
 	}
-	if ( verbose_level > 0 ) 
+	if ( root_ptr && verbose_level > 1 )
 	{
 		printf("-------------------FINAL TREE---------------------------------------------\n");
-		print_tree(root_ptr);
+		print_tree( root_ptr );
 		printf("\n--------------------------------------------------------------------------\n");
 	}
 	if ( verbose_level > 1 ) 
@@ -99,6 +111,9 @@ int main(int argc, char* argv[])
 BT_TEST_PTR InitBT_TestNode(BT_TEST_PTR node, int data)
 {
 	InitBinaryTreeNode(&node->t);
+#if ALLOW_DUPLICATE==1
+	InitList( &node->tree_sibling );
+#endif
 
 	node->data = data;
 	return node;
@@ -111,8 +126,8 @@ COMPARISION_RESULT compare_number(struct binary_tree * node1, struct binary_tree
 	assert( node1 != NULL );
 	assert( node2 != NULL );
 	
-	n1 = STRUCT_FROM_MEMBER(BT_TEST_PTR, t, node1)->data;
-	n2 = STRUCT_FROM_MEMBER(BT_TEST_PTR, t, node2)->data;
+	n1 = STRUCT_ADDRESS_FROM_MEMBER(node1, BT_TEST, t)->data;
+	n2 = STRUCT_ADDRESS_FROM_MEMBER(node2, BT_TEST, t)->data;
 	
 	if ( n1 < n2 )
 		return GREATER_THAN;
@@ -125,7 +140,7 @@ COMPARISION_RESULT compare_number(struct binary_tree * node1, struct binary_tree
 void print_tree(BINARY_TREE_PTR node)
 {
 	static int level=0;
-	int len = printf("%02d", STRUCT_FROM_MEMBER(BT_TEST_PTR, t, node)->data )+1;
+	int len = printf("%02d", STRUCT_ADDRESS_FROM_MEMBER(node, BT_TEST, t)->data )+1;
 	if (! IS_TREE_LIST_END(&node->right) )
 	{
 		level++;

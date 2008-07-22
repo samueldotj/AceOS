@@ -4,9 +4,16 @@
 #include <time.h>
 #include <malloc.h>
 #include <ds/avl_tree.h>
+
+/*define the following to allow duplicate keys in the tree structure*/
+#define ALLOW_DUPLICATE		1
+
 struct bt_test
 {
 	AVL_TREE t;
+#if ALLOW_DUPLICATE==1
+	LIST tree_sibling;
+#endif
 	int data;
 };
 typedef struct bt_test BT_TEST, * BT_TEST_PTR;
@@ -15,26 +22,23 @@ COMPARISION_RESULT compare_number(struct binary_tree * node1, struct binary_tree
 BT_TEST_PTR InitBT_TestNode(BT_TEST_PTR node, int data);
 
 void print_tree(AVL_TREE_PTR avl_node);
-int * init_numbers(int * total_numbers, int ** del_numbers_ptr, int * total_del_numbers);
+int * init_numbers(int * total_numbers, int ** del_numbers_ptr, int * total_del_numbers, int allow_duplicates);
 int parse_arguments(int argc, char * argv[]);
 
 extern int verbose_level;
 int main(int argc, char * argv[])
 {
-	BT_TEST first_element;
-	AVL_TREE_PTR root=&first_element.t;
+	AVL_TREE_PTR root_ptr=NULL;
 	int i, * numbers, total_numbers, * del_numbers, del_number_index;
 	
 	
 	if ( parse_arguments(argc, argv) )
 		return 1;
-	numbers = init_numbers(&total_numbers, &del_numbers, &del_number_index);
-	
-	InitBT_TestNode( &first_element, numbers[0]);
+	numbers = init_numbers(&total_numbers, &del_numbers, &del_number_index, ALLOW_DUPLICATE);
 	
 	/*insertion test*/
 	if ( verbose_level > 0 ) printf("Inserting %d numbers between 0 to 100\n", total_numbers);
-	for(i=1;i<total_numbers; i++)
+	for(i=0;i<total_numbers; i++)
 	{
 		BT_TEST_PTR new_node;
 		if ( (new_node = (BT_TEST_PTR ) malloc(sizeof(BT_TEST))) == NULL )
@@ -46,9 +50,9 @@ int main(int argc, char * argv[])
 		
 		if ( verbose_level > 1 ) printf("Adding node %p (%d) : ", &new_node->t, numbers[i] );
 		
-		if ( InsertNodeIntoAvlTree( &root, &new_node->t, compare_number ) != 0 )
+		if ( InsertNodeIntoAvlTree( &root_ptr, &new_node->t, ALLOW_DUPLICATE, compare_number ) != 0 )
 		{
-			printf("failure\n");
+			printf("InsertNodeIntoAvlTree() failed\n");
 			return 1;
 		}
 		else
@@ -58,7 +62,7 @@ int main(int argc, char * argv[])
 	if ( verbose_level > 1 )
 	{
 		printf("After insertion - Tree :\n");
-		print_tree(root);
+		print_tree(root_ptr);
 	}
 	if ( verbose_level > 0 ) printf("\nDeleting %d numbers from the tree\n", del_number_index);
 	
@@ -71,34 +75,35 @@ int main(int argc, char * argv[])
 		InitBT_TestNode(&del_node, del_numbers[del_number_index]);
 		
 		if ( verbose_level > 1 ) printf("Searching %d : ", del_node.data);
-		AVL_TREE_PTR del = SearchAvlTree( root, &del_node.t, compare_number);
+		AVL_TREE_PTR del = SearchAvlTree( root_ptr, &del_node.t, compare_number);
 		if ( del )
 		{
 			if ( verbose_level > 1 ) printf("found. Deleting it : ");
-			RemoveNodeFromAvlTree( &root, del, compare_number);
-			if (!root)
+			RemoveNodeFromAvlTree( &root_ptr, del, ALLOW_DUPLICATE, compare_number);
+			if (!root_ptr)
 			{
 				printf("Last node deleted and hence no root\n");
 				break;
 			}
-			if ( SearchAvlTree( root, &del_node.t, compare_number) )
+			if ( !ALLOW_DUPLICATE && SearchAvlTree( root_ptr, &del_node.t, compare_number) )
 			{
-				printf("Deleted node still exists(%d)\n", del_number_index);
-				print_tree( root );
+				printf("Deleted node still exists(%d) index = %d\n", del_number_index, del_number_index);
+				print_tree( root_ptr );
 				return 1;
 			}
 			if ( verbose_level > 1 ) printf("Sucess\n");
 		}
 		else
 		{
-			printf("Node (%d) not found while deleting \n", del_node.data);
+			printf("Node (%d)(%d) not found while deleting \n", del_node.data, del_number_index);
+			print_tree( root_ptr );
 			return 1;
 		}
 	}
-	if ( verbose_level > 1 )
+	if ( root_ptr && verbose_level > 1 )
 	{
 		printf("-------------------FINAL TREE---------------------------------------------\n");
-		print_tree( root);
+		print_tree( root_ptr );
 		printf("\n--------------------------------------------------------------------------\n");
 	}
 	if ( verbose_level > 0 )
@@ -109,7 +114,9 @@ int main(int argc, char * argv[])
 BT_TEST_PTR InitBT_TestNode(BT_TEST_PTR node, int data)
 {
 	InitAvlTreeNode(&node->t);
-
+#if ALLOW_DUPLICATE==1
+	InitList( &node->tree_sibling);
+#endif
 	node->data = data;
 	return node;
 }
@@ -118,17 +125,16 @@ BT_TEST_PTR InitBT_TestNode(BT_TEST_PTR node, int data)
 void print_tree(AVL_TREE_PTR avl_node)
 {
 	static int level=0;
-	BINARY_TREE_PTR node = &avl_node->bintree;
-	int len = printf("%02d(%d)", STRUCT_FROM_MEMBER(BT_TEST_PTR, t, node)->data, avl_node->height )+1;
-	if (! IS_TREE_LIST_END(&node->right) )
+	int len = printf("%02d(%d)", STRUCT_ADDRESS_FROM_MEMBER(avl_node, BT_TEST, t)->data, avl_node->height )+1;
+	if (! IS_AVL_TREE_RIGHT_LIST_END(avl_node) )
 	{
 		level++;
 		printf("-");
-		print_tree( (AVL_TREE_PTR) TREE_RIGHT_NODE(node) );
+		print_tree( AVL_TREE_RIGHT_NODE(avl_node) );
 		level--;
 	}
 	
-	if (! IS_TREE_LIST_END(&node->left ) )
+	if (! IS_AVL_TREE_LEFT_LIST_END(avl_node ) )
 	{
 		int j=0;
 		printf("\n");
@@ -137,7 +143,7 @@ void print_tree(AVL_TREE_PTR avl_node)
 		printf("|\n");
 		for (j=0 ;j<(level*len);j++ ) printf(" ");
 		
-		print_tree( (AVL_TREE_PTR) TREE_LEFT_NODE(node) );
+		print_tree( AVL_TREE_LEFT_NODE(avl_node) );
 	}
 	
 }
@@ -148,8 +154,8 @@ COMPARISION_RESULT compare_number(struct binary_tree * node1, struct binary_tree
 	assert( node1 != NULL );
 	assert( node2 != NULL );
 	
-	n1 = STRUCT_FROM_MEMBER(BT_TEST_PTR, t, node1)->data;
-	n2 = STRUCT_FROM_MEMBER(BT_TEST_PTR, t, node2)->data;
+	n1 = STRUCT_ADDRESS_FROM_MEMBER(STRUCT_ADDRESS_FROM_MEMBER(node1, AVL_TREE, bintree), BT_TEST, t)->data;
+	n2 = STRUCT_ADDRESS_FROM_MEMBER(STRUCT_ADDRESS_FROM_MEMBER(node2, AVL_TREE, bintree), BT_TEST, t)->data;
 	
 	if ( n1 < n2 )
 		return GREATER_THAN;

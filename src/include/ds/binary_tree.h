@@ -25,16 +25,18 @@ typedef enum
 struct binary_tree {
 	LIST left;
 	LIST right;
+	
+	LIST sibling[0];
 };
 typedef struct binary_tree BINARY_TREE, * BINARY_TREE_PTR;
 
 #define BIN_TREE_NODE(name, function_ptr) BINARY_TREE name = {NULL, NULL, function_ptr}
 
-#define TREE_LEFT_NODE(  node ) ( (BINARY_TREE_PTR)( STRUCT_FROM_MEMBER(BINARY_TREE_PTR, left,  (((unsigned long)(node)->left.next) & ~1) )  ) )
-#define TREE_RIGHT_NODE( node )	( (BINARY_TREE_PTR)( STRUCT_FROM_MEMBER(BINARY_TREE_PTR, right, (((unsigned long)(node)->right.next) & ~1)) ) )
+#define TREE_LEFT_NODE(  node ) ( STRUCT_ADDRESS_FROM_MEMBER( (((unsigned long)(node)->left.next)  & ~1), BINARY_TREE, left ) ) 
+#define TREE_RIGHT_NODE( node )	( STRUCT_ADDRESS_FROM_MEMBER( (((unsigned long)(node)->right.next) & ~1), BINARY_TREE, right) )
 
-#define TREE_LEFT_PARENT(  node )   ( (BINARY_TREE_PTR)( STRUCT_FROM_MEMBER(BINARY_TREE_PTR, left,  (((unsigned long)(node)->left.prev) & ~1) )  ) )
-#define TREE_RIGHT_PARENT( node )	( (BINARY_TREE_PTR)( STRUCT_FROM_MEMBER(BINARY_TREE_PTR, right, (((unsigned long)(node)->right.prev) & ~1)) ) )
+#define TREE_LEFT_PARENT(  node )   ( STRUCT_ADDRESS_FROM_MEMBER( (((unsigned long)(node)->left.prev)  & ~1), BINARY_TREE, left ) ) 
+#define TREE_RIGHT_PARENT( node )	( STRUCT_ADDRESS_FROM_MEMBER( (((unsigned long)(node)->right.prev) & ~1), BINARY_TREE, right) )
 #define IS_TREE_LIST_END(list)		( (int)(((unsigned long)((list)->next)) & 1) )
 
 #define IS_END_OF_LEFT_LIST(node) 	( IS_TREE_LIST_END(&((node)->left)) )
@@ -45,8 +47,8 @@ typedef struct binary_tree BINARY_TREE, * BINARY_TREE_PTR;
 #endif
 
 BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_node, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR));
-int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_node, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR));
-void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, BINARY_TREE_PTR * root_ptr, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR));
+int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_node, int duplicates_allowed, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR));
+int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, BINARY_TREE_PTR * root_ptr, int duplicates_allowed, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR));
 
 BINARY_TREE_PTR InitBinaryTreeNode(BINARY_TREE_PTR node);
 BINARY_TREE_PTR GetTreeNodeParent(BINARY_TREE_PTR node, TREE_LIST_TYPE * list_type);

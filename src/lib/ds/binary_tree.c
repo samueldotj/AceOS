@@ -113,13 +113,14 @@ BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_no
 	Return values:
 		0    SUCCESS
 		-1   FAIL (Duplicate value, not inserted)
+		1  Success Duplicate value added
 	Theory:
 		All binary tree inserts happens only in the leaf nodes
 	Algorithm:
 		1) Traverse through the node from root
 		2) Reset the root variable if the code branches to left on "right list" and right on "left list"
 */
-int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_node, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR))
+int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_node, int duplicates_allowed, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR))
 {
 	COMPARISION_RESULT result;
 	BINARY_TREE_PTR root, next_node;
@@ -140,7 +141,17 @@ int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_nod
 		
 		COMPARE_NODE( root, new_node, next_node, result, fnCompare);
 		if ( result == EQUAL )
-			return -1;/*duplicate*/
+		{
+			if ( duplicates_allowed )
+			{
+				InitList( &new_node->sibling[0] );
+				AddToList( &root->sibling[0], &new_node->sibling[0] );
+				printf("duplicate added\n");
+				return 1;
+			}
+			else
+				return -1;/*duplicate*/
+		}
 		
 		if ( result == LESS_THAN )
 			parent_node_list = &root->left;
@@ -177,7 +188,7 @@ int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_nod
 		case 3(only right node)
 		case 4(both left and right nodes present)
 */
-void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, BINARY_TREE_PTR * root_ptr, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR))
+int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, BINARY_TREE_PTR * root_ptr, int duplicates_allowed, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR))
 {
 	TREE_LIST_TYPE in_list_type;
 	BINARY_TREE_PTR left_node, right_node;
@@ -186,6 +197,19 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 	
 	assert(node!=NULL);
 	
+	/*if duplicates are allowed, check the sibling and replace with the current*/
+	if ( duplicates_allowed )
+	{
+		/*if sibling present*/
+		if ( node->sibling[0].next != &node->sibling[0] )
+		{
+			BINARY_TREE_PTR new_node = STRUCT_ADDRESS_FROM_MEMBER( &node->sibling[0], BINARY_TREE, sibling[0] );
+			ReplaceTreeListNode( &node->left, &new_node->left );
+			ReplaceTreeListNode( &node->right, &new_node->right );
+			return 1;
+		}
+	}
+		
 	left_node = TREE_LEFT_NODE(node);
 	right_node = TREE_RIGHT_NODE(node);
 	parent_node = GetTreeNodeParent(node, &in_list_type);
@@ -200,7 +224,7 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 		{
 			*leaf_node = NULL;
 		}
-		return; /*SUCCESS*/
+		return 0; /*SUCCESS*/
 	}
 
 	//case 1, 2 or 3
@@ -250,7 +274,7 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 		if ( leaf_node )
 			*leaf_node = parent_node;
 		
-		return;/*success*/
+		return 0;/*success*/
 	}
 	
 	/*case 4(both left and right nodes present)
@@ -262,7 +286,7 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 	right_most_node = TREE_RIGHT_PARENT( left_node );
 
 	//remove right_most_node
-	RemoveNodeFromBinaryTree(right_most_node, leaf_node, root_ptr, fnCompare);
+	RemoveNodeFromBinaryTree(right_most_node, leaf_node, root_ptr, duplicates_allowed, fnCompare);
 	if (leaf_node && *leaf_node == node)
 		*leaf_node = right_most_node;
 	
@@ -273,6 +297,8 @@ void RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node,
 	/*reassign the root pointer if it is changed.*/
 	if ( root_ptr && parent_node==NULL )
 		*root_ptr = right_most_node;
+	
+	return 0;
 }
 
 /*! Performs a right rotation, rooted at node

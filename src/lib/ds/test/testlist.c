@@ -1,3 +1,4 @@
+#include <ace.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,7 +72,7 @@ int main(int argc, char* argv[])
 	i=0;
 	LIST_FOR_EACH(n, &odd_head.list)
 	{
-		printf("%d) Node = %d\n", i++, STRUCT_FROM_MEMBER(LIST_TEST_PTR, list, n)->data );
+		printf("%d) Node = %d\n", i++, STRUCT_ADDRESS_FROM_MEMBER(n, LIST_TEST, list)->data );
 
 	}
 
@@ -79,14 +80,14 @@ int main(int argc, char* argv[])
 	i=0;
 	LIST_FOR_EACH(n, &even_head.list)
 	{
-		printf("%d) Node = %d\n", i++, STRUCT_FROM_MEMBER(LIST_TEST_PTR, list, n)->data );
+		printf("%d) Node = %d\n", i++, STRUCT_ADDRESS_FROM_MEMBER(n, LIST_TEST, list)->data );
 	}
 	
 	printf("printing full list..\n");
 	i=0;
 	LIST_FOR_EACH(n, &head.full_list)
 	{
-		printf("%d) Node = %d\n", i++, STRUCT_FROM_MEMBER(LIST_TEST_PTR, full_list, n)->data );
+		printf("%d) Node = %d\n", i++, STRUCT_ADDRESS_FROM_MEMBER(n, LIST_TEST, full_list)->data );
 	}
 
 
@@ -95,15 +96,15 @@ int main(int argc, char* argv[])
 	i=0;
 	LIST_FOR_EACH_SAFE(n, tmp, &head.full_list)
 	{
-		if ( STRUCT_FROM_MEMBER(LIST_TEST_PTR, full_list, n)->data == 5 ||
-			 STRUCT_FROM_MEMBER(LIST_TEST_PTR, full_list, n)->data == 8 
+		if ( STRUCT_ADDRESS_FROM_MEMBER(n, LIST_TEST, full_list)->data == 5 ||
+			 STRUCT_ADDRESS_FROM_MEMBER(n, LIST_TEST, full_list)->data == 8 
 			 )
 			RemoveFromList(n);
 	}
 	printf("printing full list again..\n");
 	LIST_FOR_EACH(n, &head.full_list)
 	{
-		printf("%d) Node = %d\n", i++, STRUCT_FROM_MEMBER(LIST_TEST_PTR, full_list, n)->data );
+		printf("%d) Node = %d\n", i++, STRUCT_ADDRESS_FROM_MEMBER(n, LIST_TEST, full_list)->data );
 	}
 
 	

@@ -94,7 +94,7 @@ static int ManageSlabStateTransition(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr, SLA
 	{
 		AddToPartialList(cache_ptr, slab_ptr);
 		RemoveFromCompletelyFreeList(cache_ptr, slab_ptr);
-		InsertNodeIntoAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree), slab_inuse_tree_compare );
+		InsertNodeIntoAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree), 0, slab_inuse_tree_compare );
 		cache_ptr->free_buffer_count += cache_ptr->slab_buffer_count;
 	}
 	//mixed to free
@@ -102,7 +102,7 @@ static int ManageSlabStateTransition(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr, SLA
 	{
 		RemoveFromPartialList(cache_ptr, slab_ptr);
 		AddToCompletelyFreeList(cache_ptr, slab_ptr);
-		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree), slab_inuse_tree_compare );
+		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), &(slab_ptr->in_use_tree), 0, slab_inuse_tree_compare );
 		cache_ptr->free_buffer_count -= cache_ptr->slab_buffer_count;
 	}
 	//mixed to used
@@ -134,7 +134,7 @@ static void AddToPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 
 static void RemoveFromPartialList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 {
-	SLAB_PTR next_slab_ptr = STRUCT_FROM_MEMBER( SLAB_PTR, partially_free_list, (slab_ptr)->partially_free_list.next);
+	SLAB_PTR next_slab_ptr = STRUCT_ADDRESS_FROM_MEMBER( (slab_ptr)->partially_free_list.next, SLAB, partially_free_list);
 	if ( slab_ptr == next_slab_ptr )
 		cache_ptr->partially_free_slab_list_head = NULL;
 	else
@@ -155,7 +155,7 @@ static void AddToCompletelyFreeList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 
 static void RemoveFromCompletelyFreeList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 {
-	SLAB_PTR next_slab_ptr = STRUCT_FROM_MEMBER( SLAB_PTR, completely_free_list, (slab_ptr)->completely_free_list.next);
+	SLAB_PTR next_slab_ptr = STRUCT_ADDRESS_FROM_MEMBER( (slab_ptr)->completely_free_list.next, SLAB, completely_free_list);
 	if ( slab_ptr == next_slab_ptr )
 		cache_ptr->completely_free_slab_list_head = NULL;
 	else
@@ -212,7 +212,7 @@ static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr )
 	root = cache_ptr->in_use_slab_tree_root;
 	while ( root )
 	{
-		slab_ptr = STRUCT_FROM_MEMBER( SLAB_PTR, in_use_tree, root);
+		slab_ptr = STRUCT_ADDRESS_FROM_MEMBER( root, SLAB, in_use_tree);
 		start_va = (VADDR) SLAB_START( slab_ptr, cache_ptr);
 		if ( buffer >= start_va && buffer < (start_va + cache_ptr->slab_metadata_offset) )
 		{
@@ -302,8 +302,8 @@ static void RemoveInUseTree(CACHE_PTR cache_ptr)
 		SLAB_PTR slab_ptr;
 		int i, count;
 
-		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), root, slab_inuse_tree_compare);
-		slab_ptr = STRUCT_FROM_MEMBER( SLAB_PTR, in_use_tree, root);
+		RemoveNodeFromAvlTree( &(cache_ptr->in_use_slab_tree_root), root, 0, slab_inuse_tree_compare);
+		slab_ptr = STRUCT_ADDRESS_FROM_MEMBER( root, SLAB, in_use_tree);
 		cache_ptr->free_buffer_count -= (cache_ptr->slab_buffer_count - slab_ptr->used_buffer_count);
 		/*clear the buffer usage bitmap */
 		for(i=0, count=slab_ptr->used_buffer_count; count >=0; i++, count -= 8)
@@ -493,7 +493,7 @@ void DestroyCache(CACHE_PTR rem_cache)
 	while( free_slabs )
 	{
 		slab_ptr =  rem_cache->completely_free_slab_list_head;
-		rem_cache->completely_free_slab_list_head = STRUCT_FROM_MEMBER( SLAB_PTR, completely_free_list, rem_cache->completely_free_slab_list_head->completely_free_list.next);
+		rem_cache->completely_free_slab_list_head = STRUCT_ADDRESS_FROM_MEMBER( rem_cache->completely_free_slab_list_head->completely_free_list.next, SLAB, completely_free_list);
 		RemoveFromCompletelyFreeList( rem_cache, slab_ptr );
 		
 		/* Now get the starting address of slab */

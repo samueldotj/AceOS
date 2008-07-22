@@ -30,10 +30,6 @@ struct list {
 #define LIST_NODE(name) LIST name = INIT_LIST(name)
 
 
-#define STRUCT_FROM_MEMBER(struct_name, field, field_addr )\
-	( (struct_name)( (char *)(field_addr) - (char *) &((struct_name)0)->field ) )
-
-
 /*! To iterate a list use this macro.
 */
 #define LIST_FOR_EACH(pos, head) \

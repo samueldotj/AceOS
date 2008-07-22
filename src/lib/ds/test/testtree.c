@@ -31,16 +31,18 @@ int main(int argc, char* argv[])
 {
 	int i, * numbers, total_numbers, * del_numbers, del_number_index;
 	BINARY_TREE_PTR root_ptr = NULL;
+	BT_TEST_PTR duplicate_node = NULL;
 		
 	if ( parse_arguments(argc, argv) )
 		return 1;
 	numbers = init_numbers(&total_numbers, &del_numbers, &del_number_index, ALLOW_DUPLICATE);
-		
+	
 	/*insert into list*/
 	if ( verbose_level > 0 ) printf("Inserting %d numbers between 0 to 100\n", total_numbers);
 	for(i=0;i<total_numbers;i++)
 	{
 		BT_TEST_PTR new_node;
+		int result;
 		
 		if ( (new_node = (BT_TEST_PTR ) malloc(sizeof(BT_TEST))) == NULL )
 		{
@@ -50,7 +52,12 @@ int main(int argc, char* argv[])
 		
 		InitBT_TestNode(new_node, numbers[i]);
 		if ( verbose_level > 1 ) printf("Adding node %p (%d) : ", &new_node->t, numbers[i] );
-		if ( InsertNodeIntoBinaryTree(&root_ptr, &new_node->t, ALLOW_DUPLICATE, compare_number ) != 0 )
+		
+		result = InsertNodeIntoBinaryTree(&root_ptr, &new_node->t, ALLOW_DUPLICATE, compare_number );
+		if ( ALLOW_DUPLICATE &&  result == 1 )
+			duplicate_node = new_node;
+		
+		if ( !ALLOW_DUPLICATE &&  result != 0 )
 		{
 			printf("failure\n");
 			return 1;
@@ -64,11 +71,23 @@ int main(int argc, char* argv[])
 		print_tree(root_ptr);
 		printf("\nDeleting %d numbers from the tree\n", del_number_index);
 	}
+	/*duplicate node delete*/
+	if ( duplicate_node )
+	{
+		printf("Deleting duplicate node %d\n", duplicate_node->data);
+		RemoveNodeFromBinaryTree(&duplicate_node->t, NULL, &root_ptr, ALLOW_DUPLICATE, NULL, compare_number);
+	}
+	
 	/*deletion test*/
 	del_number_index--;
 	for(;del_number_index>=0;del_number_index--)
 	{
 		BT_TEST del_node;
+		if ( del_numbers[del_number_index] == duplicate_node->data )
+		{
+			duplicate_node->data = -1;
+			continue;
+		}
 		InitBT_TestNode(&del_node, del_numbers[del_number_index]);
 		
 		if ( verbose_level > 1 ) printf("Searching %d (%d): ", del_node.data, del_number_index);
@@ -76,7 +95,7 @@ int main(int argc, char* argv[])
 		if ( del )
 		{
 			if ( verbose_level > 1 ) printf("found. Deleting it : ");
-			RemoveNodeFromBinaryTree(del, NULL, &root_ptr, ALLOW_DUPLICATE, compare_number);
+			RemoveNodeFromBinaryTree(del, NULL, &root_ptr, ALLOW_DUPLICATE, NULL, compare_number);
 			if ( root_ptr == NULL )
 			{
 				printf("Root node deleted\n");
@@ -94,6 +113,7 @@ int main(int argc, char* argv[])
 		else
 		{
 			printf("Node (%d) index %d not found while deleting \n", del_node.data, del_number_index);
+			print_tree( root_ptr );
 			return 1;
 		}
 	}

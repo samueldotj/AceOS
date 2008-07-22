@@ -12,10 +12,10 @@
 #include <ds/avl_tree.h>
 
 #define GET_AVL_TREE_HEIGHTS( node, left_height, right_height )					\
-	left_height = right_height = -1;							\
-	if ( !IS_END_OF_LEFT_LIST( &(node)->bintree ) )	\
+	left_height = right_height = -1;											\
+	if ( !IS_END_OF_LEFT_LIST( &(node)->bintree ) )								\
 		left_height = AVL_TREE_LEFT_NODE( (node) )->height;						\
-	if ( !IS_END_OF_RIGHT_LIST( &(node)->bintree ) ) 		\
+	if ( !IS_END_OF_RIGHT_LIST( &(node)->bintree ) ) 							\
 		right_height = AVL_TREE_RIGHT_NODE( (node) )->height;	
 
 #define RECALCULATE_HEIGHT( node ) (node)->height = RecalculateAvlTreeHeight( node )
@@ -84,30 +84,35 @@ AVL_TREE_PTR GetAvlTreeNodeParent(AVL_TREE_PTR node)
 int RemoveNodeFromAvlTree(AVL_TREE_PTR *avl_root_ptr, AVL_TREE_PTR node, int duplicates_allowed,  void * fnCompare)
 {
 	AVL_TREE_PTR parent=NULL;
-	BINARY_TREE_PTR bt_parent_ptr, bt_root_ptr;
-	int result;
+	BINARY_TREE_PTR bt_parent_ptr, bt_root_ptr, sibling_ptr=NULL;
+	int result, old_height;
+	
+	old_height = node->height;
 	
 	/*calculate binary tree root pointer*/
 	CALCULATE_ROOT_PTR_AVL_TO_BT(avl_root_ptr, &bt_root_ptr);
 	CALCULATE_ROOT_PTR_AVL_TO_BT(&parent, &bt_parent_ptr);
-	
-	result = RemoveNodeFromBinaryTree(&node->bintree, &bt_parent_ptr, &bt_root_ptr, duplicates_allowed, fnCompare);
+		
+	result = RemoveNodeFromBinaryTree(&node->bintree, &bt_parent_ptr, &bt_root_ptr, duplicates_allowed, &sibling_ptr, fnCompare);
 	
 	/*adjust for the avl tree root pointer*/
 	CALCULATE_ROOT_PTR_BT_TO_AVL(avl_root_ptr, &bt_root_ptr);		
-	CALCULATE_ROOT_PTR_BT_TO_AVL(&parent, &bt_parent_ptr);		
-	
+	CALCULATE_ROOT_PTR_BT_TO_AVL(&parent, &bt_parent_ptr);
+
 	/*return if we just removed a duplicate*/
 	if ( duplicates_allowed && result == 1 )
 	{	
-		return 0;
-	}
+		AVL_TREE_PTR new_node;
 		
-	node->height = 0;
-	if (!parent) /* parent is null means I just removed root! */
-	{
+		assert( sibling_ptr != NULL );
+		new_node = STRUCT_ADDRESS_FROM_MEMBER( sibling_ptr, AVL_TREE, bintree);
+		new_node->height = old_height;
+		
 		return 0;
 	}
+	
+	if (!parent) /* parent is null means I just removed root! */
+		return 0;
 	
 	/*update the height of this node*/
 	RECALCULATE_HEIGHT(parent);
@@ -140,7 +145,7 @@ int InsertNodeIntoAvlTree(AVL_TREE_PTR * avl_root_ptr, AVL_TREE_PTR new_node, in
 	CALCULATE_ROOT_PTR_BT_TO_AVL(avl_root_ptr, &bt_root_ptr);
 	
 	if ( duplicates_allowed && result == 1 )
-		return 0;/*duplicates allowed and it is added*/
+		return 1;/*duplicates allowed and it is added*/
 	if ( result == -1 ) 
 		return -1;/*duplicates not allowed*/
 		
@@ -202,7 +207,8 @@ static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr)
 
 	RECALCULATE_HEIGHT(start_node);
 	balance_factor = GetAvlTreeBalanceFactor(start_node);
-	assert( balance_factor >= -2 &&  balance_factor <= 2 );
+	assert( balance_factor >= -2 );
+	assert( balance_factor <= 2 );
 
 	switch(balance_factor) 
 	{

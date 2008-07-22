@@ -48,7 +48,7 @@ typedef struct binary_tree BINARY_TREE, * BINARY_TREE_PTR;
 
 BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_node, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR));
 int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_node, int duplicates_allowed, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR));
-int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, BINARY_TREE_PTR * root_ptr, int duplicates_allowed, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR));
+int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, BINARY_TREE_PTR * root_ptr, int duplicates_allowed, BINARY_TREE_PTR * sibling_ptr, COMPARISION_RESULT (*fnCompare)(BINARY_TREE_PTR, BINARY_TREE_PTR));
 
 BINARY_TREE_PTR InitBinaryTreeNode(BINARY_TREE_PTR node);
 BINARY_TREE_PTR GetTreeNodeParent(BINARY_TREE_PTR node, TREE_LIST_TYPE * list_type);

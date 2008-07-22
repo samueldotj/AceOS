@@ -1,6 +1,6 @@
 #define MAX_NUMBER 			1000
-#define MAX_TREE_NUMBERS 	50
-#define MAX_DEL_NUMBERS  	50
+#define MAX_TREE_NUMBERS 	500
+#define MAX_DEL_NUMBERS  	500
 
 #include <assert.h>
 #include <stdio.h>
@@ -93,7 +93,7 @@ static void fill_random_numbers(int * number_array, int capacity, int max_number
 	for(i=0;i<MAX_TREE_NUMBERS;i++)
 	{
 		if ( allow_duplicates )
-			number_array[i] = rand()%max_number;
+			number_array[i] = rand()%(max_number/2);
 		else
 			number_array[i] = i+1;
 	}

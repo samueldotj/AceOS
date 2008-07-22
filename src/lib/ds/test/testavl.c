@@ -29,6 +29,7 @@ extern int verbose_level;
 int main(int argc, char * argv[])
 {
 	AVL_TREE_PTR root_ptr=NULL;
+	BT_TEST_PTR duplicate_node = NULL;
 	int i, * numbers, total_numbers, * del_numbers, del_number_index;
 	
 	
@@ -41,6 +42,7 @@ int main(int argc, char * argv[])
 	for(i=0;i<total_numbers; i++)
 	{
 		BT_TEST_PTR new_node;
+		int result;
 		if ( (new_node = (BT_TEST_PTR ) malloc(sizeof(BT_TEST))) == NULL )
 		{
 			perror("malloc");
@@ -50,7 +52,12 @@ int main(int argc, char * argv[])
 		
 		if ( verbose_level > 1 ) printf("Adding node %p (%d) : ", &new_node->t, numbers[i] );
 		
-		if ( InsertNodeIntoAvlTree( &root_ptr, &new_node->t, ALLOW_DUPLICATE, compare_number ) != 0 )
+		result = InsertNodeIntoAvlTree( &root_ptr, &new_node->t, ALLOW_DUPLICATE, compare_number );
+		if ( ALLOW_DUPLICATE && result == 1 )
+		{
+			duplicate_node = new_node;
+		}
+		if ( !ALLOW_DUPLICATE && result != 0 )
 		{
 			printf("InsertNodeIntoAvlTree() failed\n");
 			return 1;
@@ -66,12 +73,24 @@ int main(int argc, char * argv[])
 	}
 	if ( verbose_level > 0 ) printf("\nDeleting %d numbers from the tree\n", del_number_index);
 	
+	/*duplicate node delete*/
+	if ( duplicate_node )
+	{
+		printf("Deleting duplicate node %d\n", duplicate_node->data);
+		RemoveNodeFromAvlTree( &root_ptr, &duplicate_node->t, ALLOW_DUPLICATE, compare_number);
+	}
 	
 	/*deletion test*/
 	del_number_index--;
 	for(;del_number_index>=0;del_number_index--)
 	{
 		BT_TEST del_node;
+		if ( del_numbers[del_number_index] == duplicate_node->data )
+		{
+			duplicate_node->data = -1;
+			continue;
+		}
+		
 		InitBT_TestNode(&del_node, del_numbers[del_number_index]);
 		
 		if ( verbose_level > 1 ) printf("Searching %d : ", del_node.data);

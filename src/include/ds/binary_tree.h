@@ -22,13 +22,19 @@ typedef enum
 
 /*! Binary tree data structure
 */
-struct binary_tree {
+typedef struct binary_tree 
+{
 	LIST left;
 	LIST right;
 	
 	LIST sibling[0];
-};
-typedef struct binary_tree BINARY_TREE, * BINARY_TREE_PTR;
+}BINARY_TREE, * BINARY_TREE_PTR;
+/*! binary tree with duplicate keys*/
+typedef struct binary_tree_d
+{
+	BINARY_TREE bintree;
+	LIST		sibling;
+}BINARY_TREE_D, * BINARY_TREE_D_PTR;
 
 #define BIN_TREE_NODE(name, function_ptr) BINARY_TREE name = {NULL, NULL, function_ptr}
 

@@ -12,12 +12,18 @@
 
 #include "binary_tree.h"
 
-/*structures go here*/
-struct avl_tree {
+/*! avl tree without duplicate keys*/
+typedef struct avl_tree 
+{
 	int			height;
 	BINARY_TREE	bintree;
-};
-typedef struct avl_tree  AVL_TREE, *AVL_TREE_PTR;
+}AVL_TREE, *AVL_TREE_PTR;
+/*! avl tree with duplicate keys*/
+typedef struct avl_tree_d
+{
+	AVL_TREE	avltree;
+	LIST		sibling;
+}AVL_TREE_D, *AVL_TREE_D_PTR;
 
 AVL_TREE_PTR InitAvlTreeNode(AVL_TREE_PTR node);
 AVL_TREE_PTR SearchAvlTree(AVL_TREE_PTR start, AVL_TREE_PTR search_node, void * fnCompare);

@@ -38,6 +38,7 @@ void InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 start_
 		InitVirtualPage( &vpa[i], start_physical_address );
 		start_physical_address += PAGE_SIZE;
 	}
+	
 }
 
 /*! Initializes the virtual page
@@ -51,7 +52,7 @@ static void InitVirtualPage(VIRTUAL_PAGE_PTR vp, UINT32 physical_address)
 	InitSpinLock( &vp->lock );
 	InitList( &vp->lru_list );
 	
-	InitAvlTreeNode( VP_AVL_TREE(vp) );
+	InitAvlTreeNode( VP_AVL_TREE(vp), 1 );
 	
 	vp->physical_address = physical_address;
 	
@@ -93,60 +94,56 @@ inline VIRTUAL_PAGE_PTR GetFirstVirtualPage(VIRTUAL_PAGE_PTR vp)
 */
 static void inline AddVirtualPageToVmFreeTree(VIRTUAL_PAGE_PTR vp)
 {
-	assert( vp->free != 1 );
-	vp->free = 1;
+	VIRTUAL_PAGE_PTR p;
 	
-	/*if no free range exists just create one*/
-	if ( vm_data.free_tree == NULL )
-		vm_data.free_tree = VP_AVL_TREE(vp);
-	else
+	assert( vp->free != 1 );
+	
+	/*mark this page as free*/
+	vp->free = 1;
+	vp->free_first_page = NULL;
+		
+	/*try to add to the previous free range*/
+	p = PHYS_TO_VP( vp->physical_address - PAGE_SIZE );
+	if ( p != NULL && p->free )
 	{
-		VIRTUAL_PAGE_PTR p;
+		//get the first page
+		p = GetFirstVirtualPage(p);
+		assert( p != NULL );
 		
-		/*try to add to the previous free range*/
-		p = PHYS_TO_VP( vp->physical_address - PAGE_SIZE );
-		if ( p != NULL && p->free )
-		{
-			//get the first page
-			p = GetFirstVirtualPage(p);
-			assert( p != NULL );
-			
-			SpinLock(&vm_data.lock);
-			//increase the size
-			p->free_size++;
-			//link to the first page
-			vp->free_first_page = p;
-			//need to balance the tree
-			RemoveNodeFromAvlTree( &vm_data.free_tree, VP_AVL_TREE(p), 1, free_range_compare_fn );
-			InsertNodeIntoAvlTree( &vm_data.free_tree, VP_AVL_TREE(p), 1, free_range_compare_fn );
-			
-			SpinUnlock(&vm_data.lock);
-			return;
-		}
-		/*try to add to the next free range*/
-		p = PHYS_TO_VP( vp->physical_address + PAGE_SIZE );
-		if ( p != NULL && p->free )
-		{
-			SpinLock(&vm_data.lock);
-			
-			//current page becomes the first page
-			vp->free_size = p->free_size + 1;
-			p->free_first_page = vp;
-			
-			//remove the old first page
-			RemoveNodeFromAvlTree( &vm_data.free_tree, VP_AVL_TREE(p), 1, free_range_compare_fn );
-			//insert the current first page
-			InsertNodeIntoAvlTree( &vm_data.free_tree, VP_AVL_TREE(vp), 1, free_range_compare_fn );
-
-			SpinUnlock(&vm_data.lock);
-			return;
-		}
+		SpinLock(&vm_data.lock);
+		//increase the size
+		p->free_size++;
+		//link to the first page
+		vp->free_first_page = p;
+		//need to balance the tree
+		RemoveNodeFromAvlTree( &vm_data.free_tree, VP_AVL_TREE(p), 1, free_range_compare_fn );
+		InsertNodeIntoAvlTree( &vm_data.free_tree, VP_AVL_TREE(p), 1, free_range_compare_fn );
 		
-		/*add as a new free range*/
-		p->free_size = 1;
-		p->free_first_page = NULL;
-		InsertNodeIntoAvlTree( &vm_data.free_tree, VP_AVL_TREE(vp), 1, free_range_compare_fn );
+		SpinUnlock(&vm_data.lock);
+		return;
 	}
+	/*try to add to the next free range*/
+	p = PHYS_TO_VP( vp->physical_address + PAGE_SIZE );
+	if ( p != NULL && p->free )
+	{
+		SpinLock(&vm_data.lock);
+		
+		//current page becomes the first page
+		vp->free_size = p->free_size + 1;
+		p->free_first_page = vp;
+		
+		//remove the old first page
+		RemoveNodeFromAvlTree( &vm_data.free_tree, VP_AVL_TREE(p), 1, free_range_compare_fn );
+		//insert the current first page
+		InsertNodeIntoAvlTree( &vm_data.free_tree, VP_AVL_TREE(vp), 1, free_range_compare_fn );
+
+		SpinUnlock(&vm_data.lock);
+		return;
+	}
+		
+	/*add as a new free range*/
+	vp->free_size = 1;
+	InsertNodeIntoAvlTree( &vm_data.free_tree, VP_AVL_TREE(vp), 1, free_range_compare_fn );
 }
 
 /*! Allocates a virtual page from the VM subsystem to the caller

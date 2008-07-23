@@ -31,8 +31,10 @@ void InitVm()
 {
 	/*initialize the vm_data structure*/
 	InitSpinLock(&vm_data.lock);
-	vm_data.free_page_head = NULL;
-	vm_data.inuse_page_head = NULL;
+	vm_data.free_tree = NULL;
+	
+	vm_data.active_list = NULL;
+	vm_data.inactive_list = NULL;
 	
 	vm_data.total_memory_pages = 0;
 	vm_data.total_free_pages = 0;

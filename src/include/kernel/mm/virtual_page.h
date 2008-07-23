@@ -34,24 +34,22 @@ struct virtual_page
 	{
 		struct
 		{
-			AVL_TREE_D				free_tree;		/*this is starting of a free physical range*/
-			union
-			{
-				VIRTUAL_PAGE_PTR	free_first_page;/*pointer to starting page of this free physical range*/
-				UINT32				free_size;  	/*size of the free range in page units*/
-			};
+			VIRTUAL_PAGE_PTR	free_first_page;/*pointer to starting page of this free physical range*/
+			AVL_TREE_D			free_tree;		/*this is starting of a free physical range*/
+			UINT32				free_size;  	/*size of the free range in page units*/
 		};
 		struct
 		{
-			LIST		lru_list;			/*LRU List - active/inactive link*/
+			LIST				lru_list;			/*LRU List - active/inactive link*/
 
-			UINT16		copy_on_write;		/*No of processes sharing this page*/
-			UINT16 		wire_count;			/*Total wire count*/
+			UINT16				copy_on_write;		/*No of processes sharing this page*/
+			UINT16 				wire_count;			/*Total wire count*/
 
-			VA_MAP_PTR	va_map_list;		/*list of VAs associated with this page*/
-			UINT32 		physical_address;	/*Physical address this page managing*/
+			VA_MAP_PTR			va_map_list;		/*list of VAs associated with this page*/
 		};
 	};
+	
+	UINT32 		physical_address;	/*Physical address this page managing*/
 }__attribute__ ((packed));
 
 struct va_map

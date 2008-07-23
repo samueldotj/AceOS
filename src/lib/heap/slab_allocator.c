@@ -245,7 +245,7 @@ static void InitSlab(SLAB_PTR slab_ptr, UINT32 buffer_count)
 	int nbytes;
 	/*initialize the tree and list */
 	InitList( &(slab_ptr->partially_free_list) );
-	InitAvlTreeNode( &(slab_ptr->in_use_tree) );
+	InitAvlTreeNode( &(slab_ptr->in_use_tree), 0);
 	InitList( &(slab_ptr->completely_free_list) );
 	
 	/*todo - call the constructor on each buffer*/

@@ -69,13 +69,16 @@ BINARY_TREE_PTR GetTreeNodeParent(BINARY_TREE_PTR node, TREE_LIST_TYPE * list_ty
 /*! Initializes the binary tree structure.
 
 */
-BINARY_TREE_PTR InitBinaryTreeNode(BINARY_TREE_PTR node)
+BINARY_TREE_PTR InitBinaryTreeNode(BINARY_TREE_PTR node, int duplicates_allowed)
 {
 	InitList( &node->left );
 	InitList( &node->right );
 	
 	MARK_TREE_NODE_AS_END(node);
-
+	
+	if ( duplicates_allowed ) 
+		InitList( &node->sibling[0] );
+	
 	return node;
 }
 
@@ -128,13 +131,16 @@ int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_nod
 	assert( root_ptr != NULL );
 	assert( new_node != NULL );
 	
+	/*if this is the first node, just update the root_ptr and return*/
 	if ( *root_ptr == NULL )
 	{
 		*root_ptr = new_node;
 		return 0;
 	}
+	/*get the root element*/
 	root = *root_ptr;
 	
+	/*walk through the tree and insert the node in correct place*/
 	while(1)
 	{
 		LIST_PTR parent_node_list;
@@ -144,7 +150,6 @@ int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_nod
 		{
 			if ( duplicates_allowed )
 			{
-				InitList( &new_node->sibling[0] );
 				AddToList( &root->sibling[0], &new_node->sibling[0] );
 				return 1;
 			}

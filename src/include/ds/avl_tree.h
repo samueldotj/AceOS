@@ -25,7 +25,7 @@ typedef struct avl_tree_d
 	LIST		sibling;
 }AVL_TREE_D, *AVL_TREE_D_PTR;
 
-AVL_TREE_PTR InitAvlTreeNode(AVL_TREE_PTR node);
+AVL_TREE_PTR InitAvlTreeNode(AVL_TREE_PTR node, int duplicates_allowed);
 AVL_TREE_PTR SearchAvlTree(AVL_TREE_PTR start, AVL_TREE_PTR search_node, void * fnCompare);
 int InsertNodeIntoAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR new_node, int duplicates_allowed, void * fnCompare);
 int RemoveNodeFromAvlTree(AVL_TREE_PTR *root, AVL_TREE_PTR node, int duplicates_allowed, void * fnCompare);

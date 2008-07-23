@@ -46,9 +46,9 @@ static void LeftRotateAvlTree(AVL_TREE_PTR  node, AVL_TREE_PTR *root_ptr);
 
 /*! Initializes the avl tree structure.
  */
-AVL_TREE_PTR InitAvlTreeNode(AVL_TREE_PTR node)
+AVL_TREE_PTR InitAvlTreeNode(AVL_TREE_PTR node, int duplicates_allowed)
 {
-	InitBinaryTreeNode(&node->bintree);
+	InitBinaryTreeNode(&node->bintree, duplicates_allowed);
 	node->height=0;
 	
 	return node;

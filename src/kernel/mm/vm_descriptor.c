@@ -28,7 +28,7 @@ void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, UINT32
 	
 	descriptor->virtual_map = vmap;
 	
-	InitAvlTreeNode( &descriptor->tree_node, compare_vm_descriptor );
+	InitAvlTreeNode( &descriptor->tree_node, 0 );
 	
 	descriptor->start = start;
 	descriptor->end = end;
@@ -37,7 +37,7 @@ void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, UINT32
 		
 	descriptor->unit = vm_unit;
 	
-	InsertNodeIntoAvlTree(&vmap->descriptors, &descriptor->tree_node);
+	InsertNodeIntoAvlTree(&vmap->descriptors, &descriptor->tree_node, 0, compare_vm_descriptor);
 }
 
 VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, UINT32 start, UINT32 end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection)
@@ -61,7 +61,7 @@ void * FindFreeVmRange(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 size, UINT32 op
  	assert( vmap!=NULL );
 	assert( size > 0 );
 	/*try to find a hole which has enough space*/
-	end = (VADDR)FindVaRange( STRUCT_FROM_MEMBER( VM_DESCRIPTOR_PTR, tree_node, vmap->descriptors), start, size, option & VA_RANGE_SEARCH_FROM_TOP,  NULL);
+	end = (VADDR)FindVaRange( STRUCT_ADDRESS_FROM_MEMBER( vmap->descriptors, VM_DESCRIPTOR, tree_node), start, size, option & VA_RANGE_SEARCH_FROM_TOP,  NULL);
 	/*if no hole found try to allocate at the end of virtual address map*/
 	if ( end == NULL )
 	{
@@ -97,7 +97,7 @@ static void * FindVaRange(VM_DESCRIPTOR_PTR descriptor_ptr, VADDR start, UINT32 
 	}
 	if ( next_node != NULL )
 	{
-		end = FindVaRange( STRUCT_FROM_MEMBER( VM_DESCRIPTOR_PTR, tree_node, next_node), start, size, descriptor_ptr->end, top_down_search );
+		end = FindVaRange( STRUCT_ADDRESS_FROM_MEMBER( next_node, VM_DESCRIPTOR, tree_node), start, size, descriptor_ptr->end, top_down_search );
 		if ( end )
 			return end;
 	}
@@ -118,7 +118,7 @@ static void * FindVaRange(VM_DESCRIPTOR_PTR descriptor_ptr, VADDR start, UINT32 
 	}
 	if ( next_node != NULL )
 	{
-		end = FindVaRange( STRUCT_FROM_MEMBER( VM_DESCRIPTOR_PTR, tree_node, next_node), start, size, descriptor_ptr->end, top_down_search );
+		end = FindVaRange( STRUCT_ADDRESS_FROM_MEMBER( next_node, VM_DESCRIPTOR, tree_node), start, size, descriptor_ptr->end, top_down_search );
 		if ( end )
 			return end;
 	}
@@ -130,8 +130,8 @@ static COMPARISION_RESULT compare_vm_descriptor(struct binary_tree * node1, stru
 	assert( node1 != NULL );
 	assert( node2 != NULL );
 	
-	d1 = STRUCT_FROM_MEMBER(VM_DESCRIPTOR_PTR, tree_node, node1);
-	d2 = STRUCT_FROM_MEMBER(VM_DESCRIPTOR_PTR, tree_node, node2);
+	d1 = STRUCT_ADDRESS_FROM_MEMBER(node1, VM_DESCRIPTOR, tree_node);
+	d2 = STRUCT_ADDRESS_FROM_MEMBER(node2, VM_DESCRIPTOR, tree_node);
 
 	assert( d1->start != d2->start );
 	if ( d1->start < d2->start )

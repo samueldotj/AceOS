@@ -132,7 +132,7 @@ int main(int argc, char * argv[])
 
 BT_TEST_PTR InitBT_TestNode(BT_TEST_PTR node, int data)
 {
-	InitAvlTreeNode(&node->t);
+	InitAvlTreeNode(&node->t, ALLOW_DUPLICATE);
 #if ALLOW_DUPLICATE==1
 	InitList( &node->tree_sibling);
 #endif

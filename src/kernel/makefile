@@ -39,6 +39,7 @@ acpi: 	$(OBJ)/acpi.sys
 
 #phony commmand - clean - remove all .o, .d in all directories
 clean:	always
+	@rm -f $(OBJS) $(OBJS:.o=.d)
 	@rm	-f *.o *.d  
 	@for dir in $(CLEAN_DIRS); do make -C $$dir clean; done
 	@rm	-f $(TARGET)

@@ -51,8 +51,10 @@ struct vm_data
 	UINT32				total_memory_pages;		//total system memory in PAGE_SIZE unit
 	UINT32				total_free_pages;		//total free memory in PAGE_SIZE unit
 
-	VIRTUAL_PAGE_PTR	free_page_head;			//points to the first free page
-	VIRTUAL_PAGE_PTR	inuse_page_head;		//points to the first in use page
+	AVL_TREE_PTR		free_tree;				//free virtual page ranges
+	
+	VIRTUAL_PAGE_PTR	active_list;			//points to the first page in the active list
+	VIRTUAL_PAGE_PTR	inactive_list;			//points to the first page in the active list
 };
 
 struct vm_protection 

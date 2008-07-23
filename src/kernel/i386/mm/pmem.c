@@ -76,17 +76,27 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 */
 ERROR_CODE MapVirtualAddressRange(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 size, UINT32 protection)
 {
-	UINT32 i;
+	UINT32 i,j;
+	VIRTUAL_PAGE_PTR vp, first_vp;
 	ERROR_CODE ret = ERROR_SUCCESS;
+	
+	size = PAGE_ALIGN_UP( size/PAGE_SIZE );
+	vp = first_vp = AllocateVirtualPages(size);
+	if ( vp == NULL )
+		return ERROR_NOT_ENOUGH_MEMORY;
 	for(i=0; i<size; i+=PAGE_SIZE )
 	{
-		VIRTUAL_PAGE_PTR vp;
-		vp = AllocateVirtualPage();
-		if ( vp == NULL )
-			return ERROR_NOT_ENOUGH_MEMORY;
 		ret = CreatePhysicalMapping( pmap, va+i, VP_TO_PHYS(vp), protection );
 		if ( ret != ERROR_SUCCESS )
+		{
+			/*remove already entered mapping*/
+			for(j=0; j<i; j+=PAGE_SIZE)
+				RemovePhysicalMapping(pmap, va+i);
+			/*free the allocated pages*/
+			FreeVirtualPages( first_vp, size/PAGE_SIZE );
 			return ret;
+		}
+		vp = PHYS_TO_VP( vp->physical_address + PAGE_SIZE );
 	}
 	return ret;
 }
@@ -127,7 +137,7 @@ static UINT32 AllocatePageTable()
 {
 	VIRTUAL_PAGE_PTR vp;
 	
-	vp = AllocateVirtualPage();
+	vp = AllocateVirtualPages(1);
 	assert ( vp != NULL );
 	return vp->physical_address;
 }

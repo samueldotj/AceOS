@@ -24,7 +24,9 @@
 #define TRUE  		1
 
 typedef char CHAR;
+typedef char INT8;
 typedef unsigned char BYTE;
+typedef unsigned char UINT8;
 typedef BYTE BOOLEAN;
 
 typedef short INT16;

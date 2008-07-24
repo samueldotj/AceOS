@@ -175,12 +175,14 @@ static void InitKernelPageDirectory(UINT32 k_map_end)
 		pmr_pa = &ma_pa->physical_memory_regions[i];
 		
 		physical_address = (UINT32)pmr_pa->virtual_page_array;
+		pmr_pa->virtual_page_array =  (VIRTUAL_PAGE_PTR)va;
 		do
 		{
 			EnterKernelPageTableEntry( va, physical_address);
 			physical_address += PAGE_SIZE;
-			va += PAGE_SIZE;		
+			va += PAGE_SIZE;
 		}while( physical_address <= ((UINT32)pmr_pa->virtual_page_array + (pmr_pa->virtual_page_count * sizeof(VIRTUAL_PAGE)) ) );
+		
 	}
 	/*self mapping*/
 	k_page_dir[PT_SELF_MAP_INDEX] = ((UINT32)k_page_dir) | KERNEL_PTE_FLAG;
@@ -238,7 +240,7 @@ void InitPhysicalMemoryManagerPhaseII()
 	InitSpinLock( &kernel_physical_map.lock );
 	kernel_physical_map.page_directory = kernel_page_directory;
 	
-	/*clear the PTE*/
+	/*clear the boot PTE*/
 	kernel_page_directory[0].all = 0;
 	/*invalidate the TLB*/
 	asm volatile("invlpg 0");
@@ -250,9 +252,7 @@ void InitPhysicalMemoryManagerPhaseII()
 		for(j=0; j<memory_areas[i].physical_memory_regions_count; j++ )
 		{
 			PHYSICAL_MEMORY_REGION_PTR pmr = &memory_areas[i].physical_memory_regions[j];
-			pmr->virtual_page_array = (VIRTUAL_PAGE_PTR)BOOT_TO_KERNEL_ADDRESS(pmr->virtual_page_array);
 			InitVirtualPageArray(pmr->virtual_page_array, pmr->virtual_page_count, pmr->start_physical_address);
-			
 			vm_data.total_memory_pages += pmr->virtual_page_count;
 		}
 	}

@@ -70,6 +70,8 @@ the page tables = ((KERNEL_VIRTUAL_ADDRESS / (PAGE_TABLE_ENTRIES * PAGE_SIZE)) -
 
 #define PT_SELF_MAP_ADDRESS					((UINT32)PT_SELF_MAP_INDEX * PAGE_TABLE_ENTRIES * PAGE_SIZE)
 
+#define PT_SELF_MAP_PAGE_DIRECTORY			( (PT_SELF_MAP_INDEX << 22) | (PT_SELF_MAP_INDEX << PAGE_SHIFT) )
+
 /*Get the level 1 page table pointer va for a given va*/
 #define PT_SELF_MAP_PAGE_TABLE1(va)			( (PT_SELF_MAP_INDEX << 22) | (PAGE_DIRECTORY_ENTRY_INDEX(va) << PAGE_SHIFT) )
 

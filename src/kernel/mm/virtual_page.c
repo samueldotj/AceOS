@@ -76,7 +76,9 @@ inline VIRTUAL_PAGE_PTR GetFirstVirtualPage(VIRTUAL_PAGE_PTR vp)
 	{
 		/*find the first page*/
 		while ( vp->free_first_page )
+		{
 			vp = vp->free_first_page;
+		}
 		return vp;
 	}
 	
@@ -101,7 +103,8 @@ static void inline AddVirtualPageToVmFreeTree(VIRTUAL_PAGE_PTR vp)
 	/*mark this page as free*/
 	vp->free = 1;
 	vp->free_first_page = NULL;
-		
+	vp->free_size = 1;
+			
 	/*try to add to the previous free range*/
 	p = PHYS_TO_VP( vp->physical_address - PAGE_SIZE );
 	if ( p != NULL && p->free )
@@ -111,10 +114,12 @@ static void inline AddVirtualPageToVmFreeTree(VIRTUAL_PAGE_PTR vp)
 		assert( p != NULL );
 		
 		SpinLock(&vm_data.lock);
+		
 		//increase the size
 		p->free_size++;
 		//link to the first page
 		vp->free_first_page = p;
+		
 		//need to balance the tree
 		RemoveNodeFromAvlTree( &vm_data.free_tree, VP_AVL_TREE(p), 1, free_range_compare_fn );
 		InsertNodeIntoAvlTree( &vm_data.free_tree, VP_AVL_TREE(p), 1, free_range_compare_fn );
@@ -140,9 +145,7 @@ static void inline AddVirtualPageToVmFreeTree(VIRTUAL_PAGE_PTR vp)
 		SpinUnlock(&vm_data.lock);
 		return;
 	}
-		
-	/*add as a new free range*/
-	vp->free_size = 1;
+	/*add as a new free range*/		
 	InsertNodeIntoAvlTree( &vm_data.free_tree, VP_AVL_TREE(vp), 1, free_range_compare_fn );
 }
 
@@ -173,7 +176,7 @@ VIRTUAL_PAGE_PTR AllocateVirtualPages(int pages)
 	}
 	assert ( first_vp->free_size >= pages );
 	
-	vp = PHYS_TO_VP( first_vp->physical_address  + (first_vp->free_size * PAGE_SIZE) );
+	vp = PHYS_TO_VP( first_vp->physical_address  + ((first_vp->free_size-1) * PAGE_SIZE) );
 	assert ( vp != NULL );
 	for(i=0; i<pages; i++ )
 	{

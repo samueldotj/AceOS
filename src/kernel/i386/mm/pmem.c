@@ -80,8 +80,8 @@ ERROR_CODE MapVirtualAddressRange(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 size,
 	VIRTUAL_PAGE_PTR vp, first_vp;
 	ERROR_CODE ret = ERROR_SUCCESS;
 	
-	size = PAGE_ALIGN_UP( size/PAGE_SIZE );
-	vp = first_vp = AllocateVirtualPages(size);
+	size = PAGE_ALIGN_UP( size );
+	vp = first_vp = AllocateVirtualPages( NUMBER_OF_PAGES(size) );
 	if ( vp == NULL )
 		return ERROR_NOT_ENOUGH_MEMORY;
 	for(i=0; i<size; i+=PAGE_SIZE )
@@ -93,7 +93,7 @@ ERROR_CODE MapVirtualAddressRange(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 size,
 			for(j=0; j<i; j+=PAGE_SIZE)
 				RemovePhysicalMapping(pmap, va+i);
 			/*free the allocated pages*/
-			FreeVirtualPages( first_vp, size/PAGE_SIZE );
+			FreeVirtualPages( first_vp, NUMBER_OF_PAGES(size) );
 			return ret;
 		}
 		vp = PHYS_TO_VP( vp->physical_address + PAGE_SIZE );

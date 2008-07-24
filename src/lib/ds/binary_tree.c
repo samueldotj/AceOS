@@ -131,6 +131,8 @@ int InsertNodeIntoBinaryTree(BINARY_TREE_PTR * root_ptr, BINARY_TREE_PTR new_nod
 	assert( root_ptr != NULL );
 	assert( new_node != NULL );
 	
+	InitBinaryTreeNode( new_node, duplicates_allowed );
+	
 	/*if this is the first node, just update the root_ptr and return*/
 	if ( *root_ptr == NULL )
 	{

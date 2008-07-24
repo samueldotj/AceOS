@@ -419,30 +419,30 @@ static void SendInterruptToProcessor(void)
 */
 static INT16 IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIVERY_MODE delivery_mode)
 {
-	INTERRUPT_COMMAND_REGISTER temp;
+	INTERRUPT_COMMAND_REGISTER cmd;
 	int my_apic_id;
 
-	temp.vector = vector;
-	temp.delivery_mode = delivery_mode;
-	temp.destination_mode = PHYSICAL;
-	temp.level = ASSERT;
+	cmd.vector = vector;
+	cmd.delivery_mode = delivery_mode;
+	cmd.destination_mode = PHYSICAL;
+	cmd.level = ASSERT;
 	switch(delivery_mode)
 	{
-		case FIXED: temp.delivery_mode = delivery_mode; break;
+		case FIXED: cmd.delivery_mode = delivery_mode; break;
 		case LOWEST_PRIORITY: break;
 		case SMI:
 		case NMI:
-		case INIT:  temp.trigger_mode = EDGE; break;
+		case INIT:  cmd.trigger_mode = EDGE; break;
 		case SIPI: break;
-		case ExtINT: temp.trigger_mode = LEVEL; break;
+		case ExtINT: cmd.trigger_mode = LEVEL; break;
 		default: break;
 	}
 	my_apic_id = EXTRACT_FROM_CPUID_APIC_ID;
 	if( my_apic_id == apic_id)
-			temp.destination_shorthand = ALL_EXCLUDING_SELF;
+			cmd.destination_shorthand = ALL_EXCLUDING_SELF;
 
 	/* Now copy these register contents to actual location of interrupt command register */
-	memcpy( interrupt_command_register, &temp, sizeof(INTERRUPT_COMMAND_REGISTER) ); //dst, src, len
+	memcpy( interrupt_command_register, &cmd, sizeof(INTERRUPT_COMMAND_REGISTER) ); //dst, src, len
 	return 0;
 }
 

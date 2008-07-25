@@ -121,7 +121,7 @@ document pde
 end
 
 define v2p
-	if $argc == 0
+	if $argc != 0
 		printf "Usage: v2p <virtual_address>\n" 
 	end
 	set $va = $arg0
@@ -150,3 +150,71 @@ document v2p
 	Usage: v2p <virtual_address>
 end
 
+define vm
+	if $argc != 1
+		printf "Usage : vm <map>\nTaking kernel map %p.\n", &kernel_map
+		set $map = kernel_map
+	else
+		set $map = $arg0
+	end
+	set $descriptor = STRUCT_ADDRESS_FROM_MEMBER( $map.descriptors, VM_DESCRIPTOR, tree_node )
+	des $descriptor 1
+	printf "-------------------------------------------------------\n"
+	printf "Physical map = %p\n", $map->physical_map
+end
+document vm
+	Prints the process/kernel map information
+end
+
+define descriptor
+	if $argc < 1
+		printf "Usage : descriptor <map>\n"
+	end
+	if $argc == 2
+		set $print_head = $arg1
+	else
+		set $print_head = 0
+	end
+	set $arg0 = (VM_DESCRIPTOR_PTR)$arg0
+	if $print_head
+		printf "REF  START      END        UNIT       SIZE  PROTECTION\n"
+		printf "-------------------------------------------------------\n"
+	end
+	
+	if ! IS_AVL_TREE_LEFT_LIST_END( $arg0->tree_node ) 
+		set $left = STRUCT_ADDRESS_FROM_MEMBER( (AVL_TREE_PTR)AVL_TREE_LEFT_NODE( &$arg0->tree_node ), VM_DESCRIPTOR, tree_node)
+		descriptor $left
+	end
+	printf "%3d  %10p %10p %10p %4d ", $arg0->reference_count, $arg0->start, $arg0->end, $arg0->unit, ($arg0->end-$arg0->start)/PAGE_SIZE
+	vm_prot &$arg0->protection.user_write
+	printf "\n"
+	
+	if ! IS_AVL_TREE_RIGHT_LIST_END( $arg0->tree_node ) 
+		set $right = STRUCT_ADDRESS_FROM_MEMBER( (AVL_TREE_PTR)AVL_TREE_RIGHT_NODE( &$arg0->tree_node ), VM_DESCRIPTOR, tree_node)
+		descriptor $right
+	end	
+end
+document descriptor
+	Prints given vm descriptor
+end
+
+define vm_prot
+	set $prot = (VM_PROTECTION_PTR)$arg0
+	if $prot->user_read || $prot->user_write
+		printf "U:"
+		if $prot->user_read
+			printf "R"
+		end
+		if $prot->user_write
+			printf "W"
+		end
+	end
+	
+	printf " K:"
+	if $prot->kernel_read
+		printf "R"
+	end
+	if $prot->kernel_write
+		printf "W"
+	end
+end

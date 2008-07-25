@@ -10,3 +10,20 @@ end
 document kparameters
 	Prints kernel parameters
 end
+
+define lock
+	if $argc != 1
+		printf "Usage : lock <lock_address>"
+	end
+	$lock = $arg0
+	printf "Lock %p : ", $lock
+	if ( $lock & 1 )
+		printf "Busy"
+	else
+		printf "Free"
+	end
+	printf "\n"
+end
+document lock
+	Prints the given lock details
+end

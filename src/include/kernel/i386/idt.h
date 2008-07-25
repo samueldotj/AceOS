@@ -14,7 +14,6 @@
 
 
 #define IDT_ENTRIES 256
-#define MAX_INTERRUPTS 16
 
 /* Defines an IDT entry */
 struct idt_entry

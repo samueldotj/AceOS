@@ -245,65 +245,65 @@ ExceptionStub31:
 
 ;	32: IRQ0
 InterruptStub0:
-	IsrStubMacro InterruptHandler, 0, 32
+	IsrStubMacro InterruptHandler, 0, 0
 
 ;	33: IRQ1
 InterruptStub1:
-	IsrStubMacro InterruptHandler, 0, 33
+	IsrStubMacro InterruptHandler, 0, 1
 
 ;	34: IRQ2
 InterruptStub2:
-	IsrStubMacro InterruptHandler, 0, 34
+	IsrStubMacro InterruptHandler, 0, 2
 
 ;	35: IRQ3
 InterruptStub3:
-	IsrStubMacro InterruptHandler, 0, 35
+	IsrStubMacro InterruptHandler, 0, 3
 
 ;	36: IRQ4
 InterruptStub4:
-	IsrStubMacro InterruptHandler, 0, 36
+	IsrStubMacro InterruptHandler, 0, 4
 
 ;	37: IRQ5
 InterruptStub5:
-	IsrStubMacro InterruptHandler, 0, 37
+	IsrStubMacro InterruptHandler, 0, 5
 
 ;	38: IRQ6
 InterruptStub6:
-	IsrStubMacro InterruptHandler, 0, 38
+	IsrStubMacro InterruptHandler, 0, 6
 
 ;	39: IRQ7
 InterruptStub7:
-	IsrStubMacro InterruptHandler, 0, 39
+	IsrStubMacro InterruptHandler, 0, 7
 
 ;	40: IRQ8
 InterruptStub8:
-	IsrStubMacro InterruptHandler, 0, 40
+	IsrStubMacro InterruptHandler, 0, 8
 
 ;	41: IRQ9
 InterruptStub9:
-	IsrStubMacro InterruptHandler, 0, 41
+	IsrStubMacro InterruptHandler, 0, 9
 
 ;	42: IRQ10
 InterruptStub10:
-	IsrStubMacro InterruptHandler, 0, 42
+	IsrStubMacro InterruptHandler, 0, 10
 
 ;	43: IRQ11
 InterruptStub11:
-	IsrStubMacro InterruptHandler, 0, 43
+	IsrStubMacro InterruptHandler, 0, 11
 
 ;	44: IRQ12
 InterruptStub12:
-	IsrStubMacro InterruptHandler, 0, 44
+	IsrStubMacro InterruptHandler, 0, 12
 
 ;	45: IRQ13
 InterruptStub13:
-	IsrStubMacro InterruptHandler, 0, 45
+	IsrStubMacro InterruptHandler, 0, 13
 
 ;	46: IRQ14
 InterruptStub14:
-	IsrStubMacro InterruptHandler, 0, 46
+	IsrStubMacro InterruptHandler, 0, 14
 
 ;	47: IRQ15
 InterruptStub15:
-	IsrStubMacro InterruptHandler, 0, 47
+	IsrStubMacro InterruptHandler, 0, 15
 

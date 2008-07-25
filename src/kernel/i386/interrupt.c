@@ -14,7 +14,6 @@
 
 #include <ace.h>
 #include <kernel/i386/idt.h>
-#include <kernel/i386/interrupt.h>
 #include <kernel/io.h>
 #include <kernel/debug.h>
 
@@ -28,25 +27,10 @@ extern	void
 	InterruptStub8(),	InterruptStub9(),	InterruptStub10(),	InterruptStub11(),
 	InterruptStub12(),	InterruptStub13(),	InterruptStub14(),	InterruptStub15();
 
-/* Array of ISR pointers. We use this to handle custom IRQ handlers for a given IRQ */
-void (*interrupt_routines[MAX_INTERRUPTS])(struct regs*);
-
-/* This installs a custom IRQ handler for the given IRQ */
-void InstallInterruptHandler(int interrupt, void (*handler)(struct regs*))
-{
-	interrupt_routines[interrupt] = handler;
-}
-
-/* This clears the handler for a given IRQ */
-void UninstallInterruptHandler(int interrupt)
-{
-	interrupt_routines[interrupt] = 0;
-}
-
 /* We first remap the interrupt controllers, and then we install the appropriate ISRs to the correct entries in the IDT. 
 *  This is just like installing the exception handlers. 
 */
-void SetupInterruptHandlers()
+void SetupInterruptStubs()
 {
 	SetupPIC();
 	
@@ -67,29 +51,18 @@ void SetupInterruptHandlers()
 	SetIdtGate(46, (unsigned)InterruptStub14);
 	SetIdtGate(47, (unsigned)InterruptStub15);
 }
-
-/*	All the interrupt stubs call this function.
-*	This function calls appropriate interrupt service routines defined in interrupt_routines[].
-*	It also returns EOI(End of Interrupt) to the PIC, so that PIC can now get interrupts.
+/*! TODO - The following functions should move to PIC folder after APIC implementation*/
+/*! pic specific end of interrupt generator
 */
-void InterruptHandler(struct regs *reg)
+void SendEndOfInterrupt(int int_no)
 {
-	/* run the installed handler */
-	if ( interrupt_routines[reg->int_no - 32] != 0 )
-		interrupt_routines[reg->int_no - 32](reg);
-	else
-		kprintf("Interrupt recieved from %d but has no handler\n", reg->int_no);
-
 	/* If the IDT entry that was invoked was greater than 40 (meaning IRQ8 - 15), then we need to send an EOI to the slave controller */
-	if (reg->int_no >= 40)
-	{
+	if (int_no >= 40)
 	    _outp(0xA0, 0x20);
-	}
 
 	/* In either case, we need to send an EOI to the master interrupt controller too */
 	_outp(0x20, 0x20);
 }
-
 /* Normally, IRQs 0 to 7 are mapped to entries 8 to 15. 
 *  We send commands to the Programmable Interrupt Controller in order to make IRQ0 to 15 be remapped to IDT entries 32 to 47 
 */

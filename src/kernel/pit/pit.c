@@ -10,7 +10,7 @@
 
 
 #include <ace.h>
-#include <kernel/i386/interrupt.h>
+#include <kernel/interrupt.h>
 #include <kernel/time.h>
 
 extern void Init8254Timer(UINT32 frequency);
@@ -18,25 +18,20 @@ extern void Init8254Timer(UINT32 frequency);
 /*Static variables */
 static UINT32 timer_ticks;
 
-/* Static functions */
-static void TimerHandler(struct regs *reg);
-
-
-static void TimerHandler(struct regs *reg)
+ISR_RETURN_CODE TimerHandler (INTERRUPT_INFO_PTR interrupt_info, void * arg)
 {
 	timer_ticks++;
+	return ISR_END_PROCESSING;
 }
 
 int InitPit(UINT32 frequency)
 {
+	InstallInterruptHandler(0, TimerHandler, 0);
 #if ARCH == i386
-	InstallInterruptHandler(0, TimerHandler);
 	Init8254Timer(frequency);
-	/* Register our handler for taking care of IRQ0 */
 	return 0;
-#else
-	return 1;
 #endif
+	return 1;
 }
 
 void TimerSleep(UINT32 ticks)

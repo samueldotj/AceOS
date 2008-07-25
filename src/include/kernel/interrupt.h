@@ -12,11 +12,29 @@
 #ifndef _INTERRUPT_H_
 #define _INTERRUPT_H_
 
-#include <kernel/i386/exception.h>
+#if	ARCH == i386
+	#include <kernel/i386/exception.h>
+	#define MAX_INTERRUPTS	256
+#endif
 
-void InstallInterruptHandler(int interrupt, void (*handler)(struct regs*));
-void UninstallInterruptHandler(int interrupt);
-void SetupInterruptHandlers();
+typedef struct interrupt_info
+{
+	int	interrupt_number;
+	int interrupt_type;
+	int interrupt_priority;
+	int	device_number;
+}INTERRUPT_INFO, * INTERRUPT_INFO_PTR;
 
+typedef enum isr_return_code
+{
+	ISR_CONTINUE_PROCESSING=0,
+	ISR_END_PROCESSING,
+	ISR_ERROR
+}ISR_RETURN_CODE;
+
+typedef ISR_RETURN_CODE (*ISR_HANDLER) (INTERRUPT_INFO_PTR interrupt_info, void * arg);
+
+void InstallInterruptHandler(int interrupt_number, ISR_HANDLER isr_handler, void * custom_argument);
+void UninstallInterruptHandler(int interrupt_number, ISR_HANDLER isr_handler);
 
 #endif

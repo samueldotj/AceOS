@@ -29,7 +29,6 @@
 		
 #endif
 
-
 #define PAGE_ALIGN(addr)			((UINT32)(addr) & -PAGE_SIZE)
 #define PAGE_ALIGN_UP(addr)			((UINT32)((addr) + PAGE_SIZE - 1) & -PAGE_SIZE)
 
@@ -37,7 +36,6 @@
 #define PAGE_ALIGN_UP_4MB(addr)		PAGE_ALIGN_4MB( (addr) + (1024*1024) - 1 )
 
 #define NUMBER_OF_PAGES(size)		(PAGE_ALIGN_UP(size) >> PAGE_SHIFT)
-
 
 #define VA_RANGE_SEARCH_FROM_TOP	1
 

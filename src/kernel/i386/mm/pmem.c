@@ -163,3 +163,29 @@ static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
 		page_dir[pd_index].all = pa | USER_PDE_FLAG;
 	}
 }
+/*! Reports the given virtual address range's status
+*/
+VA_STATUS GetVirtualRangeStatus(VADDR va, UINT32 size)
+{
+	PAGE_DIRECTORY_ENTRY_PTR pde;
+	PAGE_TABLE_ENTRY_PTR pte;
+	VADDR end_va = va+size;
+	int  writable=1;
+	while( va < end_va )
+	{
+		pde = PT_SELF_MAP_PAGE_DIRECTORY_PTR(va);
+		if ( !pde->_.present )
+			return VA_NOT_EXISTS;
+		writable &= pde->_.write;
+		
+		pte = PT_SELF_MAP_PAGE_TABLE1_PTE(va);
+		if ( !pte->_.present )
+			return VA_NOT_EXISTS;
+		writable &= pte->_.write;
+		
+		va += PAGE_SIZE;
+	}
+	if ( writable )
+		return VA_WRITEABLE;
+	return VA_READABLE;
+}

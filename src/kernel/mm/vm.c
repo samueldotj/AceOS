@@ -135,3 +135,4 @@ ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32
 {
 	return ERROR_SUCCESS;
 }
+

@@ -35,6 +35,13 @@ typedef struct memory_area
 	PHYSICAL_MEMORY_REGION 	physical_memory_regions[MAX_PHYSICAL_REGIONS];
 }MEMORY_AREA, * MEMORY_AREA_PTR;
 
+typedef enum
+{
+	VA_NOT_EXISTS=0,
+	VA_READABLE,
+	VA_WRITEABLE
+}VA_STATUS;
+
 extern PHYSICAL_MAP kernel_physical_map;;
 
 extern MEMORY_AREA memory_areas[MAX_MEMORY_AREAS];
@@ -47,5 +54,7 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 ERROR_CODE RemovePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va);
 
 ERROR_CODE MapVirtualAddressRange(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 size, UINT32 protection);
+
+VA_STATUS GetVirtualRangeStatus(VADDR va, UINT32 size);
 
 #endif

@@ -21,11 +21,12 @@ SECTIONS
 	{ 
 		*(.rodata)
 		*(.rodata1)
+		kernel_code_end	= .;
 	}
 	. = ALIGN(4096);	/* align to page boundary */
     .data :
 	{
-		data = .;
+		kernel_data_start = .;
 		*(.data)
 		*(.data1)
 		. = ALIGN(4096); 

@@ -33,6 +33,8 @@ void InitKmem(VADDR kmem_start_va)
 	
 	if ( AddMemoryToHeap((char *)kmem_start_va, ((char*)kmem_start_va)+kmem_reserved_mem_size ) != 0 )
 		panic("InitKmem() -  AddMemoryToHeap() failed.");
+		
+	kernel_free_virtual_address = ((VADDR)kmem_start_va)+kmem_reserved_mem_size;
 }
 static void * kmem_page_alloc(int size)
 {

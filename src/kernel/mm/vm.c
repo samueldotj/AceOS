@@ -15,13 +15,18 @@
 #include <kernel/mm/kmem.h>
 
 VM_DATA vm_data;
+VM_DESCRIPTOR kernel_static_code_descriptor;
+VM_DESCRIPTOR kernel_static_data_descriptor;
 
 VADDR kernel_free_virtual_address = NULL;
 
 VM_PROTECTION protection_kernel_write = {0,0,1,1};
-VM_PROTECTION protection_kernel_read = {0,0,1,0};
+VM_PROTECTION protection_kernel_read = {0,0,0,1};
 VM_PROTECTION protection_user_write = {1,1,0,0};
-VM_PROTECTION protection_user_read = {1,0,0,0};
+VM_PROTECTION protection_user_read = {0,1,0,0};
+
+/*from kernel.ld*/
+extern VADDR kernel_virtual_address, kernel_code_end, kernel_data_start, ebss;
 
 static ERROR_CODE MapKernel();
 
@@ -29,6 +34,8 @@ static ERROR_CODE MapKernel();
 */
 void InitVm()
 {
+	VADDR kmem_start_va, kmem_end_va;
+	
 	/*initialize the vm_data structure*/
 	InitSpinLock(&vm_data.lock);
 	vm_data.free_tree = NULL;
@@ -44,17 +51,29 @@ void InitVm()
 	kprintf("System memory: %dMB (PAGE_SIZE %d)\n", (vm_data.total_memory_pages * PAGE_SIZE) / (1024*1024), PAGE_SIZE );
 	
 	/*Initialize the kernel memory allocator*/
+	kmem_start_va = kernel_free_virtual_address;
 	InitKmem(kernel_free_virtual_address);
+	kmem_end_va = kernel_free_virtual_address;
 	
 	/*map the kernel text, data*/
-	MapKernel();
+	MapKernel(kmem_start_va, kmem_end_va);
 }
 
 /*! maps the static code/data of the kernel
 	and also reserved kmem
 */
-static ERROR_CODE MapKernel()
+static ERROR_CODE MapKernel(VADDR kmem_start_va, VADDR kmem_end_va)
 {
+	VM_UNIT_PTR vm_unit;
+	/*map code and data*/
+	InitVmDescriptor( &kernel_static_code_descriptor, &kernel_map, (VADDR)&kernel_virtual_address, (UINT32)&kernel_code_end, NULL, &protection_kernel_read);
+	InitVmDescriptor( &kernel_static_data_descriptor, &kernel_map, (VADDR)&kernel_data_start, (UINT32)&ebss, NULL, &protection_kernel_write);
+	
+	/*map kmem*/
+	vm_unit = CreateVmUnit( 0, kmem_end_va-kmem_start_va);
+	CreateVmDescriptor(&kernel_map, kmem_start_va, kmem_end_va, vm_unit, &protection_kernel_write);
+	/*todo update all the pages in the vtoparray*/
+	
 	return ERROR_SUCCESS;
 }
 

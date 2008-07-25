@@ -198,7 +198,6 @@
  *
  ******************************************************************************/
 
-typedef unsigned char                   UINT8;
 typedef COMPILER_DEPENDENT_UINT64       UINT64;
 typedef COMPILER_DEPENDENT_INT64        INT64;
 

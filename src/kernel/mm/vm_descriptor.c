@@ -15,11 +15,10 @@
 
 static COMPARISION_RESULT compare_vm_descriptor(struct binary_tree * node1, struct binary_tree * node2);
 static void * FindVaRange(VM_DESCRIPTOR_PTR descriptor_ptr, VADDR start, UINT32 size, int top_down_search, VADDR last_va_end);
-void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, UINT32 start, UINT32 end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection);
 
 /*! Initializes the given VM descriptor structure and adds it to the VM map
 */
-void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, UINT32 start, UINT32 end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection)
+void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection)
 {
 	assert( descriptor != NULL );
 
@@ -38,9 +37,10 @@ void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, UINT32
 	descriptor->unit = vm_unit;
 	
 	InsertNodeIntoAvlTree(&vmap->descriptors, &descriptor->tree_node, 0, compare_vm_descriptor);
+	vmap->descriptor_count++;
 }
 
-VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, UINT32 start, UINT32 end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection)
+VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection)
 {
 	VM_DESCRIPTOR_PTR vd = (VM_DESCRIPTOR_PTR)kmalloc(sizeof(VM_DESCRIPTOR), KMEM_NO_FAIL);
 	InitVmDescriptor( vd, vmap, start, end, vm_unit, protection);

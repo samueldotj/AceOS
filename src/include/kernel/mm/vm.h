@@ -135,7 +135,8 @@ extern VM_PROTECTION protection_user_read;
 
 void InitVm();
 
-VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, UINT32 start, UINT32 end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection);
+void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, VADDR start, VADDR end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection);
+VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR start, VADDR end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection);
 void * FindFreeVmRange(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 size, UINT32 option);
 
 VM_UNIT_PTR CreateVmUnit(UINT32 type, UINT32 size);

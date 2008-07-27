@@ -477,19 +477,20 @@ char *strnchr(const char *str, char c, size_t count)
 
 int strncmp(const char *s1, const char *s2, size_t n)
 {
-    while(n && (*s1) && (*s2))
+	while(n && (*s1) && (*s2))
     {
-        if (*s1 != *s2)
+		if (*s1 != *s2)
         {
             break;
         }
 
-        n--, s1++, s2++;
+        n--;
+		if ( n )
+			s1++, s2++;
     }
     /*s1 or s2 cannot be null, only it contents can be NULL!*/
     return ((*(unsigned const char *)s1) - (*(unsigned const char *)s2));
 }
-
 
 char* strpbrk(const char *s1, const char *s2)
 {

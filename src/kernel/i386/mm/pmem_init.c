@@ -171,17 +171,19 @@ static void InitKernelPageDirectory(UINT32 k_map_end)
 	ma_pa = (MEMORY_AREA_PTR)BOOT_ADDRESS ( &memory_areas[0] );
 	for(i=0; i < ma_pa->physical_memory_regions_count; i++)
 	{
+		UINT32 end_address;
 		PHYSICAL_MEMORY_REGION_PTR pmr_pa;
 		pmr_pa = &ma_pa->physical_memory_regions[i];
 		
 		physical_address = (UINT32)pmr_pa->virtual_page_array;
+		end_address = physical_address + (pmr_pa->virtual_page_count * sizeof(VIRTUAL_PAGE));
 		pmr_pa->virtual_page_array =  (VIRTUAL_PAGE_PTR)va;
 		do
 		{
 			EnterKernelPageTableEntry( va, physical_address);
 			physical_address += PAGE_SIZE;
 			va += PAGE_SIZE;
-		}while( physical_address <= ((UINT32)pmr_pa->virtual_page_array + (pmr_pa->virtual_page_count * sizeof(VIRTUAL_PAGE)) ) );
+		}while( physical_address <= ( end_address ) );
 		
 	}
 	/*self mapping*/
@@ -215,7 +217,7 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 		page_table = (PAGE_TABLE_ENTRY_PTR) pa;
 		
 		/*enter pde*/
-		k_page_dir[pd_index].all = pa | KERNEL_PTE_FLAG;
+		k_page_dir[pd_index].all = PA_TO_PFN(pa) | KERNEL_PTE_FLAG;
 	}
 	else
 	{
@@ -226,7 +228,7 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 	//enter pte in the page table.
 	if ( !page_table[ pt_index ]._.present )
 	{
-		page_table[pt_index].all = pa | KERNEL_PTE_FLAG;
+		page_table[pt_index].all = PA_TO_PFN(pa) | KERNEL_PTE_FLAG;
 	}
 }
 /*! 	1) This phase will removes the unnessary page table entries that is created before enabling paging.
@@ -258,5 +260,5 @@ void InitPhysicalMemoryManagerPhaseII()
 	}
 	
 	vm_data.total_free_pages = vm_data.total_memory_pages;
-	kernel_free_virtual_address = PAGE_ALIGN_UP(&ebss) + (memory_areas[0].physical_memory_regions[0].virtual_page_count*PAGE_SIZE);
+	kernel_free_virtual_address = PAGE_ALIGN_UP(&ebss) + (vm_data.total_memory_pages*PAGE_SIZE);
 }

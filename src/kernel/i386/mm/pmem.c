@@ -11,6 +11,7 @@
 #include <kernel/error.h>
 #include <kernel/multiboot.h>
 #include <kernel/debug.h>
+#include <kernel/arch.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/virtual_page.h>
 #include <kernel/mm/pmem.h>
@@ -27,6 +28,7 @@ PHYSICAL_MAP kernel_physical_map;
 
 static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va );
 
+
 /*! Fills page table entry for a given VA. This function makes the corresponding VA to point to PA by filling PTEs.
 	this function can be also called to change the protection.
 	\param pmap - physical map 
@@ -39,14 +41,17 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 	PAGE_DIRECTORY_ENTRY_PTR mapped_pde = NULL;
 	PAGE_TABLE_ENTRY_PTR mapped_pte = NULL;
 	PAGE_TABLE_ENTRY pte;
+	UINT32 pfn = PA_TO_PFN(pa);
 	
 	assert( pmap != NULL );
 	
 	mapped_pte = PT_SELF_MAP_PAGE_TABLE1_PTE(va);
 	if ( IS_KERNEL_ADDRESS(va) )
-		pte.all = pa | KERNEL_PTE_FLAG;
+		pte.all = KERNEL_PTE_FLAG;
 	else
-		pte.all = pa | USER_PTE_FLAG;
+		pte.all = USER_PTE_FLAG;
+		
+	pte._.page_pfn = pfn;
 	
 	mapped_pde = &pmap->page_directory[PAGE_DIRECTORY_ENTRY_INDEX(va)];
 	//create page table if not present
@@ -54,6 +59,9 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 	{
 		CreatePageTable( pmap, va );
 	}
+	if ( mapped_pte->_.present && mapped_pte->_.page_pfn != pfn )
+		panic("Trying to map over a existing map\n");
+	
 	if ( !mapped_pte->_.present )
 	{
 		//now mapping should present for the page table
@@ -64,7 +72,6 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 	{
 		//todo - handle protection change here
 	}
-
 	return ERROR_SUCCESS;
 }
 
@@ -111,14 +118,8 @@ ERROR_CODE RemovePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va)
 	PAGE_DIRECTORY_ENTRY_PTR mapped_pde = NULL;
 	PAGE_TABLE_ENTRY_PTR mapped_pte = NULL;
 	
-	if ( IS_KERNEL_ADDRESS(va) )
-		mapped_pte = PT_SELF_MAP_PAGE_TABLE1_PTE(va);
-	else
-	{
-		//todo - get user space mapped pte here
-	}
-	
 	mapped_pde = &pmap->page_directory[PAGE_DIRECTORY_ENTRY_INDEX(va)];
+	mapped_pte = PT_SELF_MAP_PAGE_TABLE1_PTE(va);
 	
 	//if we havent created a page table entry, just return success because nothing to remove
 	if ( !mapped_pde->_.present || !mapped_pte->_.present )
@@ -127,8 +128,10 @@ ERROR_CODE RemovePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va)
 	//clear the page table entry
 	mapped_pte->all = 0;
 	
-	//todo we need to invlidate other caches
-	
+	/*invalidate the TLB and cache*/
+	InvalidateTlb( (void *)va );
+	FlushCpuCache( TRUE );
+		
 	return ERROR_SUCCESS;
 }
 

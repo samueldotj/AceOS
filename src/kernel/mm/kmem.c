@@ -77,7 +77,10 @@ void * kmalloc(int size, UINT32 flag)
 {
 	void * ret = AllocateFromHeap(size);
 	if ( ret==NULL && (flag & KMEM_NO_FAIL) )
+	{
+		kprintf("AllocateFromHeap(%d) failed.\n", size);
 		panic("kmalloc failed");
+	}
 	return ret;
 }
 

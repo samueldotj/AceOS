@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <ace.h>
 #include <kernel/io.h>
+#include <kernel/interrupt.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/pmem.h>
 #include <kernel/mm/kmem.h>
@@ -17,10 +18,34 @@
 #define _COMPONENT          ACPI_OS_SERVICES
         ACPI_MODULE_NAME    ("osacexf")
 
-ACPI_PHYSICAL_ADDRESS
-AeLocalGetRootPointer (
-    void);
+typedef struct acpi_isr_handler
+{
+	ACPI_OSD_HANDLER	handler;
+	void *				context;
+}ACPI_ISR_HANDLER, * ACPI_ISR_HANDLER_PTR;
 
+#define ACPI_MAX_INIT_TABLES (16)
+static ACPI_TABLE_DESC      Tables[ACPI_MAX_INIT_TABLES];
+int InitACPI()
+{
+	if ( AcpiInitializeSubsystem() != AE_OK )
+		return -1;
+    if ( AcpiInitializeTables (Tables, ACPI_MAX_INIT_TABLES, TRUE) != AE_OK )
+		return -1;
+    if ( AcpiReallocateRootTable () != AE_OK )
+		return -1;
+		
+	if ( AcpiLoadTables() != AE_OK )
+		return -1;
+	
+	if ( AcpiEnableSubsystem(ACPI_FULL_INITIALIZATION) != AE_OK )
+		return -1;
+		
+	if ( AcpiInitializeObjects(ACPI_FULL_INITIALIZATION) != AE_OK )
+		return -1;
+	
+	return 0;
+}
 
 /******************************************************************************
  *
@@ -331,16 +356,11 @@ AcpiOsMapMemory (
     ACPI_PHYSICAL_ADDRESS   where,
     ACPI_SIZE               length)
 {
-	VADDR va;
-	if ( AllocateVirtualMemory( &kernel_map, &va, 0, length, 0, 0) != ERROR_SUCCESS )
+	VADDR va = MapPhysicalMemory( &kernel_map, where, length );
+	if ( va )
+	    return (ACPI_TO_POINTER ((ACPI_NATIVE_UINT) (va + where-PAGE_ALIGN(where)) ));
+	else
 		return NULL;
-	if ( CreatePhysicalMapping(kernel_map.physical_map, va, where, 0) != ERROR_SUCCESS )
-	{
-		FreeVirtualMemory(&kernel_map, va, length, 0);
-		return NULL;
-	}
-	
-    return (ACPI_TO_POINTER ((ACPI_NATIVE_UINT) va));
 }
 
 
@@ -542,6 +562,13 @@ AcpiOsReleaseLock (
     AcpiOsSignalSemaphore (Handle, 1);
 }
 
+ISR_RETURN_CODE AcpiInterruptHandler(INTERRUPT_INFO_PTR interrupt_info, void * arg)
+{
+	ACPI_ISR_HANDLER_PTR p = (ACPI_ISR_HANDLER_PTR) arg;
+	assert ( p != NULL );
+	p->handler(p->context);
+	return ISR_CONTINUE_PROCESSING;
+}
 
 /******************************************************************************
  *
@@ -564,8 +591,12 @@ AcpiOsInstallInterruptHandler (
     ACPI_OSD_HANDLER        ServiceRoutine,
     void                    *Context)
 {
-
-
+	ACPI_ISR_HANDLER_PTR p = kmalloc( sizeof(ACPI_ISR_HANDLER), 0);
+	if ( p == NULL )
+		return AE_ERROR;
+	
+	InstallInterruptHandler( InterruptNumber, AcpiInterruptHandler, p);
+	
     return AE_OK;
 }
 
@@ -587,8 +618,8 @@ AcpiOsRemoveInterruptHandler (
     UINT32                  InterruptNumber,
     ACPI_OSD_HANDLER        ServiceRoutine)
 {
-
-    return AE_OK;
+	UninstallInterruptHandler( InterruptNumber, AcpiInterruptHandler);
+    return AE_ERROR;
 }
 
 
@@ -795,7 +826,7 @@ AcpiOsReadPciConfiguration (
     UINT32                  Width)
 {
 
-    return (AE_OK);
+    return (AE_ERROR);
 }
 
 
@@ -822,7 +853,7 @@ AcpiOsWritePciConfiguration (
     UINT32                  Width)
 {
 
-    return (AE_OK);
+    return (AE_ERROR);
 }
 
 /* TEMPORARY STUB FUNCTION */
@@ -947,7 +978,7 @@ AcpiOsReadMemory (
         return (AE_BAD_PARAMETER);
         break;
     }
-    return (AE_OK);
+    return (AE_ERROR);
 }
 
 
@@ -972,14 +1003,14 @@ AcpiOsWriteMemory (
     UINT32                  Width)
 {
 
-    return (AE_OK);
+    return (AE_ERROR);
 }
 
 
 ACPI_THREAD_ID
 AcpiOsGetThreadId(void)
 {
-    return 0;
+    return 1;
 }
 
 

@@ -35,7 +35,6 @@ void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, VADDR 
 	memmove( &descriptor->protection, protection, sizeof(VM_PROTECTION) );
 		
 	descriptor->unit = vm_unit;
-	
 	InsertNodeIntoAvlTree(&vmap->descriptors, &descriptor->tree_node, 0, compare_vm_descriptor);
 	vmap->descriptor_count++;
 }
@@ -57,18 +56,27 @@ VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 e
 void * FindFreeVmRange(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 size, UINT32 option)
 {
 	VADDR end = NULL;
-
+	
  	assert( vmap!=NULL );
 	assert( size > 0 );
 	/*try to find a hole which has enough space*/
-	end = (VADDR)FindVaRange( STRUCT_ADDRESS_FROM_MEMBER( vmap->descriptors, VM_DESCRIPTOR, tree_node), start, size, option & VA_RANGE_SEARCH_FROM_TOP,  NULL);
+	end = (VADDR)FindVaRange( STRUCT_ADDRESS_FROM_MEMBER( vmap->descriptors, VM_DESCRIPTOR, tree_node), start, size, option & VA_RANGE_SEARCH_FROM_TOP,  vmap->start);
 	/*if no hole found try to allocate at the end of virtual address map*/
 	if ( end == NULL )
 	{
-		if ( (vmap == &kernel_map) && (KERNEL_MAP_END_VA - vmap->end) >= size )
-			end = vmap->end;
+		if (vmap == &kernel_map) 
+		{
+			if ( (KERNEL_MAP_END_VA - vmap->end) >= size )
+			{
+				end = vmap->end;
+				vmap->end += size;
+			}
+		}
 		else if ( (USER_MAP_END_VA - vmap->end) >= size )
+		{
 			end = vmap->end;
+			vmap->end += size;
+		}
 	}
 	return (void *)end;
 }
@@ -81,47 +89,7 @@ void * FindFreeVmRange(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 size, UINT32 op
 */
 static void * FindVaRange(VM_DESCRIPTOR_PTR descriptor_ptr, VADDR start, UINT32 size, int top_down_search, VADDR last_va_end)
 {
-	void * end=NULL;
-	AVL_TREE_PTR next_node;
-	
-	next_node = NULL;
-	if (top_down_search)
-	{
-		if (! IS_AVL_TREE_LEFT_LIST_END( &descriptor_ptr->tree_node ) )
-			next_node = AVL_TREE_LEFT_NODE(&descriptor_ptr->tree_node);
-	}
-	else
-	{
-		if (! IS_AVL_TREE_RIGHT_LIST_END( &descriptor_ptr->tree_node ) )
-			next_node = AVL_TREE_RIGHT_NODE(&descriptor_ptr->tree_node);
-	}
-	if ( next_node != NULL )
-	{
-		end = FindVaRange( STRUCT_ADDRESS_FROM_MEMBER( next_node, VM_DESCRIPTOR, tree_node), start, size, descriptor_ptr->end, top_down_search );
-		if ( end )
-			return end;
-	}
-	if ( descriptor_ptr->start > start && size >= (descriptor_ptr->start-last_va_end) )
-	{
-		return (void *)last_va_end;
-	}
-	next_node = NULL;
-	if (!top_down_search)
-	{
-		if (! IS_AVL_TREE_LEFT_LIST_END( &descriptor_ptr->tree_node ) )
-			next_node = AVL_TREE_LEFT_NODE(&descriptor_ptr->tree_node);
-	}
-	else
-	{
-		if (! IS_AVL_TREE_RIGHT_LIST_END( &descriptor_ptr->tree_node ) )
-			next_node = AVL_TREE_RIGHT_NODE(&descriptor_ptr->tree_node);
-	}
-	if ( next_node != NULL )
-	{
-		end = FindVaRange( STRUCT_ADDRESS_FROM_MEMBER( next_node, VM_DESCRIPTOR, tree_node), start, size, descriptor_ptr->end, top_down_search );
-		if ( end )
-			return end;
-	}
+	/*need implementation with a AVL TREE using size as key*/
 	return NULL;
 }
 static COMPARISION_RESULT compare_vm_descriptor(struct binary_tree * node1, struct binary_tree * node2)

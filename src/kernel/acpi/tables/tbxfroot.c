@@ -166,7 +166,6 @@ AcpiTbValidateRsdp (
 
         return (AE_BAD_SIGNATURE);
     }
-
     /* Check the standard checksum */
 
     if (AcpiTbChecksum ((UINT8 *) Rsdp, ACPI_RSDP_CHECKSUM_LENGTH) != 0)

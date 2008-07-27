@@ -142,6 +142,8 @@ VM_UNIT_PTR CreateVmUnit(UINT32 type, UINT32 size);
 ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR preferred_start, UINT32 size, UINT32 protection, UINT32 flags);
 ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32 flags);
 
+VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size);
+
 #ifdef __cplusplus
 	}
 #endif

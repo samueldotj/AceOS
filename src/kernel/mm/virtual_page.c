@@ -38,7 +38,9 @@ void InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 start_
 		InitVirtualPage( &vpa[i], start_physical_address );
 		start_physical_address += PAGE_SIZE;
 	}
-	
+	/*Adding a page to Tree/list involves operations on other pages also, so do this after initializing a page*/
+	for(i=0; i<page_count ;i++)
+		AddVirtualPageToVmFreeTree( &vpa[i] );
 }
 
 /*! Initializes the virtual page
@@ -55,8 +57,6 @@ static void InitVirtualPage(VIRTUAL_PAGE_PTR vp, UINT32 physical_address)
 	InitAvlTreeNode( VP_AVL_TREE(vp), 1 );
 	
 	vp->physical_address = physical_address;
-	
-	AddVirtualPageToVmFreeTree( vp );
 }
 /*! Returns the first virtual page of this free virtual page range.
 	\param	vp - free virtual page 

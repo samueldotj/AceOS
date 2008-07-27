@@ -84,9 +84,5 @@ void InvalidateAllTlb()
 */
 void InvalidateTlb(void * va)
 {
-	asm volatile (
-				"invlpg %0"
-				:
-				: "m" (va)
-				);
+	asm volatile("invlpg (%%eax)" : : "a" (va) );
 }

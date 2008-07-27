@@ -117,14 +117,18 @@
 #ifndef __ACACE_H__
 #define __ACACE_H__
 
+#define ACPI_USE_STANDARD_HEADERS
 #define ACPI_USE_SYSTEM_CLIBRARY
 #define ACPI_USE_DO_WHILE_0
+#define ACPI_USE_LOCAL_CACHE
+#define ACPI_DEBUG
 
 #ifdef __KERNEL_BUILT__
 
 #include <ace.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdarg.h>
 #include <sync/spinlock.h>
 #include <heap/slab_allocator.h>
 #include <heap/heap.h>
@@ -134,12 +138,10 @@
 
 /* Host-dependent types and defines */
 
-#define ACPI_CACHE_T                CACHE_PTR
 #define ACPI_SPINLOCK               SPIN_LOCK_PTR
 
 typedef UINT32 FILE;
-#define vfprintf(file, fmt, args)	kprintf(fmt, args)
-
+#define vfprintf(file, fmt, args)	_doprint( fmt, kprintf_putc, args)
 #define ACPI_FLUSH_CPU_CACHE()		FlushCpuCache(TRUE);
 
 #else /* !__KERNELBUILT__ */

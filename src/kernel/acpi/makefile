@@ -9,24 +9,27 @@ CUSTOM_FLAG= -I $(ACE_ROOT)/src/include/kernel/acpi -Wno-format
 
 include $(ACE_ROOT)/make.conf
 
-ALL_DIRS= common events hardware interpreter namespace os_specific resources tables
+ALL_DIRS= debugger events hardware interpreter/dispatcher interpreter/executer namespace interpreter/parser resources tables utilities
 
 TARGET= $(OBJ)/acpi.sys
 
 OBJS= 	$(patsubst %.c,%.o,$(wildcard *.c)) \
+		$(patsubst %.c,%.o,$(wildcard debugger/*.c)) \
 		$(patsubst %.c,%.o,$(wildcard events/*.c)) \
 		$(patsubst %.c,%.o,$(wildcard hardware/*.c)) \
-		$(patsubst %.c,%.o,$(wildcard interpreter/*.c)) \
+		$(patsubst %.c,%.o,$(wildcard interpreter/dispatcher/*.c)) \
+		$(patsubst %.c,%.o,$(wildcard interpreter/executer/*.c)) \
+		$(patsubst %.c,%.o,$(wildcard interpreter/parser/*.c)) \
 		$(patsubst %.c,%.o,$(wildcard namespace/*.c)) \
-		$(patsubst %.c,%.o,$(wildcard os_specific/*.c)) \
 		$(patsubst %.c,%.o,$(wildcard resources/*.c)) \
-		$(patsubst %.c,%.o,$(wildcard tables/*.c)) 
+		$(patsubst %.c,%.o,$(wildcard tables/*.c)) \
+		$(patsubst %.c,%.o,$(wildcard utilities/*.c)) 
 
 #phony command - all - makes all object
 all:    $(TARGET)
 
 clean:	always
-	@for dir in $(ALL_DIRS); do cd $$dir; rm -rf *.o *.d; cd ..; done
+	@for dir in $(ALL_DIRS); do rm -rf $$dir/*.o *.d; done
 
 always:	
 

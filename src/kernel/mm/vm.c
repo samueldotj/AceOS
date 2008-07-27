@@ -74,7 +74,39 @@ static ERROR_CODE MapKernel(VADDR kmem_start_va, VADDR kmem_end_va)
 	CreateVmDescriptor(&kernel_map, kmem_start_va, kmem_end_va, vm_unit, &protection_kernel_write);
 	/*todo update all the pages in the vtoparray*/
 	
+	kernel_map.physical_map = &kernel_physical_map;
+	kernel_map.start = kernel_virtual_address;
+	kernel_map.end = kmem_end_va;
+	
 	return ERROR_SUCCESS;
+}
+
+/*! Creates Virtual Mapping for a given physical address range
+	\param vmap - virtual map 
+	\param pa - physical address
+	\param size - size of the physical range
+	
+	\return Newly created VA for the given PA.
+		NULL on failure
+*/
+VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size)
+{
+	VADDR va;
+	UINT32 i;
+	
+	size = PAGE_ALIGN_UP(size);
+	pa = PAGE_ALIGN(pa);
+	if ( AllocateVirtualMemory( vmap, &va, 0, size, 0, 0) != ERROR_SUCCESS )
+		return NULL;
+	for(i=0; i<size;i+=PAGE_SIZE )
+	{
+		if ( CreatePhysicalMapping(vmap->physical_map, va+i, pa+i, 0) != ERROR_SUCCESS )
+		{
+			FreeVirtualMemory(vmap, va, size, 0);
+			return NULL;
+		}
+	}
+	return va;
 }
 
 /*! Allocates virtual memory of given size 
@@ -94,9 +126,13 @@ ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR pre
 	VM_PROTECTION_PTR prot;
 	VM_UNIT_PTR unit;
 	
+	assert( size > 0 );
+	size = PAGE_ALIGN_UP(size);
+	
 	/*assume error*/
 	* (va_ptr) = NULL;
 	
+	SpinLock(&vmap->lock);
 	/*find a free vm range in the current virtual map*/
 	start = (VADDR)FindFreeVmRange(vmap, preferred_start, size, VA_RANGE_SEARCH_FROM_TOP);
 	if ( start == NULL )
@@ -104,7 +140,10 @@ ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR pre
 		kprintf("AllocateVirtualMemory() - No memory range available\n");
 		return ERROR_NOT_ENOUGH_MEMORY;
 	}
-	
+	if ( vmap->end < start + size )
+		vmap->end = start + size;
+	SpinUnlock(&vmap->lock);
+		
 	if ( vmap == &kernel_map )
 		prot = &protection_kernel_write;
 	else
@@ -133,6 +172,18 @@ ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR pre
 */
 ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32 flags)
 {
+	ERROR_CODE ret;
+	UINT32 rem_va;
+	
+	/*remove the page table entries*/
+	for(rem_va = va; rem_va < (va+size); rem_va+=PAGE_SIZE)
+	{
+		ret = RemovePhysicalMapping(vmap->physical_map, rem_va);
+		if ( ret != ERROR_SUCCESS )
+			return ret;
+	}
+	
+	/*TODO - remove the vm descriptor entry*/
 	return ERROR_SUCCESS;
 }
 

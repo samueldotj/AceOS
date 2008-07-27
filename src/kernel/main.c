@@ -17,6 +17,7 @@
 #include <kernel/time.h>
 #include <kernel/pit.h>
 #include <kernel/mm/vm.h>
+extern int InitACPI();
 /*! first C function which gets control from assembly
 */
 void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
@@ -58,7 +59,10 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	/*start gdb as soon as possible*/
 	if ( sys_gdb_port )
 		InitGdb();
-	
+		
+	if ( InitACPI() != 0 )
+		panic("ACPI Initialization failed.\n");
+		
 	kprintf("Kernel initialization complete\n");
 fatal_boot_error:
 	while(1);

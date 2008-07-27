@@ -145,8 +145,11 @@ rflag:
 			else
 			{
 				n = 0;
-				while (isascii(*fmt) && isdigit(*fmt))
-					n = 10 * n + todigit(*fmt++);
+				do 
+				{
+					n = 10 * n + todigit(*fmt);
+					++fmt;
+				} while (isascii(*fmt) && isdigit(*fmt));
 				--fmt;
 			}
 			prec = n < 0 ? -1 : n;

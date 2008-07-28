@@ -1,5 +1,6 @@
-romimage: file=$BXSHARE/BIOS-bochs-latest, address=0xf0000
+romimage: file=$BXSHARE/BIOS-bochs-latest
 vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
+#optromimage1: file=$BXSHARE/gpxe-0.9.3-pci_fefe_efef.rom, address=0xd0000
 
 cpu: count=2:2:2, ips=10000000, reset_on_triple_fault=1
 
@@ -34,6 +35,12 @@ private_colormap: enabled=0
 
 #boot: floppy
 boot: cdrom
+#boot: network
+
+#ne2k: ioaddr=0x300, irq=3, mac=b0:c4:20:00:00:00, ethmod=win32, ethdev=\Device\NPF_{210BF443-8E1B-415D-B694-2DD567A9783A}
+#ne2k: ioaddr=0x300, irq=3, mac=b0:c4:20:00:00:00, ethmod=vnet, ethdev=e:\tftp
+#pnic: ioaddr=0xdc00, irq=11, mac=fe:fd:00:00:00:01, ethmod=win32, ethdev=\Device\NPF_{210BF443-8E1B-415D-B694-2DD567A9783A}
+#pnic: ioaddr=0xdc00, irq=11, mac=fe:fd:00:00:00:01, ethmod=vnet, ethdev=e:\tftp
 
 floppya: image="$ACE_ROOT/img/floppy.ima", status=inserted
 #floppya: image=$ACE_ROOT/img/raw.ima, status=inserted

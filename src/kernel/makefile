@@ -8,22 +8,23 @@
 include $(ACE_ROOT)/make.conf
 
 #clean dirs 
-CLEAN_DIRS=	generic rtc pit acpi $(ARCH) $(ARCH)/debug $(ARCH)/mm $
+CLEAN_DIRS=	generic rtc pit acpi pic $(ARCH) $(ARCH)/debug $(ARCH)/mm $
 
 #path for the output kernel
 TARGET= $(OBJ)/kernel.sys
 
 #libiraries needed to included in kernel linking
-LIBS= $(ACE_ROOT)/obj/libheap.a $(ACE_ROOT)/obj/libds.a $(ACE_ROOT)/obj/libstring.a $(ACE_ROOT)/obj/libsync.a 
+LIBS= $(ACE_ROOT)/obj/libheap.a $(ACE_ROOT)/obj/libds.a $(ACE_ROOT)/obj/libstring.a $(ACE_ROOT)/obj/libsync.a
 
 #kernel object files
 DEBUG_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/debug/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/debug/*.asm))
 KERNEL_OBJ = $(patsubst %.c,%.o,$(wildcard *.c))  $(patsubst %.c,%.o,$(wildcard mm/*.c))
 RTC_OBJ = $(patsubst %.c,%.o,$(wildcard rtc/*.c))
 PIT_OBJ = $(patsubst %.c,%.o,$(wildcard pit/*.c))
+PIC_OBJ = $(patsubst %.c,%.o,$(wildcard pic/*.c))
 ARCH_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/*.asm)) $(patsubst %.c,%.o,$(wildcard $(ARCH)/mm/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/mm/*.asm))
 #kernel objects
-OBJS= $(KERNEL_OBJ) $(ARCH_OBJ) $(DEBUG_OBJ) $(RTC_OBJ) $(PIT_OBJ) $(GENERIC_OBJ) 
+OBJS= $(KERNEL_OBJ) $(ARCH_OBJ) $(DEBUG_OBJ) $(RTC_OBJ) $(PIT_OBJ) $(PIC_OBJ) $(GENERIC_OBJ) 
 
 #phony command - all - makes all object
 all:    generic acpi $(TARGET)

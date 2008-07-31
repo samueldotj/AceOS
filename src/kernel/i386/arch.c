@@ -7,12 +7,14 @@
   			Last modified: Tue May 27, 2008  11:05AM
 	\brief	contains architecture related interface routines.
 */
+#include <string.h>
 #include <kernel/debug.h>
 #include <kernel/gdb.h>
 #include <kernel/multiboot.h>
 #include <kernel/parameter.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/pmem.h>
+#include <kernel/mm/virtual_page.h>
 #include <kernel/i386/vga_text.h>
 #include <kernel/i386/gdt.h>
 #include <kernel/i386/idt.h>
@@ -21,6 +23,7 @@
 #include <kernel/i386/cpuid.h>
 
 extern void SetupInterruptStubs();
+extern UINT32 trampoline_data, trampoline_end;
 
 /*! This is the startup module for i386 architecture
 	This should initialize all the i386 specific data/variables
@@ -85,4 +88,33 @@ void InvalidateAllTlb()
 void InvalidateTlb(void * va)
 {
 	asm volatile("invlpg (%%eax)" : : "a" (va) );
+}
+/*! First function called from asm stub when a Secondary CPU starts
+*/
+void SecondaryCPUStart()
+{
+	kprintf("Secondary CPU is starting...\n");
+}
+/*! Create a physical page with appropriate real mode code to start a secondary CPU
+	\return Physical address of the page
+*/
+UINT32 CreatePageForSecondaryCPUStart()
+{	
+	VADDR va;
+	VIRTUAL_PAGE_PTR vp;
+	int kernel_stack_pages = 2;
+	
+	vp = AllocateVirtualPages(kernel_stack_pages);
+	if ( vp == NULL )
+		panic("PA not available for starting secondary CPU\n");
+	if ( AllocateVirtualMemory(&kernel_map, &va, 0, PAGE_SIZE * kernel_stack_pages, 0, 0) != ERROR_SUCCESS )
+		panic("VA not available for starting secondary CPU\n");
+	if ( CreatePhysicalMapping(kernel_map.physical_map, va, VP_TO_PHYS(vp), 0) != ERROR_SUCCESS )
+		panic("VA to PA mapping failed\n");
+		
+	/*copy the 16 bit real mode  code*/
+	memcpy( (void *)va, (void *)trampoline_data, trampoline_end-trampoline_data);
+	
+	/*return the physical address*/
+	return VP_TO_PHYS(vp);
 }

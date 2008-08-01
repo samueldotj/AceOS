@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Sat Jun 14, 2008  06:18PM
-  			Last modified: Tue Jun 27, 2008  04:38PM
+  			Last modified: Fri Aug 01, 2008  04:31PM
   \brief	
 */
 
@@ -295,5 +295,10 @@ typedef struct cpuid_info
 
 extern CPUID_INFO cpuid_info[MAX_PROCESSORS];
 void LoadCpuIdInfo(CPUID_INFO_PTR cpuid_info);
+
+/* Macros to return attributes from cpuid_info database. */
+#define EXTRACT_FROM_CPUID_LAPIC cpuid_info[0].feature._.apic
+#define EXTRACT_FROM_CPUID_APIC_ID cpuid_info[0].feature._.apic_id
+
 
 #endif

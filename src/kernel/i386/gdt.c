@@ -11,8 +11,6 @@
 #include <ace.h>
 #include <kernel/i386/gdt.h>
 
-#define GDT_ENTRIES		5
-
 /*global descriptor table*/
 struct gdt_entry gdt[GDT_ENTRIES] =
 {

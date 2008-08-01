@@ -49,6 +49,10 @@ struct gdt_register
         UINT32 base;
 } __attribute__ ((packed));
 
+#define GDT_ENTRIES		5
+
+/*global descriptor table*/
+extern struct gdt_entry gdt[GDT_ENTRIES];
 
 void LoadGdt();
 

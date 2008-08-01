@@ -2,21 +2,15 @@
 ;Copied from Linux source
 ;Real mode 16 bit code for starting secondary processors.
 
-KERNEL_CODE_SELECTOR	equ		0x8
-GDT_ENTRIES				equ		0x5
+%include "kernel/i386/i386.inc"
 
-KERNEL_PHYSICAL_ADDRESS	equ 	0x100000
-KERNEL_VIRTUAL_ADDRESS  equ 	(0xC0000000 + KERNEL_PHYSICAL_ADDRESS)
+EXTERN SecondaryCPUEntry
 
-%define KERNEL_BOOT_ADDRESS(va)	(va- KERNEL_VIRTUAL_ADDRESS + KERNEL_PHYSICAL_ADDRESS)
-
-EXTERN	gdt
-EXTERN	SecondaryCPUEntry
+GLOBAL trampoline_data
+GLOBAL trampoline_end
 
 [BITS 16]
 [SECTION .boot]
-GLOBAL trampoline_data
-GLOBAL trampoline_end
 trampoline_data:
 
 	wbinvd										; Needed for NUMA-Q should be harmless for others

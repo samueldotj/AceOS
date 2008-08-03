@@ -19,13 +19,29 @@
 #define MAX_MEMORY_AREAS		32
 #define MAX_PHYSICAL_REGIONS	16
 
+/*http://www.ctyme.com/intr/rb-1741.htm
+Values for System Memory Map address type:
+01h    memory, available to OS
+02h    reserved, not available (e.g. system ROM, memory-mapped device)
+03h    ACPI Reclaim Memory (usable by OS after reading ACPI tables)
+04h    ACPI NVS Memory (OS is required to save this memory between NVS
+sessions)
+other  not defined yet -- treat as Reserved*/
+#define PMEM_TYPE_AVAILABLE			0x1
+#define PMEM_TYPE_RESERVED			0x2
+#define PMEM_TYPE_ACPI_RECLAIM		0x3
+#define PMEM_TYPE_ACPI_NVS			0x4
+
+
 typedef struct physical_memory_region
 {
 	UINT32				start_physical_address;			//starting physical address
 	UINT32				end_physical_address;			//ending physical address
-
+	
 	VIRTUAL_PAGE_PTR	virtual_page_array;				//virutal page array for this region
-	UINT32				virtual_page_count;
+	UINT32				virtual_page_count;				//total pages in this region
+	
+	UINT32				type;							//usable, reserved, etc
 	
 }PHYSICAL_MEMORY_REGION, * PHYSICAL_MEMORY_REGION_PTR;
 

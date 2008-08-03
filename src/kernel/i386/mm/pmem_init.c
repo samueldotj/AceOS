@@ -16,7 +16,7 @@
 #include <kernel/mm/pmem.h>
 #include <kernel/i386/pmem.h>
 
-extern UINT32 ebss;
+extern UINT32 ebss, kernel_code_start;
 
 #define BOOT_ADDRESS(addr)	(((UINT32)addr - KERNEL_VIRTUAL_ADDRESS_TEXT_START)+KERNEL_PHYSICAL_ADDRESS_LOAD )
 
@@ -50,43 +50,47 @@ void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi
 static UINT32 InitMemoryArea(MEMORY_AREA_PTR ma_pa, MEMORY_MAP_PTR memory_map_array, int memory_map_count)
 {
 	UINT32 total_size = 0;	//total bytes occupied by virtual page array
-	UINT32 kernel_end = PAGE_ALIGN_UP (  BOOT_ADDRESS(&ebss) );
 	int i;
-	for(i=0; i<memory_map_count; i++)
+	UINT32 kernel_start = PAGE_ALIGN_UP (  BOOT_ADDRESS(&kernel_code_start) );
+	UINT32 kernel_end = PAGE_ALIGN_UP (  BOOT_ADDRESS(&ebss) );
+	
+	ma_pa->physical_memory_regions_count = 0;
+	for(i=0; i<memory_map_count && i<MAX_PHYSICAL_REGIONS; i++)
 	{
-		//use only available RAM
-		if( memory_map_array[i].type == 1 )
+		PHYSICAL_MEMORY_REGION_PTR pmr_pa;
+		//get physical address of the physical memory region
+		pmr_pa = &ma_pa->physical_memory_regions[i];
+		
+		pmr_pa->start_physical_address = memory_map_array[i].base_addr_low;
+		pmr_pa->end_physical_address = pmr_pa->start_physical_address + memory_map_array[i].length_low;
+		pmr_pa->virtual_page_array = NULL; 
+		pmr_pa->virtual_page_count = 0;
+		pmr_pa->type = memory_map_array[i].type;
+		
+		ma_pa->physical_memory_regions_count++;
+		//create vm_page_array only for available RAM
+		if( pmr_pa->type == PMEM_TYPE_AVAILABLE )
 		{
-			PHYSICAL_MEMORY_REGION_PTR pmr_pa;
 			int total_virtual_pages, virtual_page_array_size;
-
-			//if memory start is less than 1MB then skip it because we cant use it
-			if ( memory_map_array[i].base_addr_low < (1024 * 1024) )
-				continue;
+			UINT32 region_size;
+			
 			//we cant use the kernel code and data area
-			if ( memory_map_array[i].base_addr_low <  kernel_end )
-			{
-				memory_map_array[i].length_low -=  kernel_end - memory_map_array[i].base_addr_low;
-				memory_map_array[i].base_addr_low = kernel_end;
-			}
+			if ( ( pmr_pa->start_physical_address <=  kernel_start && pmr_pa->end_physical_address > kernel_start ) ||
+				( pmr_pa->start_physical_address >=  kernel_start && pmr_pa->start_physical_address < kernel_end ) )
+				pmr_pa->start_physical_address = kernel_end;
+			
+			region_size = pmr_pa->end_physical_address - pmr_pa->start_physical_address;
 			
 			//calculate virtual page array size
-			total_virtual_pages =  memory_map_array[i].length_low / PAGE_SIZE;
+			total_virtual_pages =  region_size / PAGE_SIZE;
 			virtual_page_array_size = PAGE_ALIGN_UP ( total_virtual_pages * sizeof(VIRTUAL_PAGE) );
 			//adjust total_virtual_pages
-			total_virtual_pages = (memory_map_array[i].length_low - virtual_page_array_size) / PAGE_SIZE;
+			total_virtual_pages = (region_size - virtual_page_array_size) / PAGE_SIZE;
+			
+			pmr_pa->virtual_page_array = (VIRTUAL_PAGE_PTR)pmr_pa->start_physical_address; /*this physical address will be converted into virtual address by InitKernelPagediretory()*/
+			pmr_pa->virtual_page_count = total_virtual_pages;
 			
 			total_size += virtual_page_array_size;
-
-			//get physical address of the physical memory region
-			pmr_pa = &ma_pa->physical_memory_regions[ma_pa->physical_memory_regions_count];
-			
-			pmr_pa->start_physical_address = memory_map_array[i].base_addr_low + virtual_page_array_size;
-			pmr_pa->end_physical_address = memory_map_array[i].base_addr_low + memory_map_array[i].length_low;
-			pmr_pa->virtual_page_array = (VIRTUAL_PAGE_PTR)memory_map_array[i].base_addr_low; 
-			pmr_pa->virtual_page_count = total_virtual_pages;
-						
-			ma_pa->physical_memory_regions_count++;
 		}
 	}
 	return total_size;
@@ -100,26 +104,30 @@ static void * GetFreePhysicalPage()
 	int i;
 	MEMORY_AREA_PTR ma_pa;
 	ma_pa = (MEMORY_AREA_PTR)BOOT_ADDRESS ( &memory_areas[0] );
+	
 	for(i=ma_pa->physical_memory_regions_count-1; i >= 0 ; i--)
 	{
 		PHYSICAL_MEMORY_REGION_PTR pmr_pa;
 		void * pa;
 		pmr_pa = &ma_pa->physical_memory_regions[i];
 		
-		//skip the region if there is not enough space 
-		if ( (pmr_pa->end_physical_address - pmr_pa->start_physical_address) <= PAGE_SIZE )
-			continue;
-		//get the first page
-		pa = (void *)pmr_pa->start_physical_address;
-		
-		//adjust the region
-		pmr_pa->start_physical_address += PAGE_SIZE;
-		pmr_pa->virtual_page_count--;
-		
-		memset(pa, 0, PAGE_SIZE);
-		
-		return pa;
+		//if the region has enough free space allocate and return
+		if ( pmr_pa->type == PMEM_TYPE_AVAILABLE && (pmr_pa->end_physical_address - pmr_pa->start_physical_address) > PAGE_SIZE )
+		{
+			//get the last page
+			pa = (void *)(pmr_pa->end_physical_address-PAGE_SIZE);
+			
+			//adjust the region
+			pmr_pa->end_physical_address = (UINT32)pa;
+			pmr_pa->virtual_page_count--;
+			
+			memset(pa, 0, PAGE_SIZE);
+			
+			return pa;
+		}
 	}
+	/*panic if we dont find a free physical page*/
+	asm("cli;hlt");
 	return NULL;
 }
 
@@ -175,16 +183,18 @@ static void InitKernelPageDirectory(UINT32 k_map_end)
 		PHYSICAL_MEMORY_REGION_PTR pmr_pa;
 		pmr_pa = &ma_pa->physical_memory_regions[i];
 		
-		physical_address = (UINT32)pmr_pa->virtual_page_array;
-		end_address = physical_address + (pmr_pa->virtual_page_count * sizeof(VIRTUAL_PAGE));
-		pmr_pa->virtual_page_array =  (VIRTUAL_PAGE_PTR)va;
-		do
+		if ( pmr_pa->type == PMEM_TYPE_AVAILABLE )
 		{
-			EnterKernelPageTableEntry( va, physical_address);
-			physical_address += PAGE_SIZE;
-			va += PAGE_SIZE;
-		}while( physical_address <= ( end_address ) );
-		
+			physical_address = (UINT32)pmr_pa->virtual_page_array;
+			end_address = physical_address + (pmr_pa->virtual_page_count * sizeof(VIRTUAL_PAGE));
+			pmr_pa->virtual_page_array =  (VIRTUAL_PAGE_PTR)va;
+			do
+			{
+				EnterKernelPageTableEntry( va, physical_address);
+				physical_address += PAGE_SIZE;
+				va += PAGE_SIZE;
+			}while( physical_address <= ( end_address ) );
+		}
 	}
 	/*self mapping*/
 	k_page_dir[PT_SELF_MAP_INDEX] = ((UINT32)k_page_dir) | KERNEL_PTE_FLAG;
@@ -217,7 +227,8 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 		page_table = (PAGE_TABLE_ENTRY_PTR) pa;
 		
 		/*enter pde*/
-		k_page_dir[pd_index].all = PA_TO_PFN(pa) | KERNEL_PTE_FLAG;
+		k_page_dir[pd_index].all = KERNEL_PTE_FLAG;
+		k_page_dir[pd_index]._.page_table_pfn = PA_TO_PFN(pa);
 	}
 	else
 	{
@@ -228,7 +239,8 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 	//enter pte in the page table.
 	if ( !page_table[ pt_index ]._.present )
 	{
-		page_table[pt_index].all = PA_TO_PFN(pa) | KERNEL_PTE_FLAG;
+		page_table[pt_index].all = KERNEL_PTE_FLAG;
+		page_table[pt_index]._.page_pfn =  PA_TO_PFN(pa);
 	}
 }
 /*! 	1) This phase will removes the unnessary page table entries that is created before enabling paging.
@@ -237,6 +249,8 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 void InitPhysicalMemoryManagerPhaseII()
 {
 	int i;
+		UINT32 kernel_start = PAGE_ALIGN_UP (  BOOT_ADDRESS(&kernel_code_start) );
+	UINT32 kernel_end = PAGE_ALIGN_UP (  BOOT_ADDRESS(&ebss) );
 	
 	/*initialize the kernel physical map*/
 	InitSpinLock( &kernel_physical_map.lock );
@@ -251,11 +265,27 @@ void InitPhysicalMemoryManagerPhaseII()
 	for(i=0; i<memory_area_count; i++ )
 	{
 		int j;
+		kprintf("System map:    START     END       PAGES      TYPE\n");
 		for(j=0; j<memory_areas[i].physical_memory_regions_count; j++ )
 		{
 			PHYSICAL_MEMORY_REGION_PTR pmr = &memory_areas[i].physical_memory_regions[j];
-			InitVirtualPageArray(pmr->virtual_page_array, pmr->virtual_page_count, pmr->start_physical_address);
-			vm_data.total_memory_pages += pmr->virtual_page_count;
+			kprintf("           %9p %9p %9d %10s\n", pmr->start_physical_address, pmr->end_physical_address, pmr->virtual_page_count, 
+				pmr->type == PMEM_TYPE_AVAILABLE ? "Available" : pmr->type == PMEM_TYPE_ACPI_RECLAIM ? "ACPI Reclaim" : pmr->type == PMEM_TYPE_ACPI_NVS ? "ACPI NVS" : "Reserved" );
+			
+			if ( pmr->start_physical_address < (1024*1024) )
+				continue;
+			//we cant use the kernel code and data area
+			if ( ( pmr->start_physical_address <=  kernel_start && pmr->end_physical_address > kernel_start ) ||
+				( pmr->start_physical_address >=  kernel_start && pmr->start_physical_address < kernel_end ) )
+			{
+				continue;
+			}
+			
+			if ( pmr->type == PMEM_TYPE_AVAILABLE )
+			{
+				InitVirtualPageArray(pmr->virtual_page_array, pmr->virtual_page_count, pmr->start_physical_address);
+				vm_data.total_memory_pages += pmr->virtual_page_count;
+			}
 		}
 	}
 	

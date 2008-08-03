@@ -15,6 +15,7 @@ SECTIONS
 	}
 	.text : 
 	{   
+		kernel_code_start	= .;
 		*(.text) 	
 	}  
 	.rodata         :

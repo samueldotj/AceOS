@@ -261,7 +261,7 @@ VIRTUAL_PAGE_PTR PhysicalToVirtualPage(UINT32 physical_address)
 		PHYSICAL_MEMORY_REGION_PTR pmr;
 		for(j=0;j<memory_areas[i].physical_memory_regions_count;j++)
 		{
-			pmr = memory_areas[i].physical_memory_regions;
+			pmr = &memory_areas[i].physical_memory_regions[j];
 			if ( physical_address >= pmr->start_physical_address && physical_address < pmr->end_physical_address )
 			{
 				UINT32 index;

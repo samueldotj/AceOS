@@ -48,7 +48,7 @@ void InitVm()
 
 	/*complete physical memory initialization*/
 	InitPhysicalMemoryManagerPhaseII();
-	kprintf("System memory: %dMB (PAGE_SIZE %d)\n", (vm_data.total_memory_pages * PAGE_SIZE) / (1024*1024), PAGE_SIZE );
+	kprintf("Total memory: %d KB (PAGE_SIZE %d)\n", (vm_data.total_memory_pages * PAGE_SIZE) / (1024), PAGE_SIZE );
 	
 	/*Initialize the kernel memory allocator*/
 	kmem_start_va = kernel_free_virtual_address;

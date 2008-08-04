@@ -1,4 +1,4 @@
-/*! \file arch.h
+/*! \file kernel/arch.h
     \brief Architecture specific function declartions
 	\author Samuel (samueldotj@gmail.com)
     \date 26/09/07 15:29
@@ -20,6 +20,7 @@ void ArchHalt();
 void InvalidateTlb(void * va);
 void InvalidateAllTlb();
 void FlushCpuCache(BOOLEAN write_back);
+UINT32 CreatePageForSecondaryCPUStart();
 
 #ifdef __cplusplus
 	}

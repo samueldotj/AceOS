@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Sat Jun 14, 2008  06:16PM
-  			Last modified: Tue Jul 29, 2008  02:46PM
+  			Last modified: Mon Aug 04, 2008  04:24PM
   \brief	Provides support for Advanced programmable interrupt controller on P4 machine.
 */
 
@@ -12,6 +12,13 @@
 #include <kernel/i386/cpuid.h>
 #include <string.h>
 #include <kernel/apic.h>
+#include <kernel/acpi/acpi.h>
+#include <kernel/debug.h>
+#include <kernel/arch.h>
+#include <kernel/processor.h>
+
+static void BootOtherProcessors(void);
+static void StartProcessor(UINT32 apic_id);
 
 #define X2APIC_ENABLE_BIT 21
 #define APIC_ENABLE_BIT 9
@@ -101,19 +108,23 @@ EOI_REG_PTR eoi_reg;
 #define EOI_REGISTER_OFFSET 0xB0
 #define EOI_REGISTER_RESET 0x0
 
-/*!
-	\brief	Detects if APIC support is present on the system by looking into CPUID.
 
-	\param	 
+IOAPIC ioapic[MAX_IOAPIC];
+UINT32 count_ioapic;
+
+/*!
+	\brief	Detects if APIC support is present on the processor by looking into CPUID.
+
+	\param	 cpu_id: id of the processor which is to be queried.
 
 	\return	 0:  Success, APIC is present.
 			 -1: Failure, APIC is absent.
 */
-int DetectApic()
+int DetectAPIC(UINT8 cpu_id)
 {
 	char present;
 
-	present = (char)(EXTRACT_FROM_CPUID_LAPIC);
+	present = CPU_FEATURE_APIC(cpu_id);
 	if(!present) /* APIC is not present on this processor */
 		return -1;
 	return 0;
@@ -126,7 +137,7 @@ int DetectApic()
 
 	\return	 void
 */
-void UseApic(int enable)
+void UseAPIC(int enable)
 {
 	if(enable)
 	{
@@ -157,37 +168,38 @@ INT16 IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIV
 	
 	cmd.vector = vector;
 	cmd.delivery_mode = delivery_mode;
-	cmd.destination_mode = PHYSICAL;
-	cmd.level = ASSERT;
+	cmd.destination_mode = ICR_DESTINATION_MODE_PHYSICAL;
+	cmd.level = ICR_LEVEL_ASSERT;
 	cmd.destination_field = apic_id;
 
 	switch(delivery_mode)
 	{
-		case FIXED: 			break;
-		case LOWEST_PRIORITY: 	break;
-		case SMI:				cmd.vector = 0; /*This is for future compatibility as described in specs. */
-								break;
-		case NMI:				break;
-		case INIT:
-								if(init_de_assert) {
-									cmd.level = DE_ASSERT;
-									cmd.trigger_mode = LEVEL;
-								}		
-								cmd.vector = 0; /*This is for future compatibility as described in specs. */
-								break;
-		case SIPI: 				break;
-		case ExtINT: 			cmd.trigger_mode = LEVEL; break;
-		default: 				break;
+		case ICR_DELIVERY_MODE_FIXED:			break;
+		case ICR_DELIVERY_MODE_LOWEST_PRIORITY:	break;
+		case ICR_DELIVERY_MODE_SMI:				cmd.vector = 0; /*This is for future compatibility as described in specs. */
+												break;
+		case ICR_DELIVERY_MODE_NMI:				break;
+		case ICR_DELIVERY_MODE_INIT:
+												if(init_de_assert) {
+													cmd.level = ICR_LEVEL_DE_ASSERT;
+												}		
+												cmd.trigger_mode = ICR_TRIGGER_MODE_LEVEL;
+												cmd.vector = 0; /*This is for future compatibility as described in specs. */
+												break;
+		case ICR_DELIVERY_MODE_SIPI:			cmd.trigger_mode = ICR_TRIGGER_MODE_EDGE;
+												break;
+		case ICR_DELIVERY_MODE_ExtINT: 			cmd.trigger_mode = ICR_TRIGGER_MODE_LEVEL; break;
+		default:								break;
 	}
 	
 	switch(destination_shorthand)
 	{
-    	case	NO_SHORTHAND:		break;
-		case	SELF:				break;
-		case	ALL_INCLUDING_SELF:	cmd.destination_field = 0XFF;
-									break;
-		case	ALL_EXCLUDING_SELF:	cmd.destination_field = 0XFF;
-									break;
+    	case	ICR_DESTINATION_SHORTHAND_NO_SHORTHAND:			break;
+		case	ICR_DESTINATION_SHORTHAND_SELF:					break;
+		case	ICR_DESTINATION_SHORTHAND_ALL_INCLUDING_SELF:	cmd.destination_field = 0XFF;
+																break;
+		case	ICR_DESTINATION_SHORTHAND_ALL_EXCLUDING_SELF:	cmd.destination_field = 0XFF;
+																break;
 	}
 
 	/* Now copy these register contents to actual location of interrupt command register */
@@ -203,7 +215,7 @@ INT16 IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIV
 
 	\return	 void
 */
-static void InitAllApicRegisters(UINT32 base_address)
+static void InitAllAPICRegisters(UINT32 base_address)
 {
 	interrupt_command_register = (INTERRUPT_COMMAND_REGISTER_PTR)(base_address + INTERRUPT_COMMAND_REGISTER_LOW_OFFSET);
 	timer_register = (TIMER_REGISTER_PTR)(TIMER_REGISTER_OFFSET + base_address);
@@ -228,13 +240,13 @@ static void InitAllApicRegisters(UINT32 base_address)
 
 /*!
 	\brief	Sets the base address of apic to this new address.
-			It then calls InitAllApicRegisters to set all APIC registers to offset from the new base address.
+			It then calls InitAllAPICRegisters to set all APIC registers to offset from the new base address.
 
 	\param	 addr: The new base address of apic registers.
 
 	\return	 void
 */
-void RelocateBaseApicAddress(UINT32 addr)
+void RelocateBaseAPICAddress(UINT32 addr)
 {
 	/* backup the present contents of base register */
 	IA32_APIC_BASE_MSR temp;
@@ -248,5 +260,146 @@ void RelocateBaseApicAddress(UINT32 addr)
 
 	memcpy((void*)(ia32_apic_base_msr), (void*)(&temp), sizeof(IA32_APIC_BASE_MSR));
 
-	InitAllApicRegisters(addr);
+	InitAllAPICRegisters(addr);
 }
+
+void GetProcessorInfoFromACPI()
+{
+	ACPI_TABLE_MADT *madt_ptr;
+	if ( AcpiGetTable ("APIC", 1, (ACPI_TABLE_HEADER**)(&madt_ptr)) != AE_OK )
+		kprintf("AcpiGetTable() failed\n");
+	else
+	{
+		kprintf("LAPIC Address %p [%s]\n", madt_ptr->Address, madt_ptr->Flags&1?"APIC and Dual 8259 Support":"Only APIC" );
+		ACPI_SUBTABLE_HEADER *sub_header, *table_end;
+		sub_header = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + sizeof(ACPI_TABLE_MADT) );
+		table_end = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + madt_ptr->Header.Length );
+
+		count_running_processors = 0;
+		while ( sub_header < table_end )
+		{
+			if ( sub_header->Type == ACPI_MADT_TYPE_LOCAL_APIC )
+			{
+				ACPI_MADT_LOCAL_APIC *p = ( ACPI_MADT_LOCAL_APIC * ) sub_header;
+				kprintf("Processor ID %d LAPIC Id = %d [%s]\n", p->ProcessorId, p->Id, ( (p->LapicFlags & 1) ? "Online" : "Offline") );
+				processor[count_running_processors].apic_id = p->Id;
+				processor[count_running_processors].state = ( (p->LapicFlags & 1) ? (PROCESSOR_STATE_ONLINE) : (PROCESSOR_STATE_OFFLINE) );
+				kprintf("processor loaded..\n");
+				count_running_processors++;
+			}
+			else if ( sub_header->Type == ACPI_MADT_TYPE_IO_APIC )
+			{
+				ACPI_MADT_IO_APIC *p = ( ACPI_MADT_IO_APIC * ) sub_header;
+				kprintf("IOAPIC ID %d IOAPIC Physical Address = %p GlobalIRQBase %d\n", p->Id, p->Address, p->GlobalIrqBase);
+				ioapic[count_ioapic].ioapic_id = p->Id;
+				ioapic[count_ioapic].physical_address = p->Address;
+				count_ioapic++;
+			}
+			else
+				kprintf("Type = %d\n", sub_header->Type);
+
+			sub_header = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)sub_header) + sub_header->Length );
+		}
+		kprintf("while done\n");
+	}
+}
+
+
+
+/*!
+	\brief	 Initialize APIC by getting information from ACPI. This is called from main.c.
+
+	\param	 void
+
+	\return	 void
+*/
+void InitAPIC(void)
+{
+	GetProcessorInfoFromACPI();
+	return;
+}
+
+
+
+void SetupAPIC(void)
+{
+	//Interrupt 0 from APIC should actually be marked as vector number 32 in IDT.
+//	asm("cli;");
+	return;
+}
+
+
+/*!
+	\brief	The act of writing anything to this register will cause an EOI to be issued.
+
+	\param	 int_no: Interrupt number
+
+	\return	 void
+*/
+void SendEndOfInterrupt(int int_no)
+{
+	eoi_reg->zero = 1;
+}
+
+
+
+/*!
+	\brief	 Initialise SMP environment
+
+	\param	 void
+
+	\return	 void
+
+	\Assumption: We assume that InitAPIC() is already called and processor structures are updated.
+*/
+void InitSmp(void)
+{
+    BootOtherProcessors();
+}
+
+static void BootOtherProcessors(void)
+{
+	UINT32 apic_id, processor_count;
+    //Send SIPI to all cpu's
+    for(processor_count=0; processor_count < count_running_processors ; processor_count++)
+	{
+		//if (processor[processor_count].state == OFFLINE)
+		apic_id = processor[processor_count].apic_id;
+	    StartProcessor(apic_id);
+	}
+}
+
+static void StartProcessor(UINT32 apic_id)
+{
+	int temp_count_processors = count_running_processors;
+	int temp_loop;
+
+	/* Get the 32 bit physical address which contains the code to execute on ap's.  We need only first 8 bits(LSB) of the physical address. */
+    UINT8 vector = (CreatePageForSecondaryCPUStart() & 0xff); 
+
+	/* BSP should initialize the BIOS shutdown code to 0AH and vector to startup code. */
+	//TBD
+	IssueInterprocessorInterrupt(vector, apic_id, ICR_DELIVERY_MODE_INIT, ICR_DESTINATION_SHORTHAND_NO_SHORTHAND, 0);
+
+	//delay(10); //I want to sleep for 10m sec
+	for(temp_loop=0; temp_loop < 1000000; temp_loop++);
+
+	IssueInterprocessorInterrupt(vector, apic_id, ICR_DELIVERY_MODE_SIPI, ICR_DESTINATION_SHORTHAND_NO_SHORTHAND, 0);
+	
+	//delay(200Micr sec);
+	for(temp_loop=0; temp_loop < 20000; temp_loop++);
+	
+	IssueInterprocessorInterrupt(vector, apic_id, ICR_DELIVERY_MODE_SIPI, ICR_DESTINATION_SHORTHAND_NO_SHORTHAND, 0);
+	
+	//delay(200Micr sec);
+	for(temp_loop=0; temp_loop < 20000; temp_loop++);
+	
+	//Now check if AP has started running?
+	if ( temp_count_processors != (count_running_processors + 1) )
+	{
+		kprintf("Something wrong in booting ap %d!\n", apic_id);
+		//mark the processor as absent.
+	}
+	return;
+}
+ 

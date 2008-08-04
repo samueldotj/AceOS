@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Thu Oct 11, 2007  02:27PM
-  			Last modified: Fri Oct 12, 2007  04:30PM
+  			Last modified: Mon Aug 04, 2008  02:58PM
   \brief	This file contains routiens necessary to handle and setup IRQ(Interrupt requests) on the system.
 		
 	All the interrupts from 33-48 will be redirected to InterruptHandler().
@@ -16,8 +16,7 @@
 #include <kernel/i386/idt.h>
 #include <kernel/io.h>
 #include <kernel/debug.h>
-
-static void SetupPIC(void);
+#include <kernel/apic.h>
 
 /* These are own ISRs that point to our special IRQ handler instead of the 
 regular 'fault_handler' function */
@@ -32,7 +31,7 @@ extern	void
 */
 void SetupInterruptStubs()
 {
-	SetupPIC();
+	SetupAPIC();
 	
 	SetIdtGate(32, (unsigned)InterruptStub0);
 	SetIdtGate(33, (unsigned)InterruptStub1);
@@ -51,6 +50,8 @@ void SetupInterruptStubs()
 	SetIdtGate(46, (unsigned)InterruptStub14);
 	SetIdtGate(47, (unsigned)InterruptStub15);
 }
+
+#if 0
 /*! TODO - The following functions should move to PIC folder after APIC implementation*/
 /*! pic specific end of interrupt generator
 */
@@ -79,3 +80,5 @@ static void SetupPIC(void)
 	_outp(0x21, 0x0);
 	_outp(0xA1, 0x0);
 }
+
+#endif

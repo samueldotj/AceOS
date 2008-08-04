@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Sat Jun 14, 2008  06:19PM
-  			Last modified: Tue Jul 29, 2008  11:06AM
+  			Last modified: Mon Aug 04, 2008  03:59PM
   \brief	
 */
 
@@ -14,58 +14,63 @@
 
 #include <ace.h>
 
+
+#define MAX_IOAPIC 4
+
 /* Enums */
 enum ICR_DELIVERY_MODE
 {
-    FIXED=0,
-    LOWEST_PRIORITY=1,
-    SMI=2,
-    RESERVED1=3,
-    NMI=4,
-    INIT=5,
-    SIPI=6, //Startup IPI
-    ExtINT=7
+    ICR_DELIVERY_MODE_FIXED=0,
+    ICR_DELIVERY_MODE_LOWEST_PRIORITY=1,
+    ICR_DELIVERY_MODE_SMI=2,
+    ICR_DELIVERY_MODE_RESERVED1=3,
+    ICR_DELIVERY_MODE_NMI=4,
+    ICR_DELIVERY_MODE_INIT=5,
+    ICR_DELIVERY_MODE_SIPI=6, //Startup IPI
+    ICR_DELIVERY_MODE_ExtINT=7
 };
 
 enum ICR_DESTINATION_MODE
 {
-    PHYSICAL=0,
-    LOGICAL=1
+    ICR_DESTINATION_MODE_PHYSICAL=0,
+    ICR_DESTINATION_MODE_LOGICAL=1
 };
 
 enum ICR_DELIVERY_STATUS
 {
-    IDLE=0,
-    SEND_PENDING=1
+    ICR_DELIVERY_STATUS_IDLE=0,
+    ICR_DELIVERY_STATUS_SEND_PENDING=1
 };
 
 enum ICR_LEVEL
 {
-    DE_ASSERT=0,
-    ASSERT=1
+    ICR_LEVEL_DE_ASSERT=0,
+    ICR_LEVEL_ASSERT=1
 };
 
 enum ICR_TRIGGER_MODE
 {
-    EDGE=0,
-    LEVEL=1
+    ICR_TRIGGER_MODE_EDGE=0,
+    ICR_TRIGGER_MODE_LEVEL=1
 };
 
 enum ICR_DESTINATION_SHORTHAND
 {
-    NO_SHORTHAND=0,
-    SELF=1,
-    ALL_INCLUDING_SELF=2,
-    ALL_EXCLUDING_SELF=3
+    ICR_DESTINATION_SHORTHAND_NO_SHORTHAND=0,
+    ICR_DESTINATION_SHORTHAND_SELF=1,
+    ICR_DESTINATION_SHORTHAND_ALL_INCLUDING_SELF=2,
+    ICR_DESTINATION_SHORTHAND_ALL_EXCLUDING_SELF=3
 };
 
-enum dfr_model
+enum DFR_MODEL
 {
-    FLAT_MODEL=15,
-    CLUSTER_MODEL=0
+    DFR_MODEL_FLAT_MODEL=15,
+    DFR_MODEL_CLUSTER_MODEL=0
 };
 
 /* Structures and unions */
+
+/* LAPIC */
 typedef struct ia32_apic_base_msr
 {
     UINT32  reserved1: 8, //0-7
@@ -242,15 +247,24 @@ typedef struct eoi_reg
 
 
 
+/* IOAPIC */
+typedef struct ioapic
+{
+	UINT32 ioapic_id;
+	UINT32 physical_address;
+}IOAPIC, *IOAPIC_PTR;
 
 
 /* Functions */
 
-int DetectApic();
-void UseApic(int enable);
+int DetectAPIC(UINT8 cpu_id);
+void UseAPIC(int enable);
 INT32 GetApicId();
 void RelocateBaseApicAddress(UINT32 addr);
 INT16 IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIVERY_MODE delivery_mode,
                 enum ICR_DESTINATION_SHORTHAND destination_shorthand, BYTE init_de_assert);
+void SetupAPIC(void);
+void InitSmp(void);
+void InitAPIC(void);
 
 #endif

@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Fri Sep 21, 2007  02:26PM
-  			Last modified: Thu May 29, 2008  10:04AM
+  			Last modified: Mon Aug 04, 2008  04:09PM
   \brief		
 */
 #include <version.h>
@@ -17,9 +17,11 @@
 #include <kernel/time.h>
 #include <kernel/pit.h>
 #include <kernel/mm/vm.h>
+#include <kernel/apic.h>
+
 extern int InitACPI();
-/*! first C function which gets control from assembly
-*/
+
+/*! first C function which gets control from assembly */
 void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 {
 	SYSTEM_TIME boot_time;
@@ -54,6 +56,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 
 	/*initialize kernel parameters and parse boot parameters*/
 	InitKernelParameters();
+	kprintf("Initialized kernel parameters\n");
 	ParaseBootParameters();
 
 	/*start gdb as soon as possible*/
@@ -62,8 +65,13 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 		
 	if ( InitACPI() != 0 )
 		panic("ACPI Initialization failed.\n");
-		
-	kprintf("Kernel initialization complete\n");
+	kprintf("ACPI initialized\n");
+
+	InitAPIC();
+	kprintf("APIC initialized\n");
+
+	InitSmp();
+	kprintf("SMP initialised\n");
 fatal_boot_error:
 	while(1);
 }

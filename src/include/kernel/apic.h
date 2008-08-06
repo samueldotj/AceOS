@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Sat Jun 14, 2008  06:19PM
-  			Last modified: Mon Aug 04, 2008  03:59PM
+  			Last modified: Thu Aug 07, 2008  12:01AM
   \brief	
 */
 
@@ -14,8 +14,8 @@
 
 #include <ace.h>
 
-
 #define MAX_IOAPIC 4
+
 
 /* Enums */
 enum ICR_DELIVERY_MODE
@@ -255,6 +255,9 @@ typedef struct ioapic
 }IOAPIC, *IOAPIC_PTR;
 
 
+/* Declaration of the variables defined in apic.c */
+extern IA32_APIC_BASE_MSR_PTR ia32_ioapic_base_msr;
+
 /* Functions */
 
 int DetectAPIC(UINT8 cpu_id);
@@ -263,8 +266,7 @@ INT32 GetApicId();
 void RelocateBaseApicAddress(UINT32 addr);
 INT16 IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIVERY_MODE delivery_mode,
                 enum ICR_DESTINATION_SHORTHAND destination_shorthand, BYTE init_de_assert);
-void SetupAPIC(void);
-void InitSmp(void);
 void InitAPIC(void);
+void InitSmp(void);
 
 #endif

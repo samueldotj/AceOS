@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Thu Oct 11, 2007  02:27PM
-  			Last modified: Mon Aug 04, 2008  02:58PM
+  			Last modified: Thu Aug 07, 2008  12:01AM
   \brief	This file contains routiens necessary to handle and setup IRQ(Interrupt requests) on the system.
 		
 	All the interrupts from 33-48 will be redirected to InterruptHandler().
@@ -31,7 +31,7 @@ extern	void
 */
 void SetupInterruptStubs()
 {
-	SetupAPIC();
+	InitAPIC();
 	
 	SetIdtGate(32, (unsigned)InterruptStub0);
 	SetIdtGate(33, (unsigned)InterruptStub1);

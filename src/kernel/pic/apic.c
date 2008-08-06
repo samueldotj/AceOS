@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Sat Jun 14, 2008  06:16PM
-  			Last modified: Mon Aug 04, 2008  04:24PM
+  			Last modified: Thu Aug 07, 2008  12:00AM
   \brief	Provides support for Advanced programmable interrupt controller on P4 machine.
 */
 
@@ -12,6 +12,7 @@
 #include <kernel/i386/cpuid.h>
 #include <string.h>
 #include <kernel/apic.h>
+#include <kernel/ioapic.h>
 #include <kernel/acpi/acpi.h>
 #include <kernel/debug.h>
 #include <kernel/arch.h>
@@ -215,26 +216,26 @@ INT16 IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIV
 
 	\return	 void
 */
-static void InitAllAPICRegisters(UINT32 base_address)
+static void InitAPICRegisters(UINT32 base_address)
 {
-	interrupt_command_register = (INTERRUPT_COMMAND_REGISTER_PTR)(base_address + INTERRUPT_COMMAND_REGISTER_LOW_OFFSET);
-	timer_register = (TIMER_REGISTER_PTR)(TIMER_REGISTER_OFFSET + base_address);
-	lint0_reg = (LINT0_REG_PTR)(base_address + LINT0_REGISTER_OFFSET);
-	lint1_reg = (LINT1_REG_PTR)(base_address + LINT1_REGISTER_OFFSET);
-	error_reg = (ERROR_REG_PTR)(base_address + ERROR_REGISTER_OFFSET);
-	performance_monitor_count_reg = (PERFORMANCE_MONITOR_COUNT_REG_PTR)(base_address + PERF_MON_CNT_REGISTER_OFFSET);
-	thermal_sensor_reg = (THERMAL_SENSOR_REG_PTR)(base_address + THERMAL_SENSOR_REGISTER_OFFSET);
-	error_status_reg = (ERROR_STATUS_REG_PTR)(base_address + ERROR_STATUS_REGISTER_OFFSET);
-	local_apic_version_reg = (LOCAL_APIC_VERSION_REG_PTR)(base_address + LOCAl_APIC_VERSION_REGISTER_OFFSET);
-	logical_destination_reg = (LOGICAL_DESTINATION_REG_PTR)(base_address + LOGICAL_DESTINATION_REGISTER_OFFSET);
-	destination_format_reg = (DESTINATION_FORMAT_REG_PTR)(base_address + DESTINATION_FORMAT_REGISTER_OFFSET);
-	arbitration_priority_reg = (ARBITRATION_PRIORITY_REG_PTR)(base_address + ARBITRATION_PRIORITY_REGISTER_OFFSET);
-	task_priority_reg = (TASK_PRIORITY_REG_PTR)(base_address + TASK_PRIORITY_REGISTER_OFFSET);
-	processor_priority_reg = (PROCESSOR_PRIORITY_REG_PTR)(base_address + PROCESSOR_PRIORITY_REGISTER_OFFSET);
-	interrupt_request_reg = (INTERRUPT_REQUEST_REG_PTR)(base_address + INTERRUPT_REQUEST_REGISTER_OFFSET);
-	in_service_reg = (IN_SERVICE_REG_PTR)(base_address + IN_SERVICE_REGISTER_OFFSET);
-	trigger_mode_reg = (TRIGGER_MODE_REG_PTR)(base_address + TRIGGER_MODE_REGISTER_OFFSET);
-	eoi_reg = (EOI_REG_PTR)(base_address + EOI_REGISTER_OFFSET);
+	interrupt_command_register		=	(INTERRUPT_COMMAND_REGISTER_PTR)(base_address + INTERRUPT_COMMAND_REGISTER_LOW_OFFSET);
+	timer_register 					=	(TIMER_REGISTER_PTR)(TIMER_REGISTER_OFFSET + base_address);
+	lint0_reg						=	(LINT0_REG_PTR)(base_address + LINT0_REGISTER_OFFSET);
+	lint1_reg						=	(LINT1_REG_PTR)(base_address + LINT1_REGISTER_OFFSET);
+	error_reg						=	(ERROR_REG_PTR)(base_address + ERROR_REGISTER_OFFSET);
+	performance_monitor_count_reg	=	(PERFORMANCE_MONITOR_COUNT_REG_PTR)(base_address + PERF_MON_CNT_REGISTER_OFFSET);
+	thermal_sensor_reg				=	(THERMAL_SENSOR_REG_PTR)(base_address + THERMAL_SENSOR_REGISTER_OFFSET);
+	error_status_reg				=	(ERROR_STATUS_REG_PTR)(base_address + ERROR_STATUS_REGISTER_OFFSET);
+	local_apic_version_reg			=	(LOCAL_APIC_VERSION_REG_PTR)(base_address + LOCAl_APIC_VERSION_REGISTER_OFFSET);
+	logical_destination_reg			=	(LOGICAL_DESTINATION_REG_PTR)(base_address + LOGICAL_DESTINATION_REGISTER_OFFSET);
+	destination_format_reg			=	(DESTINATION_FORMAT_REG_PTR)(base_address + DESTINATION_FORMAT_REGISTER_OFFSET);
+	arbitration_priority_reg		=	(ARBITRATION_PRIORITY_REG_PTR)(base_address + ARBITRATION_PRIORITY_REGISTER_OFFSET);
+	task_priority_reg				=	(TASK_PRIORITY_REG_PTR)(base_address + TASK_PRIORITY_REGISTER_OFFSET);
+	processor_priority_reg			=	(PROCESSOR_PRIORITY_REG_PTR)(base_address + PROCESSOR_PRIORITY_REGISTER_OFFSET);
+	interrupt_request_reg			=	(INTERRUPT_REQUEST_REG_PTR)(base_address + INTERRUPT_REQUEST_REGISTER_OFFSET);
+	in_service_reg					=	(IN_SERVICE_REG_PTR)(base_address + IN_SERVICE_REGISTER_OFFSET);
+	trigger_mode_reg				=	(TRIGGER_MODE_REG_PTR)(base_address + TRIGGER_MODE_REGISTER_OFFSET);
+	eoi_reg							=	(EOI_REG_PTR)(base_address + EOI_REGISTER_OFFSET);
 	return;
 }
 
@@ -260,10 +261,19 @@ void RelocateBaseAPICAddress(UINT32 addr)
 
 	memcpy((void*)(ia32_apic_base_msr), (void*)(&temp), sizeof(IA32_APIC_BASE_MSR));
 
-	InitAllAPICRegisters(addr);
+	InitAPICRegisters(addr);
 }
 
-void GetProcessorInfoFromACPI()
+
+
+/*!
+	\brief	 Get apic information by calling ACPI.
+
+	\param	 void
+
+	\return	 void
+*/
+void GetProcessorInfoFromACPI(void)
 {
 	ACPI_TABLE_MADT *madt_ptr;
 	if ( AcpiGetTable ("APIC", 1, (ACPI_TABLE_HEADER**)(&madt_ptr)) != AE_OK )
@@ -316,15 +326,7 @@ void GetProcessorInfoFromACPI()
 void InitAPIC(void)
 {
 	GetProcessorInfoFromACPI();
-	return;
-}
-
-
-
-void SetupAPIC(void)
-{
-	//Interrupt 0 from APIC should actually be marked as vector number 32 in IDT.
-//	asm("cli;");
+	InitIOAPIC();
 	return;
 }
 
@@ -338,9 +340,8 @@ void SetupAPIC(void)
 */
 void SendEndOfInterrupt(int int_no)
 {
-	eoi_reg->zero = 1;
+	eoi_reg->zero = 0;
 }
-
 
 
 /*!
@@ -357,6 +358,15 @@ void InitSmp(void)
     BootOtherProcessors();
 }
 
+
+
+/*!
+	\brief	 Boot all application processors by calling StartProcessor for each of the processors on the system.
+
+	\param	 void
+
+	\return	 void
+*/
 static void BootOtherProcessors(void)
 {
 	UINT32 apic_id, processor_count;
@@ -369,6 +379,15 @@ static void BootOtherProcessors(void)
 	}
 }
 
+
+
+/*!
+	\brief	Start a application processor by issuing IPI messages in the order: INIT, SIPI, SIPI.
+
+	\param	apic_id: apic id of the processor which is to be started.
+
+	\return	 void
+*/
 static void StartProcessor(UINT32 apic_id)
 {
 	int temp_count_processors = count_running_processors;
@@ -382,17 +401,17 @@ static void StartProcessor(UINT32 apic_id)
 	IssueInterprocessorInterrupt(vector, apic_id, ICR_DELIVERY_MODE_INIT, ICR_DESTINATION_SHORTHAND_NO_SHORTHAND, 0);
 
 	//delay(10); //I want to sleep for 10m sec
-	for(temp_loop=0; temp_loop < 1000000; temp_loop++);
+	for(temp_loop=0; temp_loop < 1000000; temp_loop++); //just an approximate.
 
 	IssueInterprocessorInterrupt(vector, apic_id, ICR_DELIVERY_MODE_SIPI, ICR_DESTINATION_SHORTHAND_NO_SHORTHAND, 0);
 	
 	//delay(200Micr sec);
-	for(temp_loop=0; temp_loop < 20000; temp_loop++);
+	for(temp_loop=0; temp_loop < 20000; temp_loop++); //just an approximate
 	
 	IssueInterprocessorInterrupt(vector, apic_id, ICR_DELIVERY_MODE_SIPI, ICR_DESTINATION_SHORTHAND_NO_SHORTHAND, 0);
 	
 	//delay(200Micr sec);
-	for(temp_loop=0; temp_loop < 20000; temp_loop++);
+	for(temp_loop=0; temp_loop < 20000; temp_loop++); //Just an approximate
 	
 	//Now check if AP has started running?
 	if ( temp_count_processors != (count_running_processors + 1) )
@@ -402,4 +421,3 @@ static void StartProcessor(UINT32 apic_id)
 	}
 	return;
 }
- 

@@ -104,7 +104,7 @@ UINT32 CreatePageForSecondaryCPUStart()
 	VIRTUAL_PAGE_PTR vp;
 	int kernel_stack_pages = 2;
 	
-	vp = AllocateVirtualPages(kernel_stack_pages);
+	vp = AllocateVirtualPages(kernel_stack_pages, VIRTUAL_PAGE_RANGE_TYPE_BELOW_1MB);
 	if ( vp == NULL )
 		panic("PA not available for starting secondary CPU\n");
 	if ( AllocateVirtualMemory(&kernel_map, &va, 0, PAGE_SIZE * kernel_stack_pages, 0, 0) != ERROR_SUCCESS )

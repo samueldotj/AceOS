@@ -88,7 +88,7 @@ ERROR_CODE MapVirtualAddressRange(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 size,
 	ERROR_CODE ret = ERROR_SUCCESS;
 	
 	size = PAGE_ALIGN_UP( size );
-	vp = first_vp = AllocateVirtualPages( NUMBER_OF_PAGES(size) );
+	vp = first_vp = AllocateVirtualPages( NUMBER_OF_PAGES(size), VIRTUAL_PAGE_RANGE_TYPE_NORMAL );
 	if ( vp == NULL )
 		return ERROR_NOT_ENOUGH_MEMORY;
 	for(i=0; i<size; i+=PAGE_SIZE )
@@ -140,7 +140,7 @@ static UINT32 AllocatePageTable()
 {
 	VIRTUAL_PAGE_PTR vp;
 	
-	vp = AllocateVirtualPages(1);
+	vp = AllocateVirtualPages(1, VIRTUAL_PAGE_RANGE_TYPE_NORMAL);
 	assert ( vp != NULL );
 	return vp->physical_address;
 }

@@ -50,6 +50,8 @@ struct vm_data
 	UINT32				total_free_pages;		//total free memory in PAGE_SIZE unit
 
 	AVL_TREE_PTR		free_tree;				//free virtual page ranges
+	AVL_TREE_PTR		free_tree_1M;			//free virtual page ranges under 1 M
+	AVL_TREE_PTR		free_tree_16M;			//free virtual page ranges under 16 M
 	
 	VIRTUAL_PAGE_PTR	active_list;			//points to the first page in the active list
 	VIRTUAL_PAGE_PTR	inactive_list;			//points to the first page in the active list

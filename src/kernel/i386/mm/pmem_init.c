@@ -74,6 +74,10 @@ static UINT32 InitMemoryArea(MEMORY_AREA_PTR ma_pa, MEMORY_MAP_PTR memory_map_ar
 			int total_virtual_pages, virtual_page_array_size;
 			UINT32 region_size;
 			
+			//we might need Real Mode IVT (Interrupt Vector Table)  and BDA (BIOS data area)  
+			if ( pmr_pa->start_physical_address < PAGE_SIZE )
+				pmr_pa->start_physical_address = PAGE_SIZE;
+			
 			//we cant use the kernel code and data area
 			if ( ( pmr_pa->start_physical_address <=  kernel_start && pmr_pa->end_physical_address > kernel_start ) ||
 				( pmr_pa->start_physical_address >=  kernel_start && pmr_pa->start_physical_address < kernel_end ) )
@@ -126,7 +130,7 @@ static void * GetFreePhysicalPage()
 			return pa;
 		}
 	}
-	/*panic if we dont find a free physical page*/
+	/*panic if we dont find a free physical page- however we cant call panic() because we havent boot yet so just halt*/
 	asm("cli;hlt");
 	return NULL;
 }
@@ -249,8 +253,6 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 void InitPhysicalMemoryManagerPhaseII()
 {
 	int i;
-		UINT32 kernel_start = PAGE_ALIGN_UP (  BOOT_ADDRESS(&kernel_code_start) );
-	UINT32 kernel_end = PAGE_ALIGN_UP (  BOOT_ADDRESS(&ebss) );
 	
 	/*initialize the kernel physical map*/
 	InitSpinLock( &kernel_physical_map.lock );
@@ -271,15 +273,6 @@ void InitPhysicalMemoryManagerPhaseII()
 			PHYSICAL_MEMORY_REGION_PTR pmr = &memory_areas[i].physical_memory_regions[j];
 			kprintf("           %9p %9p %9d %10s\n", pmr->start_physical_address, pmr->end_physical_address, pmr->virtual_page_count, 
 				pmr->type == PMEM_TYPE_AVAILABLE ? "Available" : pmr->type == PMEM_TYPE_ACPI_RECLAIM ? "ACPI Reclaim" : pmr->type == PMEM_TYPE_ACPI_NVS ? "ACPI NVS" : "Reserved" );
-			
-			if ( pmr->start_physical_address < (1024*1024) )
-				continue;
-			//we cant use the kernel code and data area
-			if ( ( pmr->start_physical_address <=  kernel_start && pmr->end_physical_address > kernel_start ) ||
-				( pmr->start_physical_address >=  kernel_start && pmr->start_physical_address < kernel_end ) )
-			{
-				continue;
-			}
 			
 			if ( pmr->type == PMEM_TYPE_AVAILABLE )
 			{

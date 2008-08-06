@@ -32,12 +32,14 @@ struct virtual_page
 				reserved;
 	union
 	{
+		/*the following structure is used when the page in FREE state*/
 		struct
 		{
 			VIRTUAL_PAGE_PTR	free_first_page;/*pointer to starting page of this free physical range*/
 			AVL_TREE_D			free_tree;		/*this is starting of a free physical range*/
 			UINT32				free_size;  	/*size of the free range in page units*/
 		};
+		/*the following structure is used when the page is in USE state*/
 		struct
 		{
 			LIST				lru_list;			/*LRU List - active/inactive link*/
@@ -60,9 +62,16 @@ struct va_map
 	LIST				list;				//list of all va_map for the virtual page
 }__attribute__ ((packed));;
 
+enum VIRTUAL_PAGE_RANGE_TYPE
+{
+	VIRTUAL_PAGE_RANGE_TYPE_NORMAL,
+	VIRTUAL_PAGE_RANGE_TYPE_BELOW_1MB,
+	VIRTUAL_PAGE_RANGE_TYPE_BELOW_16MB,
+};
+
 void InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 start_physical_address);
 
-VIRTUAL_PAGE_PTR AllocateVirtualPages(int pages);
+VIRTUAL_PAGE_PTR AllocateVirtualPages(int pages, enum VIRTUAL_PAGE_RANGE_TYPE vp_range_type);
 UINT32 FreeVirtualPages(VIRTUAL_PAGE_PTR vp, int pages);
 
 VIRTUAL_PAGE_PTR PhysicalToVirtualPage(UINT32 physical_address);

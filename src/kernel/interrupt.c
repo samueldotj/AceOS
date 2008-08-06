@@ -13,6 +13,9 @@
 #include <kernel/debug.h>
 #include <kernel/mm/kmem.h>
 
+/*define this to print debug problems*/
+//#define DEBUG_INTERRUPT
+
 extern void SendEndOfInterrupt(int);
 
 /*this structure is not used by anyother module so declared inside this c file*/
@@ -42,7 +45,11 @@ void InterruptHandler(REGS_PTR reg)
 	/*TODO add code to include other interrupt details also*/
 	
 	if ( handler->isr == NULL )
-		kprintf("Interrupt recieved from %d but has no handler\n", reg->int_no);
+	{
+		#ifdef DEBUG_INTERRUPT
+			kprintf("Interrupt recieved from %d but has no handler\n", reg->int_no);
+		#endif
+	}
 	else
 	{
 		if ( handler->isr(&interrupt_info, handler->isr_argument) == ISR_CONTINUE_PROCESSING )

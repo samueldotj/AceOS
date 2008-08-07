@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Wed Aug 06, 2008  11:25PM
-  			Last modified: Wed Aug 06, 2008  11:59PM
+  			Last modified: Thu Aug 07, 2008  03:37PM
   \brief	Contains IO-APIC stuff.
 */
 
@@ -14,8 +14,21 @@
 
 #include <ace.h>
 
+#define MAX_IOAPIC 4
 #define IOAPIC_STARTING_VECTOR_NUMBER 32
+#define IOAPIC_BASE_MSR_START 0xfec00000
+
 //IOAPIC registers
+
+
+/* IOAPIC */
+typedef struct ioapic
+{
+	UINT32 ioapic_id;
+	UINT32 physical_address;
+	UINT32 starting_vector;
+	UINT32 max_entries;
+}IOAPIC, *IOAPIC_PTR;
 
 enum IOAPIC_REGISTER
 {
@@ -48,6 +61,8 @@ enum IOAPIC_REGISTER
 	IOAPIC_REGISTER_REDIRECT_TABLE23=0x3E
 };
 
+
+/* This structure is reimposed with IA32_APIC_BASE_MSR structure. So be careful in handling the reserved fields. */
 typedef struct ioapic_reg
 {
 	//First byte specifies the register which has to be accessed.
@@ -133,15 +148,18 @@ enum IOAPIC_DELIVERY_MODE
 	IOAPIC_DELIVERY_MODE_ExtINT				//7
 };
 
+extern IOAPIC ioapic[MAX_IOAPIC];
+extern UINT8 count_ioapic;
 
+void RelocateBaseIOAPICAddress(UINT32 addr, UINT32 index);
 void InitIOAPIC(void);
-void ReadFromIOAPIC(enum IOAPIC_REGISTER reg, UINT32 *data);
-void WriteToIOAPIC(enum IOAPIC_REGISTER reg, UINT32 data);
-UINT8 GetIOAPICId(void);
-void SetIOAPICId(UINT8 ioapic_id);
-UINT8 GetMaximumIOAPICRedirectionEntries(void);
-void GetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table);
-void SetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table);
-int InitIOAPICRedirectionTable(int starting_vector);
+void ReadFromIOAPIC(enum IOAPIC_REGISTER reg, UINT32 *data, UINT8 index);
+void WriteToIOAPIC(enum IOAPIC_REGISTER reg, UINT32 data, UINT8 index);
+UINT8 GetIOAPICId(UINT8 index);
+void SetIOAPICId(UINT8 ioapic_id, UINT8 index);
+UINT8 GetMaximumIOAPICRedirectionEntries(UINT8 index);
+void GetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table, UINT8 index);
+void SetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table, UINT8 index);
+int InitIOAPICRedirectionTable(int starting_vector, UINT8 index);
 
 #endif

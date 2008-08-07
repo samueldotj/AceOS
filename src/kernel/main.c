@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Fri Sep 21, 2007  02:26PM
-  			Last modified: Mon Aug 04, 2008  04:09PM
+  			Last modified: Thu Aug 07, 2008  10:45AM
   \brief		
 */
 #include <version.h>
@@ -69,6 +69,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 
 	InitAPIC();
 	kprintf("APIC initialized\n");
+    __asm__ __volatile__ ("sti");
 
 	InitSmp();
 	kprintf("SMP initialised\n");

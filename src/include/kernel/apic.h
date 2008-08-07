@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Sat Jun 14, 2008  06:19PM
-  			Last modified: Thu Aug 07, 2008  12:01AM
+  			Last modified: Thu Aug 07, 2008  03:30PM
   \brief	
 */
 
@@ -14,7 +14,8 @@
 
 #include <ace.h>
 
-#define MAX_IOAPIC 4
+#define LAPIC_BASE_MSR_START 0xfee00000
+#define AM_I_BOOTSTRAP_PROCESSOR ia32_lapic_base_msr.bsp
 
 
 /* Enums */
@@ -246,27 +247,18 @@ typedef struct eoi_reg
 }EOI_REG, * EOI_REG_PTR;
 
 
-
-/* IOAPIC */
-typedef struct ioapic
-{
-	UINT32 ioapic_id;
-	UINT32 physical_address;
-}IOAPIC, *IOAPIC_PTR;
-
-
 /* Declaration of the variables defined in apic.c */
-extern IA32_APIC_BASE_MSR_PTR ia32_ioapic_base_msr;
+extern IA32_APIC_BASE_MSR_PTR lapic_base_msr;
 
 /* Functions */
 
 int DetectAPIC(UINT8 cpu_id);
 void UseAPIC(int enable);
-INT32 GetApicId();
-void RelocateBaseApicAddress(UINT32 addr);
+void InitAPIC(void);
+void SendEndOfInterrupt(int int_no);
+void RelocateBaseLAPICAddress(UINT32 addr);
+void InitSmp(void);
 INT16 IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIVERY_MODE delivery_mode,
                 enum ICR_DESTINATION_SHORTHAND destination_shorthand, BYTE init_de_assert);
-void InitAPIC(void);
-void InitSmp(void);
 
 #endif

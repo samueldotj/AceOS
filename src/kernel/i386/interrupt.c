@@ -1,10 +1,10 @@
 /*!
-  \file		interrupt.c
+  \file		kernel/i386/interrupt.c
   \author	DilipSimha N M
   \version 	3.0
   \date	
   			Created: Thu Oct 11, 2007  02:27PM
-  			Last modified: Thu Aug 07, 2008  12:01AM
+  			Last modified: Thu Aug 07, 2008  10:19AM
   \brief	This file contains routiens necessary to handle and setup IRQ(Interrupt requests) on the system.
 		
 	All the interrupts from 33-48 will be redirected to InterruptHandler().
@@ -31,8 +31,6 @@ extern	void
 */
 void SetupInterruptStubs()
 {
-	InitAPIC();
-	
 	SetIdtGate(32, (unsigned)InterruptStub0);
 	SetIdtGate(33, (unsigned)InterruptStub1);
 	SetIdtGate(34, (unsigned)InterruptStub2);

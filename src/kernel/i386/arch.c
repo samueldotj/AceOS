@@ -4,7 +4,7 @@
 	\version 	3.0
 	\date	
   			Created: 26/09/07 15:21
-  			Last modified: Tue May 27, 2008  11:05AM
+  			Last modified: Thu Aug 07, 2008  03:43PM
 	\brief	contains architecture related interface routines.
 */
 #include <string.h>
@@ -51,7 +51,7 @@ void ArchInit(MULTIBOOT_INFO_PTR mbi)
 		sys_kernel_cmd_line = (char *)BOOT_TO_KERNEL_ADDRESS(mbi->cmdline);
 
 	/*enable interrupt only after setting up idt*/    
-    __asm__ __volatile__ ("sti");
+   // __asm__ __volatile__ ("sti");
 
 }
 

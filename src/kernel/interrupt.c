@@ -1,10 +1,10 @@
 /*!
- \file		interrupt.c
+ \file		kernel/interrupt.c
  \author	Samuel
  \version 	3.0
  \date	
   		Created: 25-July-2008 7:14PM
-  		Last modified: 25-July-2008 7:14PM
+  		Last modified: Thu Aug 07, 2008  10:19AM
  \brief	Generic interrupt handler - architecture independent		
 */
 #include <ace.h>

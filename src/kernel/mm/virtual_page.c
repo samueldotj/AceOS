@@ -19,16 +19,16 @@
 static int inline AddVirtualPageToVmFreeTree(VIRTUAL_PAGE_PTR vp, BOOLEAN check_sibling);
 static void InitVirtualPage(VIRTUAL_PAGE_PTR vp, UINT32 physical_address);
 static VIRTUAL_PAGE_PTR FindFreeVirtualPageRange(AVL_TREE_PTR free_tree, UINT32 total_pages_required);
-static AVL_TREE_PTR * GetVirtualPageFreeTreeFromType(enum VIRTUAL_PAGE_RANGE_TYPE vp_range_type);
-static AVL_TREE_PTR * GetVirtualPageFreeTreeFromPage(VIRTUAL_PAGE_PTR vp);
-static int DownGradePhysicalRange(enum VIRTUAL_PAGE_RANGE_TYPE vp_requested_range_type, enum VIRTUAL_PAGE_RANGE_TYPE * current_vp_range_type);
+static inline AVL_TREE_PTR * GetVirtualPageFreeTreeFromType(enum VIRTUAL_PAGE_RANGE_TYPE vp_range_type);
+static inline AVL_TREE_PTR * GetVirtualPageFreeTreeFromPage(VIRTUAL_PAGE_PTR vp);
+static int inline DownGradePhysicalRange(enum VIRTUAL_PAGE_RANGE_TYPE vp_requested_range_type, enum VIRTUAL_PAGE_RANGE_TYPE * current_vp_range_type);
 
 static void AddVirtualPageToActiveLRUList(VIRTUAL_PAGE_PTR vp);
 static void AddVirtualPageToInactiveLRUList(VIRTUAL_PAGE_PTR vp);
 static void RemoveVirtualPageFromLRUList(VIRTUAL_PAGE_PTR vp);
 static COMPARISION_RESULT free_range_compare_fn(BINARY_TREE_PTR node1, BINARY_TREE_PTR node2);
 
-/*! Creates and Initializes the virtual page array
+/*! Initializes a virtual page array
 	\param vpa	- starting address of the virtual page array
 	\param page_count - total number of virtual pages
 	\param start_physical_address - starting physical address of the first virtual page
@@ -51,7 +51,7 @@ void InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 start_
 	}
 }
 
-/*! Initializes the virtual page
+/*! Initializes a virtual page
 	\param vp - Address of the virtual page array
 	\param physical_address - physical address managed/mapped by the virtual page
 */
@@ -68,7 +68,7 @@ static void InitVirtualPage(VIRTUAL_PAGE_PTR vp, UINT32 physical_address)
 }
 /*! Returns the first virtual page of this free virtual page range.
 	\param	vp - free virtual page 
-	\return	First virtual page of the given virtual page
+	\return	First virtual page of the given virtual page on success
 			NULL on failure
 */
 inline VIRTUAL_PAGE_PTR GetFirstVirtualPage(VIRTUAL_PAGE_PTR vp)
@@ -172,7 +172,7 @@ static int inline AddVirtualPageToVmFreeTree(VIRTUAL_PAGE_PTR vp, BOOLEAN check_
 	\param vp_range_type - virtual page range type
 	\return pointer to the root of the free tree
 */
-static AVL_TREE_PTR * GetVirtualPageFreeTreeFromType(enum VIRTUAL_PAGE_RANGE_TYPE vp_range_type)
+static inline AVL_TREE_PTR * GetVirtualPageFreeTreeFromType(enum VIRTUAL_PAGE_RANGE_TYPE vp_range_type)
 {
 	if ( vp_range_type == VIRTUAL_PAGE_RANGE_TYPE_NORMAL )
 		return &vm_data.free_tree;
@@ -190,7 +190,7 @@ static AVL_TREE_PTR * GetVirtualPageFreeTreeFromType(enum VIRTUAL_PAGE_RANGE_TYP
 	\param vp - virtual page
 	\return pointer to the root of the free tree
 */
-static AVL_TREE_PTR * GetVirtualPageFreeTreeFromPage(VIRTUAL_PAGE_PTR vp)
+static inline AVL_TREE_PTR * GetVirtualPageFreeTreeFromPage(VIRTUAL_PAGE_PTR vp)
 {
 	UINT32 pa = VP_TO_PHYS(vp);
 	if (  pa < (1024*1024) )
@@ -203,7 +203,7 @@ static AVL_TREE_PTR * GetVirtualPageFreeTreeFromPage(VIRTUAL_PAGE_PTR vp)
 
 /*! selects the next virtual page range type
 */
-static int DownGradePhysicalRange(enum VIRTUAL_PAGE_RANGE_TYPE vp_requested_range_type, enum VIRTUAL_PAGE_RANGE_TYPE * current_vp_range_type)
+static int inline DownGradePhysicalRange(enum VIRTUAL_PAGE_RANGE_TYPE vp_requested_range_type, enum VIRTUAL_PAGE_RANGE_TYPE * current_vp_range_type)
 {
 	if ( vp_requested_range_type == VIRTUAL_PAGE_RANGE_TYPE_NORMAL )
 	{
@@ -289,18 +289,21 @@ try_different_vp_range:
 }
 /*! Adds the given virtual page to active lru list
 	\param vp - virtual page to add
+	\todo add implementation
 */
 static void AddVirtualPageToActiveLRUList(VIRTUAL_PAGE_PTR vp)
 {
 }
 /*! Adds the given virtual page to inactive lru list
 	\param vp - virtual page to add
+	\todo add implementation
 */
 static void AddVirtualPageToInactiveLRUList(VIRTUAL_PAGE_PTR vp)
 {
 }
 /*! Removes the given virtual page from lru list
 	\param vp - virtual page to remove
+	\todo add implementation
 */
 static void RemoveVirtualPageFromLRUList(VIRTUAL_PAGE_PTR vp)
 {

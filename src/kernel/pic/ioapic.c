@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:
-  			Last modified: Thu Aug 07, 2008  03:56PM
+  			Last modified: Fri Aug 08, 2008  11:55PM
   \brief	Contains APIC stuff in general and LAPIC.
 */
 
@@ -90,15 +90,13 @@ void RelocateBaseIOAPICAddress(UINT32 addr, UINT32 index)
 */
 void InitIOAPIC(void)
 {
-	UINT32 va, kernel_stack_pages=2, index;
+	UINT32 index;
 	
 	for (index=0; index < count_ioapic; index++)
 	{
-		if ( AllocateVirtualMemory(&kernel_map, &va, 0, PAGE_SIZE * kernel_stack_pages, 0, 0) != ERROR_SUCCESS )
-			panic("VA not available for starting secondary CPU\n");
-
-		if ( CreatePhysicalMapping(kernel_map.physical_map, (UINT32)( ioapic_base_reg[index] ), (ioapic[index]).physical_address, 0) != ERROR_SUCCESS )
-			panic("VA to PA mapping failed\n");
+		ioapic_base_reg[index] = (IOAPIC_REG_PTR)MapPhysicalMemory(&kernel_map, (ioapic[index]).physical_address, PAGE_SIZE);
+		if(!ioapic_base_reg)
+			panic("Mapping PA in ioapic failed\n");
 	
 		//Now setup the redirection table in each of the ioapic.
 		/* Each IOAPIC is initialized from acpi and we load the GlobalIrqBase count in starting_vector.

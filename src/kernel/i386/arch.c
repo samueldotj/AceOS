@@ -4,7 +4,7 @@
 	\version 	3.0
 	\date	
   			Created: 26/09/07 15:21
-  			Last modified: Thu Aug 07, 2008  03:43PM
+  			Last modified: Fri Aug 08, 2008  11:34PM
 	\brief	contains architecture related interface routines.
 */
 #include <string.h>
@@ -21,6 +21,10 @@
 #include <kernel/i386/exception.h>
 #include <kernel/i386/pmem.h>
 #include <kernel/i386/cpuid.h>
+#include <kernel/processor.h>
+#include <kernel/ioapic.h>
+#include <kernel/apic.h>
+#include <kernel/acpi/acpi.h>
 
 extern void SetupInterruptStubs();
 extern UINT32 trampoline_data, trampoline_end;
@@ -117,4 +121,54 @@ UINT32 CreatePageForSecondaryCPUStart()
 	
 	/*return the physical address*/
 	return VP_TO_PHYS(vp);
+}
+
+/*!
+	\brief	 Get apic information by calling ACPI.
+
+	\param	 void
+
+	\return	 void
+*/
+void SetupAPIC(void)
+{
+	ACPI_TABLE_MADT *madt_ptr;
+	if ( AcpiGetTable ("APIC", 1, (ACPI_TABLE_HEADER**)(&madt_ptr)) != AE_OK )
+		panic("AcpiGetTable() failed\n");
+	else
+	{
+		kprintf("LAPIC Address %p [%s]\n", madt_ptr->Address, madt_ptr->Flags&1?"APIC and Dual 8259 Support":"Only APIC" );
+		ACPI_SUBTABLE_HEADER *sub_header, *table_end;
+		sub_header = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + sizeof(ACPI_TABLE_MADT) );
+		table_end = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + madt_ptr->Header.Length );
+
+		count_running_processors = 0;
+		while ( sub_header < table_end )
+		{
+			if ( sub_header->Type == ACPI_MADT_TYPE_LOCAL_APIC )
+			{
+				ACPI_MADT_LOCAL_APIC *p = ( ACPI_MADT_LOCAL_APIC * ) sub_header;
+				kprintf("Processor ID %d LAPIC Id = %d [%s]\n", p->ProcessorId, p->Id, ( (p->LapicFlags & 1) ? "Online" : "Offline") );
+				processor[count_running_processors].apic_id = p->Id;
+				processor[count_running_processors].state = ( (p->LapicFlags & 1) ? (PROCESSOR_STATE_ONLINE) : (PROCESSOR_STATE_OFFLINE) );
+				kprintf("processor loaded..\n");
+				count_running_processors++;
+			}
+			else if ( sub_header->Type == ACPI_MADT_TYPE_IO_APIC )
+			{
+				ACPI_MADT_IO_APIC *p = ( ACPI_MADT_IO_APIC * ) sub_header;
+				kprintf("IOAPIC ID %d IOAPIC Physical Address = %p GlobalIRQBase %d\n", p->Id, p->Address, p->GlobalIrqBase);
+				ioapic[count_ioapic].ioapic_id = p->Id;
+				ioapic[count_ioapic].physical_address = p->Address;
+				ioapic[count_ioapic].starting_vector = p->GlobalIrqBase;
+				count_ioapic++;
+			}
+			else
+				kprintf("Type = %d\n", sub_header->Type);
+
+			sub_header = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)sub_header) + sub_header->Length );
+		}
+		kprintf("while done\n");
+	}
+	InitAPIC();
 }

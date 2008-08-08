@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Sat Jun 14, 2008  06:16PM
-  			Last modified: Thu Aug 07, 2008  04:18PM
+  			Last modified: Fri Aug 08, 2008  11:57PM
   \brief	Provides support for Advanced programmable interrupt controller on P4 machine.
 */
 
@@ -13,7 +13,6 @@
 #include <string.h>
 #include <kernel/apic.h>
 #include <kernel/ioapic.h>
-#include <kernel/acpi/acpi.h>
 #include <kernel/debug.h>
 #include <kernel/arch.h>
 #include <kernel/processor.h>
@@ -25,7 +24,6 @@ static void BootOtherProcessors(void);
 static void StartProcessor(UINT32 apic_id);
 static void InitLAPICRegisters(UINT32 base_address);
 static void InitLAPIC(void);
-static void GetProcessorInfoFromACPI(void);
 
 #define X2APIC_ENABLE_BIT 21
 #define APIC_ENABLE_BIT 9
@@ -160,7 +158,6 @@ void UseAPIC(int enable)
 */
 void InitAPIC(void)
 {
-	GetProcessorInfoFromACPI();
 	//Init lapic and ioapic registers.
 	InitLAPIC();
 	InitIOAPIC();
@@ -191,14 +188,7 @@ void SendEndOfInterrupt(int int_no)
 */
 static void InitLAPIC(void)
 {
-	UINT32 va, kernel_stack_pages=2;
-
-	if ( AllocateVirtualMemory(&kernel_map, &va, 0, PAGE_SIZE * kernel_stack_pages, 0, 0) != ERROR_SUCCESS )
-		panic("VA not available for starting secondary CPU\n");
-	lapic_base_msr = (IA32_APIC_BASE_MSR_PTR)va;
-
-	if ( CreatePhysicalMapping(kernel_map.physical_map, (UINT32)lapic_base_msr, va, 0) != ERROR_SUCCESS )
-		panic("VA to PA mapping failed\n");
+	lapic_base_msr = (IA32_APIC_BASE_MSR_PTR)MapPhysicalMemory(&kernel_map, LAPIC_BASE_MSR_START, sizeof(IA32_APIC_BASE_MSR)); /* size is not this.. it should be sum total of the sizes of all register structures. */
 
 	InitLAPICRegisters(LAPIC_BASE_MSR_START);
 	return;
@@ -336,56 +326,6 @@ static void InitLAPICRegisters(UINT32 base_address)
 	trigger_mode_reg				=	(TRIGGER_MODE_REG_PTR)(base_address + TRIGGER_MODE_REGISTER_OFFSET);
 	eoi_reg							=	(EOI_REG_PTR)(base_address + EOI_REGISTER_OFFSET);
 	return;
-}
-
-
-/*!
-	\brief	 Get apic information by calling ACPI.
-
-	\param	 void
-
-	\return	 void
-*/
-static void GetProcessorInfoFromACPI(void)
-{
-	ACPI_TABLE_MADT *madt_ptr;
-	if ( AcpiGetTable ("APIC", 1, (ACPI_TABLE_HEADER**)(&madt_ptr)) != AE_OK )
-		kprintf("AcpiGetTable() failed\n");
-	else
-	{
-		kprintf("LAPIC Address %p [%s]\n", madt_ptr->Address, madt_ptr->Flags&1?"APIC and Dual 8259 Support":"Only APIC" );
-		ACPI_SUBTABLE_HEADER *sub_header, *table_end;
-		sub_header = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + sizeof(ACPI_TABLE_MADT) );
-		table_end = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + madt_ptr->Header.Length );
-
-		count_running_processors = 0;
-		while ( sub_header < table_end )
-		{
-			if ( sub_header->Type == ACPI_MADT_TYPE_LOCAL_APIC )
-			{
-				ACPI_MADT_LOCAL_APIC *p = ( ACPI_MADT_LOCAL_APIC * ) sub_header;
-				kprintf("Processor ID %d LAPIC Id = %d [%s]\n", p->ProcessorId, p->Id, ( (p->LapicFlags & 1) ? "Online" : "Offline") );
-				processor[count_running_processors].apic_id = p->Id;
-				processor[count_running_processors].state = ( (p->LapicFlags & 1) ? (PROCESSOR_STATE_ONLINE) : (PROCESSOR_STATE_OFFLINE) );
-				kprintf("processor loaded..\n");
-				count_running_processors++;
-			}
-			else if ( sub_header->Type == ACPI_MADT_TYPE_IO_APIC )
-			{
-				ACPI_MADT_IO_APIC *p = ( ACPI_MADT_IO_APIC * ) sub_header;
-				kprintf("IOAPIC ID %d IOAPIC Physical Address = %p GlobalIRQBase %d\n", p->Id, p->Address, p->GlobalIrqBase);
-				ioapic[count_ioapic].ioapic_id = p->Id;
-				ioapic[count_ioapic].physical_address = p->Address;
-				ioapic[count_ioapic].starting_vector = p->GlobalIrqBase;
-				count_ioapic++;
-			}
-			else
-				kprintf("Type = %d\n", sub_header->Type);
-
-			sub_header = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)sub_header) + sub_header->Length );
-		}
-		kprintf("while done\n");
-	}
 }
 
 

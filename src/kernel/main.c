@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Fri Sep 21, 2007  02:26PM
-  			Last modified: Thu Aug 07, 2008  10:45AM
+  			Last modified: Fri Aug 08, 2008  11:32PM
   \brief		
 */
 #include <version.h>
@@ -67,7 +67,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 		panic("ACPI Initialization failed.\n");
 	kprintf("ACPI initialized\n");
 
-	InitAPIC();
+	SetupAPIC();
 	kprintf("APIC initialized\n");
     __asm__ __volatile__ ("sti");
 

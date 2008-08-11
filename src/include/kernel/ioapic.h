@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Wed Aug 06, 2008  11:25PM
-  			Last modified: Thu Aug 07, 2008  03:37PM
+  			Last modified: Tue Aug 12, 2008  01:11AM
   \brief	Contains IO-APIC stuff.
 */
 
@@ -14,7 +14,7 @@
 
 #include <ace.h>
 
-#define MAX_IOAPIC 4
+#define MAX_IOAPIC 16
 #define IOAPIC_STARTING_VECTOR_NUMBER 32
 #define IOAPIC_BASE_MSR_START 0xfec00000
 
@@ -151,12 +151,8 @@ enum IOAPIC_DELIVERY_MODE
 extern IOAPIC ioapic[MAX_IOAPIC];
 extern UINT8 count_ioapic;
 
-void RelocateBaseIOAPICAddress(UINT32 addr, UINT32 index);
 void InitIOAPIC(void);
-void ReadFromIOAPIC(enum IOAPIC_REGISTER reg, UINT32 *data, UINT8 index);
-void WriteToIOAPIC(enum IOAPIC_REGISTER reg, UINT32 data, UINT8 index);
 UINT8 GetIOAPICId(UINT8 index);
-void SetIOAPICId(UINT8 ioapic_id, UINT8 index);
 UINT8 GetMaximumIOAPICRedirectionEntries(UINT8 index);
 void GetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table, UINT8 index);
 void SetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table, UINT8 index);

@@ -4,166 +4,181 @@
   \version 	3.0
   \date	
   			Created:	Sat Jun 14, 2008  06:16PM
-  			Last modified: Fri Aug 08, 2008  11:57PM
+  			Last modified: Tue Aug 12, 2008  01:13AM
   \brief	Provides support for Advanced programmable interrupt controller on P4 machine.
 */
 
 #include <ace.h>
-#include <kernel/i386/cpuid.h>
 #include <string.h>
+#include <kernel/io.h>
+#include <kernel/debug.h>
+#include <kernel/processor.h>
+#include <kernel/arch.h>
 #include <kernel/apic.h>
 #include <kernel/ioapic.h>
-#include <kernel/debug.h>
-#include <kernel/arch.h>
-#include <kernel/processor.h>
 #include <kernel/mm/vm.h>
+#include <kernel/i386/cpuid.h>
 #include <kernel/i386/pmem.h>
-#include <kernel/io.h>
 
 static void BootOtherProcessors(void);
 static void StartProcessor(UINT32 apic_id);
-static void InitLAPICRegisters(UINT32 base_address);
 static void InitLAPIC(void);
 
-#define X2APIC_ENABLE_BIT 21
-#define APIC_ENABLE_BIT 9
-#define LVT_VERSION_REGISTER_OFFSET 			0x30
-#define LOGICAL_DESTINATION_REGISTER_OFFSET		0xD0
-#define DESTINATION_FORMAT_REGISTER_OFFSET		0xE0
+#define X2APIC_ENABLE_BIT										21
+#define APIC_ENABLE_BIT 										9
 
 IA32_APIC_BASE_MSR_PTR lapic_base_msr;
 
-INTERRUPT_COMMAND_REGISTER_PTR interrupt_command_register;
-#define INTERRUPT_COMMAND_REGISTER_LOW_OFFSET	0x300 /*(0-31 bits)*/
-#define INTERRUPT_COMMAND_REGISTER_HIGH_OFFSET	0x310 /*(32-63 bits)*/
+#define LVT_VERSION_REGISTER_OFFSET 							0x30
+#define LOGICAL_DESTINATION_REGISTER_OFFSET						0xD0
+#define DESTINATION_FORMAT_REGISTER_OFFSET						0xE0
 
-TIMER_REGISTER_PTR timer_register;
-#define TIMER_REGISTER_OFFSET 0x320
-#define TIMER_REGISTER_RESET 0x00010000
+#define LOCAl_APIC_VERSION_REGISTER_OFFSET 						0x30
+#define LOCAl_APIC_VERSION_REGISTER_ADDRESS(lapic_base_address)	((LOCAL_APIC_VERSION_REG_PTR) ((UINT32)(lapic_base_address) + LOCAl_APIC_VERSION_REGISTER_OFFSET) )
+#define COUNT_ENTRIES_LVT(lapic_base_address)					(LOCAl_APIC_VERSION_REGISTER_ADDRESS(lapic_base_address)->max_lvt_entry + 1)
 
-LINT0_REG_PTR lint0_reg;
-#define LINT0_REGISTER_OFFSET 0X350
-#define LINT0_REGISTER_RESET 0x00010000
+#define TASK_PRIORITY_REGISTER_OFFSET							0x80
+#define TASK_PRIORITY_REGISTER_RESET							0x0
+#define TASK_PRIORITY_REGISTER_ADDRESS(lapic_base_address)		((TASK_PRIORITY_REG_PTR) ((UINT32)(lapic_base_address) + TASK_PRIORITY_REGISTER_OFFSET) )
+
+#define ARBITRATION_PRIORITY_REGISTER_OFFSET					0x90
+#define ARBITRATION_PRIORITY_REGISTER_RESET 					0x0
+#define ARBITRATION_PRIORITY_REGISTER_ADDRESS(lapic_base_address) ((ARBITRATION_PRIORITY_REG_PTR) ((UINT32)(lapic_base_address) + ARBITRATION_PRIORITY_REGISTER_OFFSET) )
+
+#define PROCESSOR_PRIORITY_REGISTER_OFFSET						0xA0
+#define PROCESSOR_PRIORITY_REGISTER_RESET 						0x0
+#define PROCESSOR_PRIORITY_REGISTER_ADDRESS(lapic_base_address)	((PROCESSOR_PRIORITY_REG_PTR) ((UINT32)(lapic_base_address) + PROCESSOR_PRIORITY_REGISTER_OFFSET) )
+
+#define EOI_REGISTER_OFFSET										0xB0
+#define EOI_REGISTER_RESET										0x0
+#define EOI_REGISTER_ADDRESS(lapic_base_address)				((EOI_REG_PTR) ((UINT32)(lapic_base_address) + EOI_REGISTER_OFFSET) )
+
+#define LOGICAL_DESTINATION_REGISTER_OFFSET 					0xD0
+#define LOGICAL_DESTINATION_REGISTER_RESET 						0x0
+#define LOGICAL_DESTINATION_REGISTER_ADDRESS(lapic_base_address) ((LOGICAL_DESTINATION_REG_PTR) ((UINT32)(lapic_base_address) + LOGICAL_DESTINATION_REGISTER_OFFSET) )
+
+#define DESTINATION_FORMAT_REGISTER_OFFSET 						0xE0
+#define DESTINATION_FORMAT_REGISTER_RESET 						0xFFFFFFFF
+#define DESTINATION_FORMAT_REGISTER_ADDRESS(lapic_base_address)	((DESTINATION_FORMAT_REG_PTR) ((UINT32)(lapic_base_address) + DESTINATION_FORMAT_REGISTER_OFFSET) )
+
+#define SPURIOUS_INTERRUPT_VECTOR_REGISTER_OFFSET				0xF0
+#define SPURIOUS_INTERRUPT_VECTOR_REGISTER_ADDRESS(lapic_base_address)	\
+																((SPURIOUS_INTERRUPT_REG_PTR) ((UINT32)(lapic_base_address) + SPURIOUS_INTERRUPT_VECTOR_REGISTER_OFFSET) )
+
+#define IN_SERVICE_REGISTER_OFFSET								0x100
+#define IN_SERVICE_REGISTER_RESET								0x0
+#define IN_SERVICE_REGISTER_ADDRESS(lapic_base_address)			((IN_SERVICE_REG_PTR) ((UINT32)(lapic_base_address) + IN_SERVICE_REGISTER_OFFSET) )
+
+#define TRIGGER_MODE_REGISTER_OFFSET							0x180
+#define TRIGGER_MODE_REGISTER_RESET								0x0
+#define TRIGGER_MODE_REGISTER_ADDRESS(lapic_base_address)		(TRIGGER_MODE_REG_PTR) ((UINT32)(lapic_base_address) + TRIGGER_MODE_REGISTER_OFFSET) )
+
+#define INTERRUPT_REQUEST_REGISTER_OFFSET						0x200
+#define INTERRUPT_REQUEST_REGISTER_RESET						0x0
+#define INTERRUPT_REQUEST_REGISTER_ADDRESS(lapic_base_address)	((INTERRUPT_REQUEST_REG_PTR) ((UINT32)(lapic_base_address) + INTERRUPT_REQUEST_REGISTER_OFFSET) )
+
+#define ERROR_STATUS_REGISTER_OFFSET							0x280
+#define ERROR_STATUS_REGISTER_RESET								0x0
+#define ERROR_STATUS_REGISTER_ADDRESS(lapic_base_address)		((ERROR_STATUS_REG_PTR) ((UINT32)(lapic_base_address) + ERROR_STATUS_REGISTER_OFFSET) )
+
+#define INTERRUPT_COMMAND_REGISTER_LOW_OFFSET					0x300 /*(0-31 bits)*/
+#define INTERRUPT_COMMAND_REGISTER_HIGH_OFFSET					0x310 /*(32-63 bits)*/
+#define INTERRUPT_COMMAND_REGISTER_ADDRESS(lapic_base_address) 	((INTERRUPT_COMMAND_REGISTER_PTR)( (UINT32)(lapic_base_address) + INTERRUPT_COMMAND_REGISTER_LOW_OFFSET ))
+
+#define TIMER_REGISTER_OFFSET 									0x320
+#define TIMER_REGISTER_RESET 									0x00010000
+#define TIMER_REGISTER_ADDRESS(lapic_base_address)				((TIMER_REGISTER_PTR) ((UINT32)(lapic_base_address) + TIMER_REGISTER_OFFSET) )
+
+#define THERMAL_SENSOR_REGISTER_OFFSET							0x330
+#define THERMAL_SENSOR_REGISTER_RESET							0x00010000
+#define THERMAL_SENSOR_REG_ADDRESS(lapic_base_address)			((THERMAL_SENSOR_REG_PTR) ((UINT32)(lapic_base_address) + THERMAL_SENSOR_REGISTER_OFFSET) )
+
+#define PERF_MON_CNT_REGISTER_OFFSET 							0x340
+#define PERF_MON_CNT_REGISTER_RESET 							0x00010000
+#define PERF_MON_CNT_REGISTER_ADDRESS(lapic_base_address)		((PERFORMANCE_MONITOR_COUNT_REG_PTR) ((UINT32)(lapic_base_address) + PERF_MON_CNT_REGISTER_OFFSET) )
+
+#define LINT0_REGISTER_OFFSET 									0x350
+#define LINT0_REGISTER_RESET									0x00010000
+#define LINT0_REGISTER_ADDRESS(lapic_base_address)				((LINT0_REG_PTR) ((UINT32)(lapic_base_address) + LINT0_REGISTER_OFFSET) )
+
+#define LINT1_REGISTER_OFFSET 									0x360
+#define LINT1_REGISTER_RESET 									0x00010000
+#define LINT1_REGISTER_ADDRESS(lapic_base_address)				((LINT1_REG_PTR) ((UINT32)(lapic_base_address) + LINT1_REGISTER_OFFSET) )
+
+#define ERROR_REGISTER_OFFSET 									0x370
+#define ERROR_REGISTER_RESET 									0x00010000
+#define ERROR_REGISTER_ADDRESS(lapic_base_address)				((ERROR_REG_PTR) ((UINT32)(lapic_base_address) + ERROR_REGISTER_OFFSET) )
+
+#define ACPI_MEMORY_MAP_SIZE									0x400
 
 
-LINT1_REG_PTR lint1_reg;
-#define LINT1_REGISTER_OFFSET 0X360
-#define LINT0_REGISTER_RESET 0x00010000
+#define SPURIOUS_VECTOR_NUMBER									240
+#define LINT0_VECTOR_NUMBER										241
+#define LINT1_VECTOR_NUMBER										242
+#define ERROR_VECTOR_NUMBER										243
+#define PERF_MON_VECTOR_NUMBER									244
+#define THERMAL_SENSOR_VECTOR_NUMBER							245
 
 
-ERROR_REG_PTR error_reg;
-#define ERROR_REGISTER_OFFSET 0X370
-#define ERROR_REGISTER_RESET 0x00010000
-
-PERFORMANCE_MONITOR_COUNT_REG_PTR performance_monitor_count_reg;
-#define PERF_MON_CNT_REGISTER_OFFSET 0X340
-#define PERF_MON_CNT_REGISTER_RESET 0x00010000 
-
-
-THERMAL_SENSOR_REG_PTR thermal_sensor_reg;
-#define THERMAL_SENSOR_REGISTER_OFFSET 0x330
-#define THERMAL_SENSOR_REGISTER_RESET 0x00010000
-
-ERROR_STATUS_REG_PTR error_status_reg;
-#define ERROR_STATUS_REGISTER_OFFSET 0x280
-#define ERROR_STATUS_REGISTER_RESET 0x0
-
-LOCAL_APIC_VERSION_REG_PTR local_apic_version_reg;
-#define LOCAl_APIC_VERSION_REGISTER_OFFSET 0x30
-#define COUNT_ENTRIES_LVT (local_apic_version_reg.max_lvt_entry + 1)
-
-LOGICAL_DESTINATION_REG_PTR logical_destination_reg;
-#define LOGICAL_DESTINATION_REGISTER_OFFSET 0xD0
-#define LOGICAL_DESTINATION_REGISTER_RESET 0x0
-
-DESTINATION_FORMAT_REG_PTR destination_format_reg;
-#define DESTINATION_FORMAT_REGISTER_OFFSET 0xE0
-#define DESTINATION_FORMAT_REGISTER_RESET 0xFFFFFFFF
-
-ARBITRATION_PRIORITY_REG_PTR arbitration_priority_reg;
-#define ARBITRATION_PRIORITY_REGISTER_OFFSET 0x90
-#define ARBITRATION_PRIORITY_REGISTER_RESET 0x0
-
-TASK_PRIORITY_REG_PTR task_priority_reg;
-#define TASK_PRIORITY_REGISTER_OFFSET 0x80
-#define TASK_PRIORITY_REGISTER_RESET 0x0
-
-PROCESSOR_PRIORITY_REG_PTR processor_priority_reg;
-#define PROCESSOR_PRIORITY_REGISTER_OFFSET 0xA0
-#define PROCESSOR_PRIORITY_REGISTER_RESET 0x0
-
-INTERRUPT_REQUEST_REG_PTR interrupt_request_reg;
-#define INTERRUPT_REQUEST_REGISTER_OFFSET 0x200
-#define INTERRUPT_REQUEST_REGISTER_RESET 0x0
-
-IN_SERVICE_REG_PTR in_service_reg;
-#define IN_SERVICE_REGISTER_OFFSET 0x100
-#define IN_SERVICE_REGISTER_RESET 0x0
-
-TRIGGER_MODE_REG_PTR trigger_mode_reg;
-#define TRIGGER_MODE_REGISTER_OFFSET 0x180
-#define TRIGGER_MODE_REGISTER_RESET 0x0
-
-EOI_REG_PTR eoi_reg;
-#define EOI_REGISTER_OFFSET 0xB0
-#define EOI_REGISTER_RESET 0x0
-
-
-/*!
-	\brief	Detects if APIC support is present on the processor by looking into CPUID.
-
-	\param	 cpu_id: id of the processor which is to be queried.
-
-	\return	 0:  Success, APIC is present.
-			 -1: Failure, APIC is absent.
-*/
-int DetectAPIC(UINT8 cpu_id)
-{
-	char present;
-
-	present = CPU_FEATURE_APIC(cpu_id);
-	if(!present) /* APIC is not present on this processor */
-		return -1;
-	return 0;
-}
 
 /*!
-	\brief	 Enables or Disables APIC functionality.
-
-	\param	 
-
-	\return	 void
-*/
-void UseAPIC(int enable)
-{
-	if(enable)
-	{
-		lapic_base_msr->enable = 1;
-		_outp(0x70, 0x22);
-		_outp(0x01, 0x23);
-	}
-	else
-	{
-		lapic_base_msr->enable = 0;
-	}
-}
-
-/*!
-	\brief	Initialize APIC by getting information from ACPI. This is called from main.c.
-			This initializes LAPIC and IOAPIC by calling their respective functions.
+	\brief	 Initializes LAPICT and IOAPIC. This function is called by the processor intialization code. kernel/i386/SetupAPIC()
 
 	\param	 void
 
 	\return	 void
 */
-void InitAPIC(void)
+inline void InitAPIC(void)
 {
-	//Init lapic and ioapic registers.
 	InitLAPIC();
 	InitIOAPIC();
-	UseAPIC(1);
-	kprintf("APIC is in use now\n");
-	return;
+}
+
+/*! Initialize LAPIC to receive interrupts.
+		1) Enable APIC
+		2) Mask interrupts for LINT0, LINT1, Error, Performance Monitors and Thermal sensors. These registers should be enabled later.
+		3) Set Task Priority to 0, so that all interrupts will be received
+	
+*/
+static void InitLAPIC()
+{
+	volatile SPURIOUS_INTERRUPT_REG_PTR _sir;
+	volatile LINT0_REG_PTR _lint0;
+	volatile LINT1_REG_PTR _lint1;
+	volatile TASK_PRIORITY_REG_PTR _tpr;
+	volatile ERROR_REG_PTR _er;
+	volatile PERFORMANCE_MONITOR_COUNT_REG_PTR _pr;
+	
+	/* Setup the base register of APIC */
+	lapic_base_msr = (IA32_APIC_BASE_MSR_PTR)MapPhysicalMemory(&kernel_map, LAPIC_BASE_MSR_START, sizeof(IA32_APIC_BASE_MSR)); /* size is not this.. it should be sum total of the sizes of all register structures. */
+
+	/*enable APIC*/
+	_sir =	SPURIOUS_INTERRUPT_VECTOR_REGISTER_ADDRESS(lapic_base_msr);
+	_sir->apic_enable = 1;
+	_sir->spurious_vector = SPURIOUS_VECTOR_NUMBER;
+	
+	/*Mask LINT0 and LINT1 interrupts*/
+	_lint0 = LINT0_REGISTER_ADDRESS(lapic_base_msr);
+	_lint0->mask = 0;
+	_lint0->vector = LINT0_VECTOR_NUMBER;
+	
+	_lint1 = LINT1_REGISTER_ADDRESS(lapic_base_msr);
+	_lint1->mask = 0;
+	_lint1->vector = LINT1_VECTOR_NUMBER;
+	
+	/*mask error register*/
+	_er = ERROR_REGISTER_ADDRESS(lapic_base_msr);
+	_er->mask = 0;
+	_er->vector = ERROR_VECTOR_NUMBER;
+	
+	/*mask performance monitoring registers*/
+	_pr = PERF_MON_CNT_REGISTER_ADDRESS(lapic_base_msr);
+	_pr->mask = 0;
+	_pr->vector = PERF_MON_VECTOR_NUMBER;
+	
+	/*set task priority to 0 to receive all interrupts*/
+	_tpr = TASK_PRIORITY_REGISTER_ADDRESS(lapic_base_msr);
+	_tpr->task_priority=0;
 }
 
 /*!
@@ -175,48 +190,9 @@ void InitAPIC(void)
 */
 void SendEndOfInterrupt(int int_no)
 {
-	eoi_reg->zero = 0;
-}
-
-
-/*!
-	\brief	 Initialize LAPIC registers and LAPIC base address.
-
-	\param	 void
-
-	\return	 void
-*/
-static void InitLAPIC(void)
-{
-	lapic_base_msr = (IA32_APIC_BASE_MSR_PTR)MapPhysicalMemory(&kernel_map, LAPIC_BASE_MSR_START, sizeof(IA32_APIC_BASE_MSR)); /* size is not this.. it should be sum total of the sizes of all register structures. */
-
-	InitLAPICRegisters(LAPIC_BASE_MSR_START);
-	return;
-}
-
-/*!
-	\brief	Sets the base address of LAPIC to this new address.
-
-	\param	 addr: The new physical base address of LAPIC base register.
-
-	\return	 void
-*/
-void RelocateBaseLAPICAddress(UINT32 addr)
-{
-	/* backup the present contents of base register */
-	IA32_APIC_BASE_MSR temp;
-	temp.bsp = lapic_base_msr->bsp;
-	temp.enable = lapic_base_msr->enable;
-
-	if ( CreatePhysicalMapping(kernel_map.physical_map, (UINT32)lapic_base_msr, addr, 0) != ERROR_SUCCESS )
-		panic("VA to PA mapping failed\n");
-
-	/* Change the base address to new address */
-	lapic_base_msr = (IA32_APIC_BASE_MSR_PTR)(addr);
-	temp.base_low = lapic_base_msr->base_low;
-	temp.base_high = lapic_base_msr->base_high;
-
-	memcpy((void*)(lapic_base_msr), (void*)(&temp), sizeof(IA32_APIC_BASE_MSR));
+	EOI_REG_PTR er;
+	er = EOI_REGISTER_ADDRESS(lapic_base_msr);
+	er->zero = 0;
 }
 
 
@@ -233,7 +209,6 @@ void InitSmp(void)
 {
     BootOtherProcessors();
 }
-
 
 
 /*!
@@ -299,37 +274,6 @@ static void StartProcessor(UINT32 apic_id)
 
 
 /*!
-	\brief	This routine memory maps all the LAPIC registers from the specified starting base.
-
-	\param	 base_address: starting address of LAPIC registers.
-
-	\return	 void
-*/
-static void InitLAPICRegisters(UINT32 base_address)
-{
-	interrupt_command_register		=	(INTERRUPT_COMMAND_REGISTER_PTR)(base_address + INTERRUPT_COMMAND_REGISTER_LOW_OFFSET);
-	timer_register 					=	(TIMER_REGISTER_PTR)(TIMER_REGISTER_OFFSET + base_address);
-	lint0_reg						=	(LINT0_REG_PTR)(base_address + LINT0_REGISTER_OFFSET);
-	lint1_reg						=	(LINT1_REG_PTR)(base_address + LINT1_REGISTER_OFFSET);
-	error_reg						=	(ERROR_REG_PTR)(base_address + ERROR_REGISTER_OFFSET);
-	performance_monitor_count_reg	=	(PERFORMANCE_MONITOR_COUNT_REG_PTR)(base_address + PERF_MON_CNT_REGISTER_OFFSET);
-	thermal_sensor_reg				=	(THERMAL_SENSOR_REG_PTR)(base_address + THERMAL_SENSOR_REGISTER_OFFSET);
-	error_status_reg				=	(ERROR_STATUS_REG_PTR)(base_address + ERROR_STATUS_REGISTER_OFFSET);
-	local_apic_version_reg			=	(LOCAL_APIC_VERSION_REG_PTR)(base_address + LOCAl_APIC_VERSION_REGISTER_OFFSET);
-	logical_destination_reg			=	(LOGICAL_DESTINATION_REG_PTR)(base_address + LOGICAL_DESTINATION_REGISTER_OFFSET);
-	destination_format_reg			=	(DESTINATION_FORMAT_REG_PTR)(base_address + DESTINATION_FORMAT_REGISTER_OFFSET);
-	arbitration_priority_reg		=	(ARBITRATION_PRIORITY_REG_PTR)(base_address + ARBITRATION_PRIORITY_REGISTER_OFFSET);
-	task_priority_reg				=	(TASK_PRIORITY_REG_PTR)(base_address + TASK_PRIORITY_REGISTER_OFFSET);
-	processor_priority_reg			=	(PROCESSOR_PRIORITY_REG_PTR)(base_address + PROCESSOR_PRIORITY_REGISTER_OFFSET);
-	interrupt_request_reg			=	(INTERRUPT_REQUEST_REG_PTR)(base_address + INTERRUPT_REQUEST_REGISTER_OFFSET);
-	in_service_reg					=	(IN_SERVICE_REG_PTR)(base_address + IN_SERVICE_REGISTER_OFFSET);
-	trigger_mode_reg				=	(TRIGGER_MODE_REG_PTR)(base_address + TRIGGER_MODE_REGISTER_OFFSET);
-	eoi_reg							=	(EOI_REG_PTR)(base_address + EOI_REGISTER_OFFSET);
-	return;
-}
-
-
-/*!
 	\brief	Provides the following support:
 			1: To send an interrupt to another processor.
 			2: To allow a processor to forward an interrupt, that it received but did not service, to another processor for servicing.
@@ -345,6 +289,7 @@ INT16 IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIV
 				enum ICR_DESTINATION_SHORTHAND destination_shorthand, BYTE init_de_assert)
 {
 	INTERRUPT_COMMAND_REGISTER cmd;
+	INTERRUPT_COMMAND_REGISTER_PTR _icr_reg;
 	
 	cmd.vector = vector;
 	cmd.delivery_mode = delivery_mode;
@@ -382,8 +327,9 @@ INT16 IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIV
 																break;
 	}
 
+	_icr_reg = INTERRUPT_COMMAND_REGISTER_ADDRESS(lapic_base_msr);
 	/* Now copy these register contents to actual location of interrupt command register */
-	memcpy( interrupt_command_register, &cmd, sizeof(INTERRUPT_COMMAND_REGISTER) ); //dst, src, len
+	memcpy( _icr_reg, &cmd, sizeof(INTERRUPT_COMMAND_REGISTER) ); //dst, src, len
 	/* This act of writing into ICR will make APIC to generate an interrupt */
 	return 0;
 }

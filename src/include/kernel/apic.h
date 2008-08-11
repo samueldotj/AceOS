@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created: Sat Jun 14, 2008  06:19PM
-  			Last modified: Thu Aug 07, 2008  03:30PM
+  			Last modified: Tue Aug 12, 2008  01:13AM
   \brief	
 */
 
@@ -245,6 +245,14 @@ typedef struct eoi_reg
 {
     UINT32 zero;
 }EOI_REG, * EOI_REG_PTR;
+
+typedef struct spurious_interrrupt_reg
+{
+	UINT32	spurious_vector:8,
+			apic_enable:1,
+			focus_processor_checking:1,
+			reserved;
+}SPURIOUS_INTERRUPT_REG, * SPURIOUS_INTERRUPT_REG_PTR;
 
 
 /* Declaration of the variables defined in apic.c */

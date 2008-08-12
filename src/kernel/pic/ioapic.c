@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:
-  			Last modified: Tue Aug 12, 2008  01:03AM
+  			Last modified: Tue Aug 12, 2008  09:31AM
   \brief	Contains APIC stuff in general and LAPIC.
 */
 
@@ -65,7 +65,7 @@ void InitIOAPIC(void)
 	for (index=0; index < count_ioapic; index++)
 	{
 		ioapic_base_reg[index] = (IOAPIC_REG_PTR)MapPhysicalMemory(&kernel_map, (ioapic[index]).physical_address, PAGE_SIZE);
-		if(!ioapic_base_reg)
+		if(!ioapic_base_reg[index])
 			panic("Mapping PA in ioapic failed\n");
 
 		//Now setup the redirection table in each of the ioapic.

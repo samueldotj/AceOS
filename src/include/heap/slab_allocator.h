@@ -4,7 +4,7 @@
   \version 	3.0
   \date	
   			Created:	Fri Mar 21, 2008  09:04PM
-  			Last modified: Sat Apr 19, 2008  12:18AM
+  			Last modified: Tue Aug 12, 2008  11:58PM
   \brief	This file contains structures and macros to maintain slab_allocator
 */
 
@@ -126,7 +126,7 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr);
 void DestroyCache(CACHE_PTR);
 
 /*returns the cache statistics*/
-CACHE_STATISTICS_PTR GetCahcheStatistics(CACHE_PTR cache_ptr);
+CACHE_STATISTICS_PTR GetCacheStatistics(CACHE_PTR cache_ptr);
 
 /*gives a page to cache*/
 int AddSlabToCache(CACHE_PTR cache_ptr, VADDR slab_start);

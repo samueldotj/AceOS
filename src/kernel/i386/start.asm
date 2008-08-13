@@ -73,11 +73,7 @@ KernelEntry:
 	
 ;this function is called by secondary CPUs while starting
 SecondaryCPUEntry:
-	;create kernel stack //todo this should relocatable
-	mov eax, esp
-	add eax, (KERNEL_VIRTUAL_ADDRESS - KERNEL_PHYSICAL_ADDRESS)
-	mov esp, eax
-;init paging
+	;init paging
 	mov eax, (kernel_page_directory - KERNEL_VIRTUAL_ADDRESS) + KERNEL_PHYSICAL_ADDRESS
 	or eax, 0x80000000
 	mov cr0, eax

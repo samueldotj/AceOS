@@ -40,6 +40,7 @@ inline void ClearBitInBitArray(void * bit_array, UINT32 bit_index)
 /*!	finds the first set bit in the array
 	\param 	bit_array - starting address of the bit_array
 	\param	length - total bits in the bit array
+	\param	result	Pointer to first set bit in bit_array.
 	\return	0 if success else -1
 */
 inline UINT32 FindFirstSetBitInBitArray(void * bit_array, UINT32 length, UINT32 * result)
@@ -73,6 +74,7 @@ inline UINT32 FindFirstSetBitInBitArray(void * bit_array, UINT32 length, UINT32 
 /*!	finds the first cleared bit in the array
 	\param 	bit_array - starting address of the bit_array
 	\param	length - total bits in the bit array
+	\param	result	Pointer to first clear bit in bit_array.
 	\return	0 if success else -1
 */
 inline UINT32 FindFirstClearBitInBitArray(void * bit_array, UINT32 length, UINT32 * result)

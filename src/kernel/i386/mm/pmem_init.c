@@ -1,5 +1,5 @@
 /*!
-	\file	src/kernel/i386/mm/pmem_pa.c	
+	\file	src/kernel/i386/mm/pmem_init.c	
 	\brief	Physical memory manager initialization routines
 	\note	all these routines uses physical memory and dont know about va.
 */

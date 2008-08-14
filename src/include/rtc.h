@@ -1,4 +1,4 @@
-/*! \file kernel/rtc.h
+/*! \file rtc.h
     \brief timer and rtc related data structures and functions
 */
 #include <ace.h>

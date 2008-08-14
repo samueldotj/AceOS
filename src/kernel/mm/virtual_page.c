@@ -222,12 +222,13 @@ static int inline DownGradePhysicalRange(enum VIRTUAL_PAGE_RANGE_TYPE vp_request
 	return 1;
 }
 /*! Allocates a virtual page from the VM subsystem to the caller
-	\param pages - number of contiguous pages requried
-	\return on success returns pointer to the allocated virtual page 
-		on failure returns NULL
-		
-	1) This routine gets the first virtual page of a free range by calling FindFreeVirtualPageRange()
-	2) Removes the pages from the last of the range if the range is bigger than requested size.
+ *	\param	pages				number of contiguous pages requried
+ *	\param	vp_range_type		Range type of VIRTUAL PAGE
+ *	\retval VIRTUAL_PAGE_PTR	on success: pointer to the allocated virtual page 
+ *	\retval	NULL				on failure.
+ *		
+ *	1) This routine gets the first virtual page of a free range by calling FindFreeVirtualPageRange()
+ *	2) Removes the pages from the last of the range if the range is bigger than requested size.
 */
 VIRTUAL_PAGE_PTR AllocateVirtualPages(int pages, enum VIRTUAL_PAGE_RANGE_TYPE vp_range_type)
 {
@@ -338,7 +339,7 @@ UINT32 FreeVirtualPages(VIRTUAL_PAGE_PTR first_vp, int pages)
 }
 
 /*! Finds the Virtual Page for a given physical address
-	\param pysical_address - physical address for which virtual page to find
+	\param physical_address - physical address for which virtual page to find
 	
 	\return NULL on failure
 			virtual page ptr on success
@@ -364,9 +365,10 @@ VIRTUAL_PAGE_PTR PhysicalToVirtualPage(UINT32 physical_address)
 	return NULL;
 }
 
-/*! This function will find a free virtual page range with size greater than or equal to the requested size.
-	\param total_pages_required - total pages required
-	\return First virtual page in the free range
+/*! \brief						This function will find a free virtual page range with size greater than or equal to the requested size.
+	\param free_tree			Tree
+	\param total_pages_required	total pages required
+	\return VIRTUAL_PAGE_PTR	First virtual page in the free range
 	\note 	1) This function does not allocate the pages.
 			2) Caller is responsible for taking the lock.
 			

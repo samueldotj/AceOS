@@ -1,5 +1,5 @@
 /*!
-	\file	include/kernel/mm/virtual_page.c	
+	\file	include/kernel/mm/virtual_page.h	
 	\brief	virtual page
 */
 

@@ -64,7 +64,7 @@ enum DFR_MODEL
     DFR_MODEL_CLUSTER_MODEL
 };
 
-/* LAPIC */
+/*! LAPIC */
 typedef struct ia32_apic_base_msr
 {
     UINT32  reserved1: 8,
@@ -92,7 +92,7 @@ typedef struct interrupt_command_register
             destination_field: 8;
 }INTERRUPT_COMMAND_REGISTER, * INTERRUPT_COMMAND_REGISTER_PTR;
 
-/* Start of Local Vector Table */
+/*! Start of Local Vector Table */
 typedef struct timer_register
 {
     UINT32  vector: 8,
@@ -255,7 +255,6 @@ void InitAPIC(void);
 void SendEndOfInterrupt(int int_no);
 void RelocateBaseLAPICAddress(UINT32 addr);
 void InitSmp(void);
-INT16 IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIVERY_MODE delivery_mode,
-                enum ICR_DESTINATION_SHORTHAND destination_shorthand, BYTE init_de_assert);
+void IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIVERY_MODE delivery_mode, enum ICR_DESTINATION_SHORTHAND destination_shorthand);
 
 #endif

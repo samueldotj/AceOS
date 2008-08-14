@@ -45,6 +45,7 @@ VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 e
 	\param vmap - virtual map to search for free range
 	\param start - optional parameter to start the search (if 0 it is ignored)
 	\param size - required size of the free range
+	\param option - An option to search VA range 
 	\return starting free virtual address on success
 		  NULL on failure.
 */

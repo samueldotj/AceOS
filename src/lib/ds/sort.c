@@ -11,11 +11,12 @@ static void swap(char * data_array, int pos1, int pos2, char * temp, int data_si
 static void downheap(int v, char * data_array, int data_size, int total_elements, char * temp_data, COMPARISION_RESULT (*compare_data)(char * data1, char * data2));
 static void buildheap(char * data_array, int data_size, int total_elements, char * temp_data, COMPARISION_RESULT (*compare_data)(char * data1, char * data2));
 
-/*! Sorts a array - using heap sort algorithm
-	\param data_array - array of data structure
-	\param temp_data - temporary storage of same size as one data element
-	\param data_size - size of a single data structure
-	\param total_elements - total_elements in the array
+/*! \brief					Sorts a array, using heap sort algorithm
+	\param data_array		array of data structure
+	\param temp_data		temporary storage of same size as one data element
+	\param data_size		size of a single data structure
+	\param total_elements	total_elements in the array
+	\param compare_data		Function Pointer to function which compares the data in data_array.
 */
 void SortArray(char * data_array, char * temp_data, int data_size, int total_elements, COMPARISION_RESULT (*compare_data)(char * data1, char * data2))
 {

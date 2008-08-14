@@ -117,11 +117,7 @@ IA32_APIC_BASE_MSR_PTR lapic_base_msr;
 
 
 /*!
-	\brief	 Initializes LAPICT and IOAPIC. This function is called by the processor intialization code. kernel/i386/SetupAPIC()
-
-	\param	 void
-
-	\return	 void
+ *	\brief	 Initializes LAPICT and IOAPIC. This function is called by the processor intialization code. kernel/i386/SetupAPIC()
 */
 inline void InitAPIC(void)
 {
@@ -130,10 +126,9 @@ inline void InitAPIC(void)
 }
 
 /*! Initialize LAPIC to receive interrupts.
-		1) Enable APIC
-		2) Mask interrupts for LINT0, LINT1, Error, Performance Monitors and Thermal sensors. These registers should be enabled later.
-		3) Set Task Priority to 0, so that all interrupts will be received
-	
+ *		1) Enable APIC
+ *		2) Mask interrupts for LINT0, LINT1, Error, Performance Monitors and Thermal sensors. These registers should be enabled later.
+ *		3) Set Task Priority to 0, so that all interrupts will be received
 */
 static void InitLAPIC()
 {
@@ -144,15 +139,16 @@ static void InitLAPIC()
 	volatile ERROR_REG_PTR _er;
 	volatile PERFORMANCE_MONITOR_COUNT_REG_PTR _pr;
 	
-	/* Setup the base register of APIC */
-	lapic_base_msr = (IA32_APIC_BASE_MSR_PTR)MapPhysicalMemory(&kernel_map, LAPIC_BASE_MSR_START, sizeof(IA32_APIC_BASE_MSR)); /* size is not this.. it should be sum total of the sizes of all register structures. */
+	/*! Setup the base register of APIC */
+	lapic_base_msr = (IA32_APIC_BASE_MSR_PTR)MapPhysicalMemory(&kernel_map, LAPIC_BASE_MSR_START, sizeof(IA32_APIC_BASE_MSR)); 
+	/*! \todo size is not this.. it should be sum total of the sizes of all register structures. */
 
-	/*enable APIC*/
+	/*! enable APIC */
 	_sir =	SPURIOUS_INTERRUPT_VECTOR_REGISTER_ADDRESS(lapic_base_msr);
 	_sir->apic_enable = 1;
 	_sir->spurious_vector = SPURIOUS_VECTOR_NUMBER;
 	
-	/*Mask LINT0 and LINT1 interrupts*/
+	/*! Mask LINT0 and LINT1 interrupts */
 	_lint0 = LINT0_REGISTER_ADDRESS(lapic_base_msr);
 	_lint0->mask = 0;
 	_lint0->vector = LINT0_VECTOR_NUMBER;
@@ -161,27 +157,24 @@ static void InitLAPIC()
 	_lint1->mask = 0;
 	_lint1->vector = LINT1_VECTOR_NUMBER;
 	
-	/*mask error register*/
+	/*! mask error register */
 	_er = ERROR_REGISTER_ADDRESS(lapic_base_msr);
 	_er->mask = 0;
 	_er->vector = ERROR_VECTOR_NUMBER;
 	
-	/*mask performance monitoring registers*/
+	/*! mask performance monitoring registers */
 	_pr = PERF_MON_CNT_REGISTER_ADDRESS(lapic_base_msr);
 	_pr->mask = 0;
 	_pr->vector = PERF_MON_VECTOR_NUMBER;
 	
-	/*set task priority to 0 to receive all interrupts*/
+	/*! set task priority to 0 to receive all interrupts */
 	_tpr = TASK_PRIORITY_REGISTER_ADDRESS(lapic_base_msr);
 	_tpr->task_priority=0;
 }
 
 /*!
-	\brief	The act of writing anything to this register will cause an EOI to be issued.
-
-	\param	 int_no: Interrupt number
-
-	\return	 void
+ *	\brief			The act of writing anything to this register will cause an EOI to be issued.
+ *	\param	int_no	Interrupt number
 */
 void SendEndOfInterrupt(int int_no)
 {
@@ -192,13 +185,8 @@ void SendEndOfInterrupt(int int_no)
 
 
 /*!
-	\brief	 Initialise SMP environment
-
-	\param	 void
-
-	\return	 void
-
-	\Assumption: We assume that InitAPIC() is already called and processor structures are updated.
+ *	\brief	 Initialise SMP environment
+ *	\note	Assumption: We assume that InitAPIC() is already called and processor structures are updated.
 */
 void InitSmp(void)
 {
@@ -207,19 +195,15 @@ void InitSmp(void)
 
 
 /*!
-	\brief	 Boot all application processors by calling StartProcessor for each of the processors on the system.
-
-	\param	 void
-
-	\return	 void
+ *	\brief	 Boot all application processors by calling StartProcessor for each of the processors on the system.
 */
 static void BootOtherProcessors(void)
 {
 	UINT32 apic_id, processor_count;
-    //Send SIPI to all cpu's
+    /*! Send SIPI to all cpu's */
     for(processor_count=0; processor_count < count_running_processors ; processor_count++)
 	{
-		//if (processor[processor_count].state == OFFLINE)
+		/*! if (processor[processor_count].state == OFFLINE) */
 		apic_id = processor[processor_count].apic_id;
 	    StartProcessor(apic_id);
 	}
@@ -227,61 +211,56 @@ static void BootOtherProcessors(void)
 
 
 /*!
-	\brief	Start a application processor by issuing IPI messages in the order: INIT, SIPI, SIPI.
-
-	\param	apic_id: apic id of the processor which is to be started.
-
-	\return	 void
+ *	\brief			Start a application processor by issuing IPI messages in the order: INIT, SIPI, SIPI.
+ *	\param	apic_id	apic id of the processor which is to be started.
 */
 static void StartProcessor(UINT32 apic_id)
 {
 	int temp_count_processors = count_running_processors;
 	int temp_loop;
 
-	/* Get the 32 bit physical address which contains the code to execute on ap's.  We need only first 8 bits(LSB) of the physical address. */
+	/*! Get the 32 bit physical address which contains the code to execute on ap's.  We need only first 8 bits(LSB) of the physical address. */
     UINT8 vector = (CreatePageForSecondaryCPUStart() & 0xff); 
 
-	/* BSP should initialize the BIOS shutdown code to 0AH and vector to startup code. */
-	//TBD
-	IssueInterprocessorInterrupt(vector, apic_id, ICR_DELIVERY_MODE_INIT, ICR_DESTINATION_SHORTHAND_NO_SHORTHAND, 0);
+	IssueInterprocessorInterrupt(vector, apic_id, ICR_DELIVERY_MODE_INIT, ICR_DESTINATION_SHORTHAND_NO_SHORTHAND);
 
-	//delay(10); //I want to sleep for 10m sec
-	for(temp_loop=0; temp_loop < 1000000; temp_loop++); //just an approximate.
+	/*! delay(10); //I want to sleep for 10m sec */
+	for(temp_loop=0; temp_loop < 1000000; temp_loop++); /*! just an approximate. */
 
-	IssueInterprocessorInterrupt(vector, apic_id, ICR_DELIVERY_MODE_SIPI, ICR_DESTINATION_SHORTHAND_NO_SHORTHAND, 0);
+	IssueInterprocessorInterrupt(vector, apic_id, ICR_DELIVERY_MODE_SIPI, ICR_DESTINATION_SHORTHAND_NO_SHORTHAND);
 	
-	//delay(200Micr sec);
+	/*! delay(200Micr sec); */
 	for(temp_loop=0; temp_loop < 20000; temp_loop++); //just an approximate
 	
-	IssueInterprocessorInterrupt(vector, apic_id, ICR_DELIVERY_MODE_SIPI, ICR_DESTINATION_SHORTHAND_NO_SHORTHAND, 0);
+	IssueInterprocessorInterrupt(vector, apic_id, ICR_DELIVERY_MODE_SIPI, ICR_DESTINATION_SHORTHAND_NO_SHORTHAND);
 	
-	//delay(200Micr sec);
-	for(temp_loop=0; temp_loop < 20000; temp_loop++); //Just an approximate
+	/*! delay(200Micr sec); */
+	for(temp_loop=0; temp_loop < 20000; temp_loop++); /*!Just an approximate */
 	
-	//Now check if AP has started running?
+	/*! Now check if AP has started running? */
 	if ( temp_count_processors != (count_running_processors + 1) )
 	{
 		kprintf("Something wrong in booting ap %d!\n", apic_id);
-		//mark the processor as absent.
+		/*! mark the processor as absent. */
 	}
 	return;
 }
 
 
 /*!
-	\brief	Provides the following support:
-			1: To send an interrupt to another processor.
-			2: To allow a processor to forward an interrupt, that it received but did not service, to another processor for servicing.
-			3: To direct the processor to interrupt itself (perform a self interrupt).
-			4: To deliver special IPIs, such as the start-up IPI (SIPI) message, to other processors.
-
-	\param	vector: Vector number of the interrupt being sent. 
-			apic_id: apic id of the processor to which an interrupt is to be sent.
-			delivery_mode: Specifies the type of IPI to be sent.
-	\return	 
+ *	\brief	Provides the following support:
+ *			1: To send an interrupt to another processor.
+ *			2: To allow a processor to forward an interrupt, that it received but did not service, to another processor for servicing.
+ *			3: To direct the processor to interrupt itself (perform a self interrupt).
+ *			4: To deliver special IPIs, such as the start-up IPI (SIPI) message, to other processors.
+ *
+ *	\param	vector					Vector number of the interrupt being sent. 
+ *	\param	apic_id					apic id of the processor to which an interrupt is to be sent.
+ *	\param	delivery_mode			Specifies the type of IPI to be sent.
+ *	\param	destination_shorthand	A shorthand nottation to send the message.
 */
-INT16 IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIVERY_MODE delivery_mode,
-				enum ICR_DESTINATION_SHORTHAND destination_shorthand, BYTE init_de_assert)
+void IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIVERY_MODE delivery_mode,
+				enum ICR_DESTINATION_SHORTHAND destination_shorthand)
 {
 	INTERRUPT_COMMAND_REGISTER cmd;
 	INTERRUPT_COMMAND_REGISTER_PTR _icr_reg;
@@ -296,15 +275,12 @@ INT16 IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIV
 	{
 		case ICR_DELIVERY_MODE_FIXED:			break;
 		case ICR_DELIVERY_MODE_LOWEST_PRIORITY:	break;
-		case ICR_DELIVERY_MODE_SMI:				cmd.vector = 0; /*This is for future compatibility as described in specs. */
+		case ICR_DELIVERY_MODE_SMI:				cmd.vector = 0; /*! This is for future compatibility as described in specs. */
 												break;
 		case ICR_DELIVERY_MODE_NMI:				break;
 		case ICR_DELIVERY_MODE_INIT:
-												if(init_de_assert) {
-													cmd.level = ICR_LEVEL_DE_ASSERT;
-												}		
 												cmd.trigger_mode = ICR_TRIGGER_MODE_LEVEL;
-												cmd.vector = 0; /*This is for future compatibility as described in specs. */
+												cmd.vector = 0; /*! This is for future compatibility as described in specs. */
 												break;
 		case ICR_DELIVERY_MODE_SIPI:			cmd.trigger_mode = ICR_TRIGGER_MODE_EDGE;
 												break;
@@ -323,8 +299,7 @@ INT16 IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIV
 	}
 
 	_icr_reg = INTERRUPT_COMMAND_REGISTER_ADDRESS(lapic_base_msr);
-	/* Now copy these register contents to actual location of interrupt command register */
+	/*! Now copy these register contents to actual location of interrupt command register */
 	memcpy( _icr_reg, &cmd, sizeof(INTERRUPT_COMMAND_REGISTER) ); //dst, src, len
-	/* This act of writing into ICR will make APIC to generate an interrupt */
-	return 0;
+	/*! This act of writing into ICR will make APIC to generate an interrupt */
 }

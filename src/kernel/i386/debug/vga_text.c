@@ -1,7 +1,6 @@
 /*! \file vga_text.c
-
-    \brief This file provide a minimal text out routines. 
-    Does direct IO on VGA registers to move text mode cursor
+ *	\brief This file provide a minimal text out routines. 
+ *	 Does direct IO on VGA registers to move text mode cursor
 */
 #include <kernel/i386/vga_text.h>
 #include <kernel/i386/pmem.h>
@@ -43,7 +42,7 @@ BYTE * vga_text_memory_end = (BYTE *)(VGA_TEXT_MEMORY + ((VGA_DEFAULT_MAX_COL <<
 BYTE vga_total_col = VGA_DEFAULT_MAX_COL;
 BYTE vga_total_row = VGA_DEFAULT_MAX_ROW;
 /*! Writes the character to the VGA memory
-	Special characters supported \n \r and \t
+	Special characters supported "\n" "\r" and "\t"
 */
 void VgaPrintCharacter(BYTE c)
 {

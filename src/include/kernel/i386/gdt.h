@@ -1,5 +1,5 @@
 /*! 
-	\file	kernel\i386\gdt.h
+	\file	kernel/i386/gdt.h
 	\brief  Global Descriptor Table related data structure definitions and functions
 */
 

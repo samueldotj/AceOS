@@ -14,7 +14,7 @@
 #include <string.h>
 
 
-IOAPIC_REG_PTR ioapic_base_reg[MAX_IOAPIC]; //This can also be used as IA32_APIC_BASE_MSR_PTR
+IOAPIC_REG_PTR ioapic_base_reg[MAX_IOAPIC]; /*! This can also be used as IA32_APIC_BASE_MSR_PTR */
 
 IOAPIC ioapic[MAX_IOAPIC];
 UINT8 count_ioapic;
@@ -25,10 +25,10 @@ static int FindIOAPIC(UINT8 ioapic_id);
 
 
 /*!
-	\brief	Search for IOAPIC using ioapic id as the primary key.
-	\param	ioapic_id - unique id associated with each ioapic.
-	\return	index of ioapic(Positive number): success
-			-1: Failure
+ *	\brief						Search for IOAPIC using ioapic id as the primary key.
+ *	\param	ioapic_id			unique id associated with each ioapic.
+ *	\retval	Positive_Integer	int	index of ioapic(Positive number): success
+ *	\retval	-1					Failure
 */
 static int FindIOAPIC(UINT8 ioapic_id)
 {
@@ -36,7 +36,7 @@ static int FindIOAPIC(UINT8 ioapic_id)
 
 	for(index = 0; index < count_ioapic; index++)
 	{
-		if( ioapic_id ==  GetIOAPICId(index)) //found
+		if( ioapic_id ==  GetIOAPICId(index)) /*! found */
 			return index;
 	}
 
@@ -55,8 +55,8 @@ void InitIOAPIC(void)
 		if(!ioapic_base_reg[index])
 			panic("Mapping PA in ioapic failed\n");
 
-		//Now setup the redirection table in each of the ioapic.
-		/* Each IOAPIC is initialized from acpi and we load the GlobalIrqBase count in starting_vector.
+		/*! Now setup the redirection table in each of the ioapic.
+		 * Each IOAPIC is initialized from acpi and we load the GlobalIrqBase count in starting_vector.
 		 * So use that info in getting the starting vector number for each of the apic.
 		 */
 		InitIOAPICRedirectionTable(IOAPIC_STARTING_VECTOR_NUMBER + (ioapic[index]).starting_vector, index);
@@ -66,10 +66,10 @@ void InitIOAPIC(void)
 }
 
 /*!
- * \brief Read data from IOAPIC for the given register.
- * \param reg - IOAPIC register to be accessed.
- * \param data - Pointer to 32 bit memory in which data is filled from IOAPIC.
- * \param index
+ * \brief 			Read data from IOAPIC for the given register.
+ * \param 	reg		IOAPIC register to be accessed.
+ * \param 	data	Pointer to 32 bit memory in which data is filled from IOAPIC.
+ * \param	index	index to tell which ioapic to use.
  */
 static void ReadFromIOAPIC(enum IOAPIC_REGISTER reg, UINT32 *data, UINT8 index)
 {
@@ -79,9 +79,10 @@ static void ReadFromIOAPIC(enum IOAPIC_REGISTER reg, UINT32 *data, UINT8 index)
 
 
 /*!
-	\brief	Write to the specified register in IOAPIC.
-	\param	reg - IOAPIC register to be accessed.
-	\param	data - 32 bit data that has to be written into the specified register.
+ *	\brief	Write to the specified register in IOAPIC.
+ *	\param	reg - IOAPIC register to be accessed.
+ *	\param	data - 32 bit data that has to be written into the specified register.
+ *	\param	index	index to tell which ioapic to use.
 */
 static void WriteToIOAPIC(enum IOAPIC_REGISTER reg, UINT32 data, UINT8 index)
 {
@@ -90,9 +91,9 @@ static void WriteToIOAPIC(enum IOAPIC_REGISTER reg, UINT32 data, UINT8 index)
 }
 
 /*!
-	\brief	Fetch the IOAPIC ID. 
-	\param	index - index to the IOAPIC inside ioapic_base_reg array.
-	\return	 4 bit IOAPIC id.
+ *	\brief	Fetch the IOAPIC ID. 
+ *	\param	index	index to tell which ioapic to use.
+ *	\return	 4 bit IOAPIC id.
 */
 UINT8 GetIOAPICId(UINT8 index)
 {
@@ -103,8 +104,8 @@ UINT8 GetIOAPICId(UINT8 index)
 }
 
 /*!
-	\brief	 Get the maximum number of entries in IOAPIC redirection table. These many Interrupt lines are avilable.
-	\return	 Positive number of redirection entries.
+ *	\brief	 Get the maximum number of entries in IOAPIC redirection table. These many Interrupt lines are avilable.
+ *	\return	 Positive number of redirection entries.
 */
 UINT8 GetMaximumIOAPICRedirectionEntries(UINT8 index)
 {
@@ -115,9 +116,10 @@ UINT8 GetMaximumIOAPICRedirectionEntries(UINT8 index)
 }
 
 /*!
-	\brief	Load the redirection table structure with details obtained from IOAPIC for the required vector.
-	\param	reg -	IOAPIC register that is to be accessed.
-			table -	Pointer to redirection table which has to be loaded with details from IOAPIC.
+ *	\brief	Load the redirection table structure with details obtained from IOAPIC for the required vector.
+ *	\param	reg		IOAPIC register that is to be accessed.
+ *	\param	table	Pointer to redirection table which has to be loaded with details from IOAPIC.
+ *	\param	index	index to tell which ioapic to use.
 */
 void GetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table, UINT8 index)
 {
@@ -135,9 +137,10 @@ void GetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TA
 }
 
 /*!
-	\brief	Set the IOAPIC redirection table with given details.
-	\param	reg -	IOAPIC register that is to be accessed.
-	\param  table -	Pointer to redirection table which has to be loaded with details from IOAPIC.
+ *	\brief	Set the IOAPIC redirection table with given details.
+ *	\param	reg -	IOAPIC register that is to be accessed.
+ *	\param  table -	Pointer to redirection table which has to be loaded with details from IOAPIC.
+ *	\param	index	index to tell which ioapic to use.
 */
 void SetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table, UINT8 index)
 {
@@ -154,11 +157,12 @@ void SetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TA
 }
 
 /*!
-	\brief	Initial set up the redirection table entry to deliver Interrupts as vector number starting from <starting_vector>
-	\param	starting_vector: The starting vector number from which interrupts have to be redirected.
-	\return	0: Success
-			-1: Invalid starting vector number.
-			-2: Invalid max entries in redirection table.
+ *	\brief					Initial set up the redirection table entry to deliver Interrupts as vector number starting from starting_vector
+ *	\param	starting_vector	The starting vector number from which interrupts have to be redirected.
+ *	\param	index			index to tell which ioapic to use.
+ *	\retval	0				Success
+ *	\retval	-1				Invalid starting vector number.
+ *	\retval	-2				Invalid max entries in redirection table.
 */
 int InitIOAPICRedirectionTable(int starting_vector, UINT8 index)
 {
@@ -169,7 +173,7 @@ int InitIOAPICRedirectionTable(int starting_vector, UINT8 index)
 	if (starting_vector < 16 || starting_vector > 230) //254-24 = 230
 		return -1;
 
-	//Get the number of maximum redirection table entries supported on this IOAPIC.
+	/*! Get the number of maximum redirection table entries supported on this IOAPIC. */
 	max_entries = GetMaximumIOAPICRedirectionEntries(index);
 	if( max_entries > 24)
 		return -2;

@@ -177,7 +177,6 @@ static void RemoveFromCompletelyFreeList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 }
 
 /*!
- *  \fn		slab_inuse_tree_compare
  *	\brief					Compares the addresses and returns if greater-than/lesser-than or equal to accordingly.
  *	\param	node1			Pointer to an AVL Tree node
  *	\param	node2			Pointer to an AVL Tree node
@@ -201,7 +200,6 @@ static COMPARISION_RESULT slab_inuse_tree_compare(AVL_TREE_PTR node1, AVL_TREE_P
 		}
 }
 /*!
- *  \fn		SearchBufferInTree
  *	\brief				Finds the slab in tree, which contains the given buffer.
  *	\param	buffer		The Free memory that has to be released to it's slab.
  *	\param	cache_ptr	Pointer to cache which contains the given buffer.
@@ -246,7 +244,6 @@ static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr )
 }
 
 /*!
- * 	\fn		InitSlab
  *	\brief					Initializes the contents of a slab.
  *	\param	slab_ptr		Pointer to slab that has to be initialized.
  *	\param	buffer_count	Count of buffers in this slab. 
@@ -274,7 +271,6 @@ static void InitSlab(SLAB_PTR slab_ptr, UINT32 buffer_count)
 }
 
 /*!
- * 	\fn		AllocateSlabToCache
  *	\brief					Allocates a PAGE from VM and Adds it to the cache
  *	\param	cache_ptr		Pointer to my cache entry.
  *	\param	immediate_use	An Integer, indicating if free buffer from the new slab is used immediately.
@@ -302,7 +298,6 @@ static int AllocateSlabToCache(CACHE_PTR cache_ptr, int immediate_use)
 }
 
 /*!
- * 	\fn		RemoveInUseTree
  *	\brief				Remove the entire in_use_tree 
  *	\param	cache_ptr	Pointer to cache which contains the tree to be removed.
  *	\retval	void		No return value.
@@ -328,7 +323,6 @@ static void RemoveInUseTree(CACHE_PTR cache_ptr)
 }
 
 /*!
- * 	\fn		GetFreeBufferFromCache
  *	\brief				Gets a free Buffer from the given slab.
  *	\param	cache_ptr	Pointer to cache which has the free buffer.
  *	\retval	VADDR		Virtual address of the free buffer.
@@ -342,19 +336,11 @@ static VADDR GetFreeBufferFromCache(CACHE_PTR cache_ptr)
 	UINT32 free_buffer_index = 0;
 	
 	slab_ptr = cache_ptr->partially_free_slab_list_head;
-	/*!	\code	If partial free list is empty, get it from completely free list
-	 *	if ( slab_ptr == NULL )
-	 *		slab_ptr = cache_ptr->completely_free_slab_list_head;
-	 *	\endcode
-	 */
+	/*!	If partial free list is empty, get it from completely free list */
 	if ( slab_ptr == NULL )
 		slab_ptr = cache_ptr->completely_free_slab_list_head;
 	
-	/*! \code	Atleast one buffer should be free
-	 *	assert( slab_ptr );
-	 *	assert ( slab_ptr->used_buffer_count < cache_ptr->slab_buffer_count );
-	 *	\endcode
-	 */
+	/*! Atleast one buffer should be free */
 	assert( slab_ptr );
 	assert ( slab_ptr->used_buffer_count < cache_ptr->slab_buffer_count );
 	
@@ -364,25 +350,16 @@ static VADDR GetFreeBufferFromCache(CACHE_PTR cache_ptr)
 	new_state = GetSlabState( cache_ptr, slab_ptr);
 	ManageSlabStateTransition( cache_ptr, slab_ptr, old_state, new_state );
 	
-	/*! \code	Find the first free buffer
-	 *	if ( FindFirstClearBitInBitArray((void*)(slab_ptr->buffer_usage_bitmap), cache_ptr->slab_buffer_count, &free_buffer_index) == -1 )
-	 *	\endcode
-	 */
+	/*! Find the first free buffer */
 	if ( FindFirstClearBitInBitArray((void*)(slab_ptr->buffer_usage_bitmap), cache_ptr->slab_buffer_count, &free_buffer_index) == -1 )
 		return NULL;
 	
-	/*! \code	Set the bitmap to indicate the buffer is used
-	 *	SetBitInBitArray((void*)(slab_ptr->buffer_usage_bitmap), free_buffer_index );
-	 * \endcode
-	 */
+	/*! Set the bitmap to indicate the buffer is used */
 	SetBitInBitArray((void*)(slab_ptr->buffer_usage_bitmap), free_buffer_index );
 	
 	cache_ptr->free_buffer_count --;
 	
-	/*! \code	Calculate the virtual address
-	 *	ret_va = SLAB_START(slab_ptr, cache_ptr) + ( cache_ptr->buffer_size * free_buffer_index);
-	 *	\endcode
-	 */
+	/*! Calculate the virtual address */
 	ret_va = SLAB_START(slab_ptr, cache_ptr) + ( cache_ptr->buffer_size * free_buffer_index);
 	
 	return ret_va;
@@ -390,7 +367,6 @@ static VADDR GetFreeBufferFromCache(CACHE_PTR cache_ptr)
 
 
 /*!
- * 	\fn 	InitSlabAllocator
  *	\brief				Initializes a slab allocator. This is a 1 time operation.
  *	\param	page_size	Size of virtual page.
  *	\param	v_alloc		Function Pointer to virtual alloc.
@@ -414,7 +390,6 @@ int InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size),
 
 
 /*!
- * 	\fn		InitCache
  *	\brief							Initializes an empty cache of specified buffer size.
  *	\param	size					Size of the buffers in cache.
  *	\param	free_slabs_threshold	Threshold to start VM operation.
@@ -452,17 +427,11 @@ int InitCache(CACHE_PTR new_cache, UINT32 size,
 	new_cache->slab_size = SLAB_SIZE(new_cache->buffer_size);
 	buf_count = (new_cache->slab_size - sizeof(SLAB)) / new_cache->buffer_size;
 	bitmap_size = buf_count / BITS_PER_BYTE;
-	/*!	\code	recalcualte the buffer count
-	 *	buf_count = (new_cache->slab_size - sizeof(SLAB) - bitmap_size) / new_cache->buffer_size;
-	 *	\endcode
-	 */
+	/*!	recalcualte the buffer count */
 	buf_count = (new_cache->slab_size - sizeof(SLAB) - bitmap_size) / new_cache->buffer_size;
 	
 	new_cache->slab_metadata_size = sizeof(SLAB) + buf_count/BITS_PER_BYTE;
-	/*!	\code	align the size
-	 *	new_cache->slab_metadata_size = ALIGN_UP(new_cache->slab_metadata_size, 2);
-	 *	\endcode
-	 */
+	/*!	align the size */
 	new_cache->slab_metadata_size = ALIGN_UP(new_cache->slab_metadata_size, 2);
 	new_cache->slab_metadata_offset  = new_cache->slab_size - new_cache->slab_metadata_size;
 	new_cache->slab_buffer_count = buf_count;
@@ -485,7 +454,6 @@ int InitCache(CACHE_PTR new_cache, UINT32 size,
 }
 
 /*!
- *  \fn		DestroyCache
  *	\brief				Destroy the cache and return the vm_pages to VM subsystem. 
  *	\param	rem_cache	Pointer to cache which is to be destroyed.
  *	\retval	void		No return value
@@ -496,10 +464,7 @@ void DestroyCache(CACHE_PTR rem_cache)
 	SLAB_PTR slab_ptr;
 	VADDR rem_va;
 
-	/*!	\code	Get a lock to cache
-	 *	SpinLock( &(rem_cache->slock) );
-	 *	\endcode
-	 */
+	/*!	Get a lock to cache */
 	SpinLock( &(rem_cache->slock) );
 
 	/*! Move all partially used slabs to compeletely free slabs list */
@@ -517,16 +482,10 @@ void DestroyCache(CACHE_PTR rem_cache)
 		slab_ptr = rem_cache->partially_free_slab_list_head;
 	}
 
-	/*!	\code Now remove all slabs from completely FULL slab list. This is possible by deleting all nodes from the in use tree.
-	 *	RemoveInUseTree(rem_cache);
-	 * 	\endcode
-	 */
+	/*!	Now remove all slabs from completely FULL slab list. This is possible by deleting all nodes from the in use tree. */
 	RemoveInUseTree(rem_cache);
 	
-	/*!	\code	Before proceeding, make sure this cache is no more used by anybody.
-	 *	assert( rem_cache->in_use_slab_tree_root == NULL);
-	 *	\endcode
-	 */
+	/*!	Before proceeding, make sure this cache is no more used by anybody. */
 	assert( rem_cache->in_use_slab_tree_root == NULL);
 
 	/*! Now all slabs are in completely free list. Free the vm_pages inside slabs pointed by completely free slab list and the slabs themselves. */
@@ -551,7 +510,6 @@ void DestroyCache(CACHE_PTR rem_cache)
 }
 
 /*!
- *	\fn		AddSlabToCache
  *	\brief				Adds the given slab to cache.
  *	\param	cache_ptr	Pointer to my cache entry.
  *	\param	slab_start	Virtual address of slab starting address.
@@ -565,11 +523,7 @@ int AddSlabToCache(CACHE_PTR cache_ptr, VADDR slab_start)
 	if ( slab_start == NULL )
 		return -1;
 	
-	/*!	\code	Calculate the correct slab meta data and initialize it
-	 *	slab_ptr = (SLAB_PTR) (slab_start + cache_ptr->slab_metadata_offset);
-	 *	InitSlab(slab_ptr, cache_ptr->slab_buffer_count);
-	 *	\endcode
-	 */
+	/*!	Calculate the correct slab meta data and initialize it */
 	slab_ptr = (SLAB_PTR) (slab_start + cache_ptr->slab_metadata_offset);
 	InitSlab(slab_ptr, cache_ptr->slab_buffer_count);
 	
@@ -579,7 +533,6 @@ int AddSlabToCache(CACHE_PTR cache_ptr, VADDR slab_start)
 }
 
 /*!
- * 	\fn		AllocateBuffer
  *	\brief				Gets a free buffer from cache. 
  *	\param	cache_ptr	Pointer to cache from which buffers are wanted.
  *	\param 	flag		To indicate if this function can sleep(0) or not(1).
@@ -630,7 +583,6 @@ FINDING_BUFFER_DONE:
 
 
 /*!
- * 	\fn		FreeBuffer
  *	\brief				Free A buffer in it's slab. If all buffers in the slab are free, move the slab to completely free slab list.
  *	\param	buffer		Pointer to buffer which is to be freed.
  *	\param	cache_ptr	Pointer to cache which contans the buffer.
@@ -655,28 +607,18 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 		return -1;
 	}
 
-	/*!	\code	Find the slab which contains this buffer, using in_use_slab_tree.
-	 *	slab_ptr = SearchBufferInTree( (VADDR)(buffer), cache_ptr);
-	 *	\endcode
-	 */
+	/*!	Find the slab which contains this buffer, using in_use_slab_tree. */
 	slab_ptr = SearchBufferInTree( (VADDR)(buffer), cache_ptr);
 	if ( slab_ptr == NULL )
 	{
 		return -1;
 	}
 
-	/*!	\code	Clear the corresponding bit in buffer_usage_bitmap.
-	 *	va_start = SLAB_START(slab_ptr, cache_ptr);
-	 *	buffer_index = ( ((VADDR)buffer - va_start) / (cache_ptr->buffer_size) );
-	 *	\endcode
-	 */
+	/*!	Clear the corresponding bit in buffer_usage_bitmap. */
 	va_start = SLAB_START(slab_ptr, cache_ptr);
 	buffer_index = ( ((VADDR)buffer - va_start) / (cache_ptr->buffer_size) );
 
-	/*!	\code	See if this buffer is presently used.
-	 *	byte = GetBitFromBitArray( (void*)(slab_ptr->buffer_usage_bitmap), buffer_index );
-	 *	\endcode
-	 */
+	/*!	See if this buffer is presently used. */
 	byte = GetBitFromBitArray( (void*)(slab_ptr->buffer_usage_bitmap), buffer_index );
 	if(byte == 0)
 	{
@@ -698,7 +640,6 @@ int FreeBuffer(void *buffer, CACHE_PTR cache_ptr)
 
 
 /*!
- *	\fn		GetCacheStatistics
  *	\brief							Returns the cache statistics structure pointer.
  *	\param	cache_ptr				Pointer to cache for which stats are required.
  *	\retval	CACHE_STATISTICS_PTR	On SUCCESS: Returns the cache statistics structure pointer.

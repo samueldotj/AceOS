@@ -7,7 +7,7 @@
 #include <ace.h>
 #include <kernel/atomic.h>
 
-/*! Add integer to atomic variable - Atomically adds @i to @v.
+/*! Add integer to atomic variable - Atomically adds \a i to \a v.
  * \param i - integer value to add
  * \param v - pointer of type ATOMIC
  */

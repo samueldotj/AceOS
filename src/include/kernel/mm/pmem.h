@@ -1,5 +1,5 @@
 /*!
-	\file	kernel/mm/pmem.c	
+	\file	kernel/mm/pmem.h	
 	\brief	physical memory manager
 */
 

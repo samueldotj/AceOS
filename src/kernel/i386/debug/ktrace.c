@@ -1,10 +1,5 @@
 /*!
-	\file		src/kernel/i386/debug/ktrace.c
-	\author		Samuel
-	\version	3.0
-	\date	
-  			Created: 26/09/07 11:28
-  			Last modified: 26/09/07 11:28
+	\file	kernel/i386/debug/ktrace.c
 	\brief	i386 specific ktrace output
 */
 
@@ -21,7 +16,7 @@
 
 #define KTRACE_PRINT_VGA
 
-/*!Writes the given character to serial/vga
+/*! Writes the given character to serial/vga
 
 This function is pointed by ktrace_putc function pointer.
 ktrace_putc function pointer used by ktrace() function defined in printf.c
@@ -37,7 +32,7 @@ void KtracePrint(BYTE ch)
 	#endif
 }
 
-/*!Intialize the ktrace functionality
+/*! Intialize the ktrace functionality
 */
 void InitKtrace()
 {

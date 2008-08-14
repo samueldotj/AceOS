@@ -1,11 +1,6 @@
 /*!
-  \file		avl_tree.h
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created:
-  			Last modified: Wed Feb 27, 2008  10:57AM
-  \brief	
+  \file		ds/avl_tree.h
+  \brief	Generic AVL Tree Implementation
 */
 #ifndef _AVL_TREE_H_
 #define _AVL_TREE_H_
@@ -15,13 +10,17 @@
 /*! avl tree without duplicate keys*/
 typedef struct avl_tree 
 {
+	/*! height of the node*/
 	int			height;
+	/*! low level binary tree*/
 	BINARY_TREE	bintree;
 }AVL_TREE, *AVL_TREE_PTR;
 /*! avl tree with duplicate keys*/
 typedef struct avl_tree_d
 {
+	/*low level avl tree*/
 	AVL_TREE	avltree;
+	/*duplicate nodes with the same key*/
 	LIST		sibling;
 }AVL_TREE_D, *AVL_TREE_D_PTR;
 

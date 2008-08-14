@@ -1,10 +1,5 @@
 /*!
   \file		kernel/pit/pit.c
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created: Thu May 29, 2008  09:54AM
-  			Last modified: Thu May 29, 2008  11:13AM
   \brief	Defines the interface for all PIT-related functions
 */
 

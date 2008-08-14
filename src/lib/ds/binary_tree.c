@@ -1,10 +1,5 @@
 /*!
 	\file		binary_tree.c
-	\author		Samuel
-	\version 	1.0
-	\date	
-  			Created: 04-Feb-2008 18:24
-  			Last modified: Fri May 02, 2008  11:21AM
 	\brief	Generic binary tree implementation
 	
 */

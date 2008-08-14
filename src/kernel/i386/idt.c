@@ -1,10 +1,5 @@
 /*!
   \file		idt.c
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created: Wed Oct 10, 2007  04:29PM
-  			Last modified: Fri Oct 12, 2007  04:49PM
   \brief	This file contains info on IDT(Interrupt descriptor table).
 */
 

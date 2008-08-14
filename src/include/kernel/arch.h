@@ -1,7 +1,5 @@
-/*! \file kernel/arch.h
-    \brief Architecture specific function declartions
-	\author Samuel (samueldotj@gmail.com)
-    \date 26/09/07 15:29
+/*! \file 	kernel/arch.h
+    \brief 	Architecture specific function declartions
 */
 
 #ifndef ARCH__H

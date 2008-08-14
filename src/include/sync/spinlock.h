@@ -1,16 +1,12 @@
 /*!
 	\file		spinlock.c
-	\author		Samuel(samueldotj@gmail.com)
-	\version 	3.0
-	\date	
-				Created: 21/01/08
-				Last modified: 21/01/08
-	\brief		spinlock implementation - architecture independ
+	\brief		spinlock implementation - architecture independ header
 */
 
 #ifndef SPINLOCK__H
 #define SPINLOCK__H
 
+/*! if the lock is busy how many times to spin before panic*/
 #define SPIN_LOCK_TRY_COUNT 5000000
 
 #define BIT_LOCK_SUCCESS 0

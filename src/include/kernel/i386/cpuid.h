@@ -1,11 +1,6 @@
 /*!
   \file		kernel/i386/cpuid.h
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created: Sat Jun 14, 2008  06:18PM
-  			Last modified: Fri Aug 01, 2008  04:31PM
-  \brief	
+  \brief	CPU feature Identification code using CPUID instruction
 */
 
 
@@ -14,15 +9,17 @@
 
 #include <ace.h>
 
-/*maximum supported CPUID levels by Ace*/
+/*! Maximum supported CPUID levels by Ace*/
 #define CPUID_MAX_STD_LEVELS			0x0A
+/*! Maximum supported extended CPUID levels by Ace*/
 #define CPUID_MAX_EXT_LEVELS			0x1A
-/*maximum supported cache configuration by Ace*/
+/*! Maximum supported cache configuration by Ace*/
 #define CPUID_MAX_CACHE_CONFIGURATION	0x3
 
-/*checks for the given cpuid level is supported by the processor*/
-#define CPUID_IS_STD_LEVEL_SUPPORTED(cpu, level)	(cpuid_info[(cpu)].basic._.max_std_level >= (level))
+/*! Checks whether the given cpuid level is supported by the processor*/
+#define CPUID_IS_STD_LEVEL_SUPPORTED(cpu, level) (cpuid_info[(cpu)].basic._.max_std_level >= (level))
 
+/*! \internal Internal macro which returns the given true value if the CPUID level is supported on a CPU else the given "false" value*/
 #define CPUID_VALUE(cpu, level, true, false)		(CPUID_IS_STD_LEVEL_SUPPORTED(cpu, level) ? true : false)
 
 /*macros to get CPUID values for a given cpu number*/

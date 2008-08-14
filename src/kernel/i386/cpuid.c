@@ -1,10 +1,5 @@
 /*!
   \file		cpuid.c
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created: Sun Jun 15, 2008  12:23PM
-  			Last modified: Tue Jun 17, 2008  03:05PM
   \brief	Provides support for cpu identification.
 */
 
@@ -13,8 +8,7 @@
 #include <kernel/i386/cpuid.h>
 #include <ds/bits.h>
 
-/*! cache to hold all processor's CPUID_INFO	
-*/
+/*! cache to hold all processor's CPUID_INFO*/
 CPUID_INFO cpuid_info[MAX_PROCESSORS];
 
 /*! Executes CPUID instruction and stores the result

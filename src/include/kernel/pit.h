@@ -1,11 +1,6 @@
 /*!
-  \file		include/kernel/pit.h
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created: Thu May 29, 2008  10:11AM
-  			Last modified: Thu May 29, 2008  11:14AM
-  \brief	
+  \file		kernel/pit.h
+  \brief	Programmable Interval Timer
 */
 
 

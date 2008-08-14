@@ -1,10 +1,5 @@
 /*!
   \file     strtol.c
-  \author   Samuel
-  \version  1.0
-  \date
-            Created:	29-Apr-2007
-            Last modified:
   \brief	String to number conversion functions
 */
 

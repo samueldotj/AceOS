@@ -1,10 +1,5 @@
 /*!
-  \file	src/include/bits.h
-  \author	Samuel
-  \version 	3.0
-  \date	
-  			Created: 3:29 PM 07-Apr-08
-  			Last modified: Tue Jun 17, 2008  11:00AM
+  \file		ds/bits.h
   \brief	Contains bit manipulation macros.
 */
 

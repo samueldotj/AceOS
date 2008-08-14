@@ -1,10 +1,5 @@
 /*!
   \file		exception.c
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created: Wed Oct 10, 2007  05:21PM
-  			Last modified: Fri Oct 12, 2007  04:27PM
   \brief	
 */
 

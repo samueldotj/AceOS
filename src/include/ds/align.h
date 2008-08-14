@@ -1,10 +1,5 @@
 /*!
-  \file	ds/align.h
-  \author	Samuel (samueldotj@gmail.com)
-  \version 	1.0
-  \date	
-  			Created: 22-Apr-2008 8:00PM
-  			Last modified: 
+  \file		ds/align.h
   \brief	data structure alignment and padding macros
 */
 

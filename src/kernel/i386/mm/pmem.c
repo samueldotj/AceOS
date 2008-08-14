@@ -1,10 +1,5 @@
 /*!
-	\file		src/kernel/i386/mm/pmem.c	
-	\author		Dilip & Samuel
-	\version 	3.0
-	\date	
-  			Created: 24-May-2008 14:37
-  			Last modified: Tue May 27, 2008  11:44AM
+	\file	kernel/i386/mm/pmem.c	
 	\brief	physical memory manager
 */
 #include <ace.h>
@@ -17,6 +12,7 @@
 #include <kernel/mm/pmem.h>
 #include <kernel/i386/pmem.h>
 
+/*! Checks whether the given VA is kernel VA or user VA*/
 #define IS_KERNEL_ADDRESS(va)	(va >= KERNEL_VIRTUAL_ADDRESS_START)
 
 MEMORY_AREA	memory_areas[MAX_MEMORY_AREAS];
@@ -121,7 +117,6 @@ ERROR_CODE RemovePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va)
 	mapped_pde = &pmap->page_directory[PAGE_DIRECTORY_ENTRY_INDEX(va)];
 	mapped_pte = PT_SELF_MAP_PAGE_TABLE1_PTE(va);
 	
-	//if we havent created a page table entry, just return success because nothing to remove
 	if ( !mapped_pde->_.present || !mapped_pte->_.present )
 		return ERROR_SUCCESS;
 	
@@ -144,10 +139,7 @@ static UINT32 AllocatePageTable()
 	assert ( vp != NULL );
 	return vp->physical_address;
 }
-/*! creates page table for a given VA.
-	\param pmap - physical map on which the page table should be created
-	\param va - virtual address for which page table needs to be created
-*/
+/*! creates page table for a given VA.*/
 static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
 {
 	int pd_index;
@@ -166,8 +158,7 @@ static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
 		page_dir[pd_index].all = pa | USER_PDE_FLAG;
 	}
 }
-/*! Reports the given virtual address range's status
-*/
+/*! Reports the given virtual address range's status*/
 VA_STATUS GetVirtualRangeStatus(VADDR va, UINT32 size)
 {
 	PAGE_DIRECTORY_ENTRY_PTR pde;

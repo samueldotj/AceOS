@@ -1,21 +1,16 @@
 /*!
-  \file		idt.h
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created: Wed Oct 10, 2007  04:25PM
-  			Last modified: Fri Oct 12, 2007  03:12PM
-  \brief	
+  \file		kernel/i386/idt.h
+  \brief	Interrupt Descriptor Table related data structures and functions
 */
 #ifndef _IDT_H_
 #define _IDT_H_
 
 #include <ace.h>
 
-
+/*! Total interrupt descriptor table entries in i386*/
 #define IDT_ENTRIES 256
 
-/* Defines an IDT entry */
+/*! Interrupt Descriptor Entry data structure*/
 struct idt_entry
 {
     UINT16 base_low;
@@ -25,6 +20,7 @@ struct idt_entry
     UINT16 base_high;
 } __attribute__((packed));
 
+/*! Interrupt Descriptor Entry pointer*/
 struct idt_ptr
 {
     UINT16 limit;

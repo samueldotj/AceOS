@@ -1,10 +1,5 @@
 /*!
 	\file		bits.c
-	\author		Samuel
-	\version 	1.0
-	\date	
-  			Created: 18-Apr-2008 15:34
-  			Last modified: Sat Apr 19, 2008  01:19AM
 	\brief	bit manipulation
 
 */

@@ -1,7 +1,5 @@
-/*! \file gdb.h
-    \brief Debug function declartions
-	\author Samuel (samueldotj@gmail.com)
-    \date 26/09/07 15:29
+/*! \file 	gdb.h
+    \brief 	GDB function declartions
 */
 #ifndef __GDB_H
 #define __GDB_H

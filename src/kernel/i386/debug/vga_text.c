@@ -1,6 +1,4 @@
 /*! \file vga_text.c
-    \author Samuel (samueldotj@gmail.com)
-    \date 21/09/07 16:55
 
     \brief This file provide a minimal text out routines. 
     Does direct IO on VGA registers to move text mode cursor

@@ -1,10 +1,5 @@
 /*!
 	\file		spinlock.c
-	\author		Samuel(samueldotj@gmail.com)
-	\version 	3.0
-	\date	
-				Created: 21/01/08
-				Last modified: 21/01/08
 	\brief		SpinLock for Ace
 	Note - This spinlock code is specific to i386
 */

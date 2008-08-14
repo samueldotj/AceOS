@@ -1,10 +1,5 @@
 /*!
 	\file		printf.c
-	\author		Samuel
-	\version	3.0
-	\date	
-  			Created: 26/09/07 11:30
-  			Last modified: 26/09/07 11:30
 	\brief	printf implementation
 	Copied and modified the doprnt.c file provided with DJGPP
 	This prints doesnt support floating point, 64bit division and mod operations

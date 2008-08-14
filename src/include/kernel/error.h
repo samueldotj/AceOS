@@ -1,10 +1,5 @@
 /*!
-	\file		src/include/kernel/error.h	
-	\author		Samuel
-	\version 	3.0
-	\date	
-  			Created: 06-Jun-2008 12:04
-  			Last modified: 06-Jun-2008 12:04
+	\file	kernel/error.h	
 	\brief	Contains definition of all error values
 */
 

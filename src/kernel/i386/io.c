@@ -1,14 +1,13 @@
 /*!	\file		io.c
-	\author		Samuel
-	\version 	3.0
-	\date		18-01-07 21:42
 	\brief	Read or write value from/to hardware port.
 */
 #include <ace.h>
 #include <kernel/io.h>
 
 /*! Reads and returns a byte value from the specified port 
-*/
+ * \param Port - Port number to read
+ * \return Value read from port
+ */
 inline BYTE _inp(UINT16 Port)
 {
 	BYTE Result;
@@ -21,7 +20,9 @@ inline BYTE _inp(UINT16 Port)
 	return Result;
 }
 /*! Reads and returns a word value from the specified port 
-*/
+ * \param Port - Port number to read
+ * \return Value read from port
+ */
 inline UINT16 _inpw(UINT16 Port)
 {
 	UINT16 Result;
@@ -34,7 +35,9 @@ inline UINT16 _inpw(UINT16 Port)
 	return Result;
 }
 /*! Reads and returns a double word value from the specified port 
-*/
+ * \param Port - Port number to read
+ * \return Value read from port
+ */
 inline UINT32 _inpd(UINT16 Port)
 {
 	UINT32 Result;
@@ -48,7 +51,9 @@ inline UINT32 _inpd(UINT16 Port)
 }
 
 /*! Writes the given byte value to the specified port 
-*/
+ * \param Port - Port number to write
+ * \param Value - Value to write
+ */
 inline void _outp(UINT16 Port, BYTE Value)
 {
 	asm volatile("movw %0, %%dx;\
@@ -60,7 +65,9 @@ inline void _outp(UINT16 Port, BYTE Value)
 }
 
 /*! Writes the given word value to the specified port 
-*/
+ * \param Port - Port number to write
+ * \param Value - Value to write
+ */
 inline void _outpw(UINT16 Port, UINT16 Value)
 {
     asm volatile("movw %0, %%dx;\
@@ -72,7 +79,9 @@ inline void _outpw(UINT16 Port, UINT16 Value)
 }
 
 /*! Writes the given double word value to the specified port 
-*/
+ * \param Port - Port number to write
+ * \param Value - Value to write
+ */
 inline void _outpd(UINT16 Port, UINT32 Value)
 {
 	asm volatile("movw %0, %%dx;\
@@ -82,4 +91,3 @@ inline void _outpd(UINT16 Port, UINT32 Value)
 				:"m"(Port),"m"(Value)
 				:"%eax","%edx");
 }
-

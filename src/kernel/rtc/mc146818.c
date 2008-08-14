@@ -1,9 +1,4 @@
 /*! \file kernel/rtc/mc146818.c
-	\author		Samuel
-	\version	3.0
-	\date	
-  			Created: 26-May-08 4:00PM
-  			Last modified: 26-May-08 4:00PM
     \brief PC Real Time Clock MC146818 chip access
   
 */

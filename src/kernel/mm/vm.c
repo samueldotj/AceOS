@@ -1,10 +1,5 @@
 /*!
 	\file		src/kernel/mm/vm.c	
-	\author		Samuel
-	\version 	3.0
-	\date	
-  			Created: 02-Jun-2008 10:34pm
-  			Last modified: 02-Jun-2008 10:34pm
 	\brief	vm related routines
 */
 #include <string.h>
@@ -86,7 +81,6 @@ static ERROR_CODE MapKernel(VADDR kmem_start_va, VADDR kmem_end_va)
 	\param pa - physical address
 	\param size - size of the physical range
 	
-	\return Newly created VA for the given PA.
 		NULL on failure
 */
 VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size)

@@ -1,7 +1,6 @@
-/*! \file       gdt.h
-        \author DilipSimha N M
-        \date   09/10/2007 23:20
-        \brief  GDT related declarations and structure definitions
+/*! 
+	\file	kernel\i386\gdt.h
+	\brief  Global Descriptor Table related data structure definitions and functions
 */
 
 #ifndef GDT_H

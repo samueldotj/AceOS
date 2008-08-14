@@ -1,10 +1,5 @@
 /*!
   \file		parameter.c
-  \author	Samuel
-  \version 	1.0
-  \date	
-  			Created: 28-Apr-2008 14:49
-  			Last modified: 28-Apr-2008 14:49
   \brief	Kernel Parameter module
 */
 
@@ -20,12 +15,14 @@ char * sys_kernel_cmd_line = NULL;
 
 static COMPARISION_RESULT compare_kernel_parameter(char * data1, char * data2);
 static KERNEL_PARAMETER_PTR FindKernelParameter(char * parameter_name);
-/*global static array*/
+
+/*! global kernel parameters*/
 static KERNEL_PARAMETER kernel_parameters[] = {
 	{"gdb_port", &sys_gdb_port, UINT32Validator, {0, 0xFFFF, 0}, UINT32Assignor, NULL},
 	{"kmem_reserved_mem_size", &kmem_reserved_mem_size, UINT32Validator, {0, 1024*1024*1024, 0}, UINT32Assignor, NULL}
 };
 
+/*! Initializes the kernel parameter*/
 void InitKernelParameters()
 {
 	KERNEL_PARAMETER temp;
@@ -35,7 +32,7 @@ void InitKernelParameters()
 			sizeof(kernel_parameters)/sizeof(KERNEL_PARAMETER),  compare_kernel_parameter );
 	
 }
-
+/*! Parse the boot time kernel parameter and assign the values to kernel variables*/
 void ParaseBootParameters()
 {
 	unsigned int argc, i;
@@ -83,7 +80,7 @@ void ParaseBootParameters()
 		}
 	}
 }
-
+/*! Assigns value to kernel variable from kernel parameter*/
 int SetKernelVariable(char * parameter_name, char * value)
 {
 	KERNEL_PARAMETER_PTR kp;
@@ -109,6 +106,7 @@ int SetKernelVariable(char * parameter_name, char * value)
 	return 0;
 }
 
+/*! Get kernel variable address by name*/
 void * GetKernelVariable(char * parameter_name)
 {
 	KERNEL_PARAMETER_PTR kp;

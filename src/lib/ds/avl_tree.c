@@ -1,16 +1,10 @@
-/*
- * File: avl_tree.c
- *
- * Copyright 2007, HP.  All rights reserved.
- *
- * Notes:
- *
- * Author:  DilipSimha.N.M
- *
- */
+/*! \file lib/ds/avl_tree.c
+	\brief Generic AVL Tree implementation
+*/
 
 #include <ds/avl_tree.h>
 
+/*! Gets left height and right height of a given AVL tree node*/
 #define GET_AVL_TREE_HEIGHTS( node, left_height, right_height )					\
 	left_height = right_height = -1;											\
 	if ( !IS_END_OF_LEFT_LIST( &(node)->bintree ) )								\
@@ -18,24 +12,23 @@
 	if ( !IS_END_OF_RIGHT_LIST( &(node)->bintree ) ) 							\
 		right_height = AVL_TREE_RIGHT_NODE( (node) )->height;	
 
+/*! Recalculates height and assigns new height to the given node*/
 #define RECALCULATE_HEIGHT( node ) (node)->height = RecalculateAvlTreeHeight( node )
 
-
-/*caculate binary root ptr from AVL root pointer*/
+/*! caculate binary root ptr from AVL root pointer*/
 #define CALCULATE_ROOT_PTR_AVL_TO_BT(avl_root_ptr, bt_root_ptr)												\
 	if ( *avl_root_ptr )																					\
 		*bt_root_ptr = (BINARY_TREE_PTR) ( ((UINT32)*avl_root_ptr) + OFFSET_OF_MEMBER(AVL_TREE, bintree) );	\
 	else																									\
 		*bt_root_ptr = NULL;
 
-/*caculate AVL root pointer from binary tree root pointer*/
+/*! caculate AVL root pointer from binary tree root pointer*/
 #define CALCULATE_ROOT_PTR_BT_TO_AVL(avl_root_ptr, bt_root_ptr)												\
 	if ( *bt_root_ptr )																						\
 		*avl_root_ptr = STRUCT_ADDRESS_FROM_MEMBER(*bt_root_ptr, AVL_TREE, bintree);						\
 	else																									\
 		*avl_root_ptr = NULL;
 
-/*declarations go here*/
 static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr);
 static int GetAvlTreeBalanceFactor(AVL_TREE_PTR node);
 static int RecalculateAvlTreeHeight(AVL_TREE_PTR node);
@@ -43,8 +36,11 @@ static int RecalculateAvlTreeHeight(AVL_TREE_PTR node);
 static void RightRotateAvlTree(AVL_TREE_PTR node, AVL_TREE_PTR *root_ptr);
 static void LeftRotateAvlTree(AVL_TREE_PTR  node, AVL_TREE_PTR *root_ptr);
 
-
-/*! Initializes the avl tree structure.
+/*!
+ * \brief  Initializes the avl tree structure.
+ * \param node - Node to initialize
+ * \param duplicates_allowed - True if duplicates are allowed else false
+ * \return address of the node initialized
  */
 AVL_TREE_PTR InitAvlTreeNode(AVL_TREE_PTR node, int duplicates_allowed)
 {
@@ -54,9 +50,13 @@ AVL_TREE_PTR InitAvlTreeNode(AVL_TREE_PTR node, int duplicates_allowed)
 	return node;
 }
 
-/*! Searches the AVL tree and returns the identified node
-		Searching AVL tree is same as searching a binary tree
-*/
+/*!
+ * \brief Searches the AVL tree and returns the identified node
+ * \param start - node to start the search
+ * \param search_node - searching node
+ * \param fnCompare - function to compare two nodes
+ * \return Address of the find node.
+ */
 AVL_TREE_PTR SearchAvlTree(AVL_TREE_PTR start, AVL_TREE_PTR search_node, void * fnCompare)
 {
 	BINARY_TREE_PTR bt = SearchBinaryTree(&start->bintree, &search_node->bintree, fnCompare);
@@ -66,8 +66,11 @@ AVL_TREE_PTR SearchAvlTree(AVL_TREE_PTR start, AVL_TREE_PTR search_node, void * 
 		return NULL;
 }
 
-/*! gets the avl tree node's parent
-*/
+/*!
+ * \brief gets the avl tree node's parent
+ * \param node - node for which parent node is returned
+ * \return parent node of given node
+ */
 AVL_TREE_PTR GetAvlTreeNodeParent(AVL_TREE_PTR node)
 {
 	BINARY_TREE_PTR parent= GetTreeNodeParent(&(node)->bintree, NULL);
@@ -120,7 +123,6 @@ int RemoveNodeFromAvlTree(AVL_TREE_PTR *avl_root_ptr, AVL_TREE_PTR node, int dup
 	/*now check the balance_factor*/
 	return BalanceAvlTree(parent, avl_root_ptr);
 }
-	
 /*! Inserts an already created node into the avl tree.
 	Return values:
 		0    SUCCESS

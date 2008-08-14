@@ -1,11 +1,6 @@
 /*!
   \file		kernel/mm/vm_types.h
-  \author	Samuel (samueldotj@gmail.com)
-  \version 	3.0
-  \date	
-  			Created: 13-Jun-2008 4:12PM
-  			Last modified: 13-Jun-2008 4:12PM
-  \brief	all the typedefs of vm and pm.
+  \brief	all the typedefs of vm and pmem.
 */
 #ifndef _VM_TYPES_H
 #define _VM_TYPES_H

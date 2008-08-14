@@ -1,10 +1,5 @@
 /*!
   \file		interrupt.h
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created: Fri Oct 12, 2007  03:36PM
-  			Last modified: Fri Oct 12, 2007  04:29PM
   \brief	This file contains declarations pertaining to interrupts.
 */
 
@@ -19,10 +14,10 @@
 
 typedef struct interrupt_info
 {
-	int	interrupt_number;
-	int interrupt_type;
-	int interrupt_priority;
-	int	device_number;
+	int	interrupt_number;			/*! interrupt number*/
+	int interrupt_type;				/*! Type of the interrupt //edge, level, etc*/
+	int interrupt_priority;			/*! Priority of the interrupt*/
+	int	device_number;				/*! Device number which generated the interrupt*/
 }INTERRUPT_INFO, * INTERRUPT_INFO_PTR;
 
 typedef enum isr_return_code

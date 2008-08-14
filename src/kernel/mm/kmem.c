@@ -1,11 +1,5 @@
-/*!
-  \file	kernel/mm/kmem.c
-  \author	Samuel
-  \version 	3.0
-  \date	
-  			Created: 07-Jul-2008 9:16PM
-  			Last modified: 07-Jul-2008 9:16PM
-  \brief		
+/*! \file 	kernel/mm/kmem.c
+	\brief	Kernel memory allocation / free functions
 */
 #include <ds/align.h>
 #include <kernel/debug.h>
@@ -17,6 +11,10 @@ static int kmem_page_free(void * va, int size);
 static int kmem_page_protect(void * va, int size, int protection);
 UINT32 kmem_reserved_mem_size=0;
 
+/*!
+ * \brief Initializes kernel memory allocator
+ * \param kmem_start_va - starting virtual address available for kmem
+ */
 void InitKmem(VADDR kmem_start_va)
 {
 	if ( kmem_reserved_mem_size==0 )
@@ -36,6 +34,7 @@ void InitKmem(VADDR kmem_start_va)
 		
 	kernel_free_virtual_address = ((VADDR)kmem_start_va)+kmem_reserved_mem_size;
 }
+
 static void * kmem_page_alloc(int size)
 {
 	VADDR va;
@@ -50,6 +49,7 @@ static void * kmem_page_alloc(int size)
 	else
 		return NULL;
 }
+
 static int kmem_page_free(void * va, int size)
 {
 #ifdef KMEM_DEBUG
@@ -61,6 +61,7 @@ static int kmem_page_free(void * va, int size)
 #endif
 	return FreeVirtualMemory(&kernel_map, (VADDR)va, size, NULL);
 }
+
 static int kmem_page_protect(void * va, int size, int protection)
 {
 #ifdef KMEM_DEBUG
@@ -73,6 +74,11 @@ static int kmem_page_protect(void * va, int size, int protection)
 	return 1;
 }
 
+/*!
+ * \brief Allocates memory from kernel memory allocator
+ * \param size - required size in bytes
+ * \param flag - KMEM_NO_FAIL 
+ */
 void * kmalloc(int size, UINT32 flag)
 {
 	void * ret = AllocateFromHeap(size);
@@ -84,6 +90,11 @@ void * kmalloc(int size, UINT32 flag)
 	return ret;
 }
 
+/*!
+ * \brief Frees memory back to kernel memory allocator
+ * \param buffer - starting address of memory to free
+ * \return 0 on success
+ */
 int kfree(void * buffer)
 {
 	return FreeToHeap(buffer);

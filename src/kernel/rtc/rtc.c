@@ -1,9 +1,4 @@
 /*! \file kernel/rtc/rtc.c
-	\author		Samuel
-	\version	3.0
-	\date	
-  			Created: 26-May-08 4:00PM
-  			Last modified: 26-May-08 4:00PM
     \brief Real Time Clock programming
 	
 	RTC chip keeps the date and time while your computer is turned off. 

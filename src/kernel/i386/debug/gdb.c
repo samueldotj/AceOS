@@ -1,8 +1,6 @@
 /*! \file gdb.c
-    \author Samuel (samueldotj@gmail.com)
-    \date 20-Jan-07 11:19
-
     \brief GDB interface function definitions
+	
 	This file contains all the routines which are required by the gdb-stub.c
 */
 #include <kernel/debug.h>
@@ -13,6 +11,7 @@
 /*! This port can be configured through kernel boot parameters*/
 UINT32 sys_gdb_port = 0;
 
+/*! Initializes the GDB stub*/
 void InitGdb()
 {
 	/*set up the serial port*/
@@ -24,23 +23,23 @@ void InitGdb()
 	__asm__("int3");
 	kprintf("connected\n");
 }
-
+/*! Reads a character from debug port*/
 inline int getDebugChar(void)
 {
 	return SerialReadCharacter( sys_gdb_port );
 }
-
+/*! Writes a character to debug port*/
 inline void putDebugChar(int ch)
 {
 	SerialWriteCharacter( sys_gdb_port, ch );
 }
-
+/*! Wrapper for GDB exception handler installer*/
 void exceptionHandler(int exc, void *addr)
 {
 	SetIdtGate(exc, (UINT32)addr);
 	
 }
-
+/*! Flushes instruction cache*/
 void flush_i_cache(void)
 {
      __asm__ __volatile__ ("jmp 1f\n1:");

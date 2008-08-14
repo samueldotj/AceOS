@@ -4,12 +4,14 @@
 */
 
 #include <ace.h>
-#include <kernel/pm/thread.h>
+#include <kernel/pm/task.h>
 
 /*gets the current kernel stack position*/
 #define GET_KERNEL_STACK(kstack) 		asm volatile("movl %%esp, %0":"=m"(kstack))
 
-/*! Get Current Thread*/
+/*! Get Current Thread
+ * \return Current thread pointer
+ */
 THREAD_PTR GetCurrentThread()
 {
 	BYTE * kstack;

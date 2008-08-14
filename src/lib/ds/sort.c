@@ -1,10 +1,5 @@
 /*!
   \file		sort.c
-  \author	Samuel
-  \version 	1.0
-  \date	
-  			Created: 28-Apr-2008 18:18
-  			Last modified: 28-Apr-2008 18:29
   \brief	Array Sort using Heap sort - http://en.wikipedia.org/wiki/Heapsort
 		http://www.iti.fh-flensburg.de/lang/algorithmen/sortieren/heap/heapen.htm
 */

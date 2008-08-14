@@ -1,10 +1,5 @@
 /*!
 	\file		src/kernel/ktrace.c	
-	\author		Samuel
-	\version 	3.0
-	\date	
-  			Created: 26/09/07 11:17
-  			Last modified: 26/09/07 11:17
 	\brief	ktrace and assert are defined here.
 	Note - calls to these functions should made only after calling InitKtrace()
 */

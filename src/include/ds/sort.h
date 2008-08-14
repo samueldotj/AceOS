@@ -1,10 +1,6 @@
 /*! 
-	\file sort.h
-	\brief Array Sort
-	\author Samuel
-	\date 
-		Created: 28-Apr-2008 18:24
-		Last modified: 28-Apr-2008 18:24
+	\file 	ds/sort.h
+	\brief 	Array Sort
 */
 
 #ifndef SORT__H

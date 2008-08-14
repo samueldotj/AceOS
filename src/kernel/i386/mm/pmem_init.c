@@ -1,12 +1,7 @@
 /*!
-	\file		src/kernel/i386/mm/pmem_pa.c	
-	\author		Samuel
-	\version 	3.0
-	\date	
-  			Created: 01-Jun-2008 17:00
-  			Last modified: 01-Jun-2008 17:00
-	\brief	physical memory manager initialization routines
-	\note		all these routines uses physical memory and dont know about va.
+	\file	src/kernel/i386/mm/pmem_pa.c	
+	\brief	Physical memory manager initialization routines
+	\note	all these routines uses physical memory and dont know about va.
 */
 #include <string.h>
 #include <kernel/multiboot.h>
@@ -25,12 +20,10 @@ static void * GetFreePhysicalPage();
 static void InitKernelPageDirectory(UINT32 k_map_end);
 static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa);
 
-
-/*!
-	\brief	 Initialize physical memory.
-	\param	 mb_info: Pointer to multiboot info structure
-	\return	 void
-*/
+/*! Initializes memory areas and kernel page directory.
+ * \param magic - magic number passed by multiboot loader
+ * \param mbi - multiboot information passed by multiboot loader
+ */
 void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 {
 	UINT32 vpa_size;
@@ -44,9 +37,12 @@ void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi
 	InitKernelPageDirectory( PAGE_ALIGN_UP(&ebss) );
 }
 
-/*! Intializes the memory area information
-	\return size of all virtual page array in bytes
-*/
+/*! Intializes the memory area information - Helper function for InitPhysicalMemoryManagerPhaseI
+ * \param ma_pa - pointer to memory area to initialize
+ * \param memory_map_array - system memory map
+ * \param memory_map_count - total memory maps in the system
+ * \return size of all virtual page array in bytes
+ */
 static UINT32 InitMemoryArea(MEMORY_AREA_PTR ma_pa, MEMORY_MAP_PTR memory_map_array, int memory_map_count)
 {
 	UINT32 total_size = 0;	//total bytes occupied by virtual page array
@@ -247,7 +243,9 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 		page_table[pt_index]._.page_pfn =  PA_TO_PFN(pa);
 	}
 }
-/*! 	1) This phase will removes the unnessary page table entries that is created before enabling paging.
+
+/*! Initializes the Physical Memory Manager in Virtual Address mode
+	1) This phase will removes the unnessary page table entries that is created before enabling paging.
 	2) Initializes the virtual page array.
 */
 void InitPhysicalMemoryManagerPhaseII()

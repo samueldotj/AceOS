@@ -1,10 +1,5 @@
 /*!
   \file		src/lib/heap/heap.c
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created: Sat Mar 22, 2008  06:30PM
-  			Last modified: Wed Apr 09, 2008  01:02AM
   \brief	Maintains heap
 */
 

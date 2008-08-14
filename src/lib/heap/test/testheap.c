@@ -1,10 +1,5 @@
 /*!
   \file         testheap.c
-  \author       Samuel
-  \version      3.0
-  \date
- 			Created: 24-May-2008
- 			Last modified: 24-May-2008
   */
 #include "leak_detector_c.h"
 #include "testcommon.h"

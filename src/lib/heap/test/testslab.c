@@ -1,10 +1,5 @@
 /*!
   \file         testslab.c
-  \author       DilipSimha N M
-  \version      3.0
-  \date
- 			Created:
- 			Last modified: Fri May 02, 2008  02:01PM
   \brief
 */
 #include <ace.h>

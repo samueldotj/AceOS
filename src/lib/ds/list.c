@@ -1,10 +1,5 @@
 /*!
 	\file		list.c
-	\author		Samuel & Dilip
-	\version 	1.0
-	\date	
-  			Created: 04-Feb-2008 17:24
-  			Last modified: Wed Mar 05, 2008  08:00PM
 	\brief	Generic doubly linked circular list implementation
 	
 	1. There is no null termination because its doubly linked and circular list

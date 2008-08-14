@@ -1,10 +1,5 @@
 /*!
   \file     string_utils.c
-  \author   DilipSimha N M
-  \version  3.0
-  \date
-            Created:	27-Sep-2007
-            Last modified:
   \brief	This file contains all utility functions for string related operations inside kernel.
 */
 

@@ -1,10 +1,5 @@
 /*!
-	\file		src/kernel/mm/virtual_map.c	
-	\author		Samuel
-	\version 	3.0
-	\date	
-  			Created: 02-Jun-2008 10:34pm
-  			Last modified: 02-Jun-2008 10:34pm
+	\file	kernel/mm/virtual_map.c	
 	\brief	virtual map related routines
 */
 #include <string.h>
@@ -13,8 +8,11 @@
 
 VIRTUAL_MAP kernel_map;
 
-/*! Initializes the virtual map data structure.
-*/
+/*!
+ * \brief Initializes the virtual map
+ * \param vmap - virtual map to initialize
+ * \param pmap - physical map to attach to this virtual map
+ */
 void InitVirtualMap(VIRTUAL_MAP_PTR vmap, PHYSICAL_MAP_PTR pmap)
 {
 	assert( vmap != NULL );

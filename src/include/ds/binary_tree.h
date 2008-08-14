@@ -1,10 +1,6 @@
 /*! 
-	\file binary_tree.h
-	\brief Binary tree implementation
-	\author Samuel
-	\date 
-		Created: 04-Feb-2008 18:24
-		Last modified: Wed Apr 09, 2008  01:24AM
+	\file 	ds/binary_tree.h
+	\brief 	Binary tree implementation
 */
 
 #ifndef BINARY_TREE__H
@@ -15,9 +11,9 @@
 
 typedef enum 
 {
-	NO_LIST=-1,
-	LEFT_TREE_LIST=0,
-	RIGHT_TREE_LIST=1
+	NO_LIST			=	-1,
+	LEFT_TREE_LIST	=	0,
+	RIGHT_TREE_LIST	=	1
 }TREE_LIST_TYPE;
 
 /*! Binary tree data structure
@@ -29,6 +25,7 @@ typedef struct binary_tree
 	
 	LIST sibling[0];
 }BINARY_TREE, * BINARY_TREE_PTR;
+
 /*! binary tree with duplicate keys*/
 typedef struct binary_tree_d
 {
@@ -38,15 +35,22 @@ typedef struct binary_tree_d
 
 #define BIN_TREE_NODE(name, function_ptr) BINARY_TREE name = {NULL, NULL, function_ptr}
 
-#define TREE_LEFT_NODE(  node ) ( STRUCT_ADDRESS_FROM_MEMBER( (((unsigned long)(node)->left.next)  & ~1), BINARY_TREE, left ) ) 
-#define TREE_RIGHT_NODE( node )	( STRUCT_ADDRESS_FROM_MEMBER( (((unsigned long)(node)->right.next) & ~1), BINARY_TREE, right) )
+/*! Returns left tree node of a binary tree*/
+#define TREE_LEFT_NODE(  node ) 		( STRUCT_ADDRESS_FROM_MEMBER( (((unsigned long)(node)->left.next)  & ~1), BINARY_TREE, left ) ) 
+/*! Returns right tree node of a binary tree*/
+#define TREE_RIGHT_NODE( node )			( STRUCT_ADDRESS_FROM_MEMBER( (((unsigned long)(node)->right.next) & ~1), BINARY_TREE, right) )
 
-#define TREE_LEFT_PARENT(  node )   ( STRUCT_ADDRESS_FROM_MEMBER( (((unsigned long)(node)->left.prev)  & ~1), BINARY_TREE, left ) ) 
-#define TREE_RIGHT_PARENT( node )	( STRUCT_ADDRESS_FROM_MEMBER( (((unsigned long)(node)->right.prev) & ~1), BINARY_TREE, right) )
-#define IS_TREE_LIST_END(list)		( (int)(((unsigned long)((list)->next)) & 1) )
+/*! Returns left parent of a binary tree*/
+#define TREE_LEFT_PARENT(  node )   	( STRUCT_ADDRESS_FROM_MEMBER( (((unsigned long)(node)->left.prev)  & ~1), BINARY_TREE, left ) ) 
+/*! Returns right parent of a binary tree*/
+#define TREE_RIGHT_PARENT( node )		( STRUCT_ADDRESS_FROM_MEMBER( (((unsigned long)(node)->right.prev) & ~1), BINARY_TREE, right) )
 
-#define IS_END_OF_LEFT_LIST(node) 	( IS_TREE_LIST_END(&((node)->left)) )
-#define IS_END_OF_RIGHT_LIST(node) 	( IS_TREE_LIST_END(&((node)->right)) )
+/*! Checks whether the given tree list is end node or not*/
+#define IS_TREE_LIST_END(list)			( (int)(((unsigned long)((list)->next)) & 1) )
+/*! checks whether the left node is end node or not*/
+#define IS_END_OF_LEFT_LIST(node) 		( IS_TREE_LIST_END(&((node)->left)) )
+/*! checks whether the right node is end node or not*/
+#define IS_END_OF_RIGHT_LIST(node) 		( IS_TREE_LIST_END(&((node)->right)) )
 
 #ifdef __cplusplus
     extern "C" {

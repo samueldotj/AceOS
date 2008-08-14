@@ -1,10 +1,5 @@
 /*!
  \file		kernel/interrupt.c
- \author	Samuel
- \version 	3.0
- \date	
-  		Created: 25-July-2008 7:14PM
-  		Last modified: Thu Aug 07, 2008  10:19AM
  \brief	Generic interrupt handler - architecture independent		
 */
 #include <ace.h>
@@ -18,7 +13,8 @@
 
 extern void SendEndOfInterrupt(int);
 
-/*this structure is not used by anyother module so declared inside this c file*/
+/*! Interrupt handler internal list
+this structure is not used by anyother module so declared inside this c file*/
 typedef struct interrupt_handler
 {
 	ISR_HANDLER 	isr;			//interrrupt service routine for this irq
@@ -31,10 +27,14 @@ INTERRUPT_HANDLER interrupt_handlers[MAX_INTERRUPTS];
 
 static void InitInterruptHandler(INTERRUPT_HANDLER_PTR handler);
 
-/*	All the archtecture specific interrupt stubs call this function.
-*	This function calls appropriate interrupt service routines defined in interrupt_routines[].
-*	It also returns EOI(End of Interrupt) to the PIC, so that PIC can now get interrupts.
-*/
+/*!
+ * \brief Generic interrupt hander
+ * \param reg - interrupt context (registers)
+
+	All the archtecture specific interrupt stubs call this function.
+	This function calls appropriate interrupt service routines defined in interrupt_routines[].
+	It also returns EOI(End of Interrupt) to the PIC, so that PIC can now get interrupts.
+ */
 void InterruptHandler(REGS_PTR reg)
 {
 	INTERRUPT_INFO interrupt_info;
@@ -65,7 +65,11 @@ void InterruptHandler(REGS_PTR reg)
 	SendEndOfInterrupt( reg->int_no );
 }
 
-/* This installs a custom IRQ handler for the given IRQ */
+/*! Installs a custom IRQ handler for the given IRQ 
+ * \param interrupt_number - interrupt number
+ * \param isr_handler	- handler for the interrupt number
+ * \param custom_argument - argument to be passed when the handler is called along with interrupt context
+ */
 void InstallInterruptHandler(int interrupt_number, ISR_HANDLER isr_handler, void * custom_argument)
 {
 	INTERRUPT_HANDLER_PTR handler;
@@ -81,7 +85,10 @@ void InstallInterruptHandler(int interrupt_number, ISR_HANDLER isr_handler, void
 	handler->isr_argument = custom_argument;
 }
 
-/* This clears the handler for a given IRQ */
+/*!  This clears the handler for a given IRQ 
+ * \param interrupt_number - interrupt number
+ * \param isr_handler - function pointer for the interrupt number to uninstall
+ */
 void UninstallInterruptHandler(int interrupt_number, ISR_HANDLER isr_handler)
 {
 	INTERRUPT_HANDLER_PTR handler = NULL;
@@ -117,6 +124,9 @@ void UninstallInterruptHandler(int interrupt_number, ISR_HANDLER isr_handler)
 	}
 }
 
+/*! Initializes a interrupt handler structure with default values (NULL)
+ * \param handler - interrupt handler to initialize.
+ */
 static void InitInterruptHandler(INTERRUPT_HANDLER_PTR handler)
 {
 	handler->isr = NULL;

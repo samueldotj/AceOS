@@ -1,6 +1,4 @@
 /*! \file serial.c
-    \author Samuel (samueldotj@gmail.com)
-    \date 20-Jan-07 11:19
 
     \brief Serial read/write functions mostly used for remote debugging with GDB
 */
@@ -66,8 +64,7 @@ void InitSerialPort(UINT16 wIOBase, UINT32 wBaudRate, BYTE DataBits, BYTE Parity
 	_outp( wIOBase + UART_LCR, ControlByte );
 }
 
-/*! Receives and returns a character from the given serial port
-*/
+/*! Receives and returns a character from the given serial port*/
 char SerialReadCharacter(UINT16 wIOBase)
 {
 	while (1)
@@ -82,8 +79,7 @@ char SerialReadCharacter(UINT16 wIOBase)
 	}
 }
 
-/*! Sends the given character to the given serial port
-*/
+/*! Sends the given character to the given serial port*/
 void SerialWriteCharacter(UINT16 wIOBase, char ch)
 {
 	while (1)

@@ -1,10 +1,5 @@
 /*!
-  \file		src/lib/include/heap/heap.h
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created: Fri Mar 21, 2008  08:55PM
-  			Last modified: Sat Apr 05, 2008  01:33PM
+  \file		heap/heap.h
   \brief	
 */
 
@@ -14,12 +9,13 @@
 #include <ace.h>
 #include <heap/slab_allocator.h>
 
+/*! Total heap buckets*/
 #define MAX_HEAP_BUCKETS 		12
 
-/* Structure definitions go here */
+/*! main heap data structure*/
 typedef struct heap 
 {
-	CACHE cache_bucket[MAX_HEAP_BUCKETS]; /* List of cache entries in the heap */
+	CACHE cache_bucket[MAX_HEAP_BUCKETS]; /*! List of cache entries in the heap */
 } HEAP, *HEAP_PTR;
 
 typedef struct heap_data 
@@ -28,12 +24,7 @@ typedef struct heap_data
 	void * 		buffer[0];
 }HEAP_DATA, *HEAP_DATA_PTR;
 
-/* Function declarations go here */
-int InitHeap(int page_size, void * (*v_alloc)(int size), 
-		int (*v_free)(void * va, int size),
-		int (*v_protect)(void * va, int size, int protection)
-		);
-
+int InitHeap(int page_size, void * (*v_alloc)(int size),  int (*v_free)(void * va, int size),	int (*v_protect)(void * va, int size, int protection) );
 void * AllocateFromHeap(int size);
 int FreeToHeap(void * buffer);
 

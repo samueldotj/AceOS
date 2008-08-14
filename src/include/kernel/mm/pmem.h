@@ -1,10 +1,5 @@
 /*!
-	\file		src/include/kernel/mm/pmem.c	
-	\author	Dilip & Samuel
-	\version 	3.0
-	\date	
-  			Created: 24-May-2008 14:37
-  			Last modified: Tue May 27, 2008  11:07AM
+	\file	kernel/mm/pmem.c	
 	\brief	physical memory manager
 */
 
@@ -16,35 +11,36 @@
 #include <kernel/error.h>
 #include <kernel/mm/vm_types.h>
 
+/*! Maximum NUMA supported by Ace*/
 #define MAX_MEMORY_AREAS		32
+/*! Maximum physical regions per "memory areas"*/
 #define MAX_PHYSICAL_REGIONS	16
 
-/*http://www.ctyme.com/intr/rb-1741.htm
-Values for System Memory Map address type:
-01h    memory, available to OS
-02h    reserved, not available (e.g. system ROM, memory-mapped device)
-03h    ACPI Reclaim Memory (usable by OS after reading ACPI tables)
-04h    ACPI NVS Memory (OS is required to save this memory between NVS
-sessions)
-other  not defined yet -- treat as Reserved*/
+/*http://www.ctyme.com/intr/rb-1741.htm other  not defined yet -- treat as Reserved*/
+/*! physical memory available to OS*/
 #define PMEM_TYPE_AVAILABLE			0x1
+/*! physical memory reserved and not available to OS(e.g. system ROM, memory-mapped device)*/
 #define PMEM_TYPE_RESERVED			0x2
+/*! physical memory available to OS after reading ACPI tables*/
 #define PMEM_TYPE_ACPI_RECLAIM		0x3
+/*! ACPI NVS Memory (OS is required to save this memory between NVS*/
 #define PMEM_TYPE_ACPI_NVS			0x4
 
 
+/*! defines a physical memory region inside a "memory area"*/
 typedef struct physical_memory_region
 {
-	UINT32				start_physical_address;			//starting physical address
-	UINT32				end_physical_address;			//ending physical address
+	UINT32				start_physical_address;			/*! starting physical address of the memory region*/
+	UINT32				end_physical_address;			/*! ending physical address of this memory region*/
 	
-	VIRTUAL_PAGE_PTR	virtual_page_array;				//virutal page array for this region
-	UINT32				virtual_page_count;				//total pages in this region
+	VIRTUAL_PAGE_PTR	virtual_page_array;				/*! virtual address of virutal page array for this region*/
+	UINT32				virtual_page_count;				/*! total virtual pages in this region*/
 	
-	UINT32				type;							//usable, reserved, etc
+	UINT32				type;							/*! type of this region - usable, reserved, etc*/
 	
 }PHYSICAL_MEMORY_REGION, * PHYSICAL_MEMORY_REGION_PTR;
 
+/*! defines a "memory area" which contains one or more physical memory regions - NUMA nodes*/
 typedef struct memory_area
 {
 	int						physical_memory_regions_count;		//total regions

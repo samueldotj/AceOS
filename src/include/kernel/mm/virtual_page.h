@@ -1,10 +1,5 @@
 /*!
-	\file		src/include/kernel/mm/virtual_page.c	
-	\author	Dilip & Samuel
-	\version 	3.0
-	\date	
-  			Created: 24-May-2008 14:37
-  			Last modified: Tue May 27, 2008  11:18AM
+	\file	include/kernel/mm/virtual_page.c	
 	\brief	virtual page
 */
 
@@ -16,50 +11,55 @@
 #include <sync/spinlock.h>
 #include <kernel/mm/vm_types.h>
 
+/*! Virtual Page to Physical address*/
 #define VP_TO_PHYS(vp)		(vp->physical_address)
+/*! Physical Address to Virtual Page*/
 #define PHYS_TO_VP(phys)	(PhysicalToVirtualPage(phys))
 
+/*! Virtual Page representing a physical frame*/
 struct virtual_page
 {
 	SPIN_LOCK	lock;
 	
 	BYTE
-				free:1,				/*if set page is free list*/
-				active:1,			/*if set page is in active LRU list*/
-				bad:1,				/*if set page is bad*/
-				busy:1,				/*if set page is busy due to IO*/
-				error:1,			/*if set a page error occurred during last IO*/
+				free:1,				/*! if set page is free list*/
+				active:1,			/*! if set page is in active LRU list*/
+				bad:1,				/*! if set page is bad*/
+				busy:1,				/*! if set page is busy due to IO*/
+				error:1,			/*! if set a page error occurred during last IO*/
 				reserved;
 	union
 	{
 		/*the following structure is used when the page in FREE state*/
 		struct
 		{
-			VIRTUAL_PAGE_PTR	free_first_page;/*pointer to starting page of this free physical range*/
-			AVL_TREE_D			free_tree;		/*this is starting of a free physical range*/
-			UINT32				free_size;  	/*size of the free range in page units*/
+			VIRTUAL_PAGE_PTR	free_first_page;/*! pointer to starting page of this free physical range*/
+			AVL_TREE_D			free_tree;		/*! this is starting of a free physical range*/
+			UINT32				free_size;  	/*! size of the free range in page units*/
 		};
 		/*the following structure is used when the page is in USE state*/
 		struct
 		{
-			LIST				lru_list;			/*LRU List - active/inactive link*/
+			LIST				lru_list;			/*! LRU List - active/inactive link*/
+ 
+			UINT16				copy_on_write;		/*! No of processes sharing this page*/
+			UINT16 				wire_count;			/*! Total wire count*/
 
-			UINT16				copy_on_write;		/*No of processes sharing this page*/
-			UINT16 				wire_count;			/*Total wire count*/
-
-			VA_MAP_PTR			va_map_list;		/*list of VAs associated with this page*/
+			VA_MAP_PTR			va_map_list;		/*! list of VAs associated with this page*/
 		};
 	};
 	
 	UINT32 		physical_address;	/*Physical address this page managing*/
 }__attribute__ ((packed));
 
+/*! maps a physical frame with one or more virtual page - va
+*/
 struct va_map
 {
-	UINT32				va;					//virtual address for the mapping
-	PHYSICAL_MAP_PTR	physical_map;		//pointer to the physical map for va
+	UINT32				va;					/*! virtual address for the mapping*/
+	PHYSICAL_MAP_PTR	physical_map;		/*! pointer to the physical map for va*/
 	
-	LIST				list;				//list of all va_map for the virtual page
+	LIST				list;				/*! list of all va_map for the virtual page*/
 }__attribute__ ((packed));;
 
 enum VIRTUAL_PAGE_RANGE_TYPE

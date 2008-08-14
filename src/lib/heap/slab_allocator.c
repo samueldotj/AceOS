@@ -1,10 +1,5 @@
 /*!
   \file		src/lib/heap/slab_allocator.c
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created:	Fri Mar 21, 2008  11:30PM
-  			Last modified: Wed Aug 13, 2008  12:10AM
   \brief	Contains functions to manage slab allocator.
 */
 
@@ -34,21 +29,18 @@ static SLAB_ALLOCATOR_METADATA slab_alloactor_metadata;
 	#define BUFFER_SIZE(size)		(size)
 #endif
 
-/*!
- * max size of the slab(buffers+metadata)
- *	1) slab should contain atleast 8 buffer
- *	2) slab size includes its meta data
- *		a) size of the the slab structure
- *		b) size of the bitmap at the end of the slab strucutre
+/*! max size of the slab(buffers+metadata)
+	1) slab should contain atleast 8 buffer
+	2) slab size includes its meta data
+		a) size of the the slab structure
+		b) size of the bitmap at the end of the slab strucutre
 */
 #define SLAB_SIZE(buffer_size)		(ALIGN_UP( ((buffer_size) << 3)+sizeof(SLAB)+1 ,  VM_PAGE_SHIFT) )
 
-/*! /def SLAB_PAGES(buffer_size)
- *	/brief	max number of pages in the slab
- */
+/*! Max number of pages in the slab*/
 #define SLAB_PAGES(buffer_size)		( (SLAB_SIZE(buffer_size)) >> VM_PAGE_SHIFT )
 
-/* get the start of slab from slab metadata addresss */
+/*! get the start of slab from slab metadata addresss */
 #define SLAB_START(slab_metadata_ptr, cache_ptr)	( ((UINT32)slab_metadata_ptr) - cache_ptr->slab_metadata_offset )
 
 static void InitSlab(SLAB_PTR s, UINT32 buffer_count);
@@ -68,6 +60,12 @@ static void RemoveInUseTree(CACHE_PTR cache_ptr);
 
 static COMPARISION_RESULT slab_inuse_tree_compare(AVL_TREE_PTR node1, AVL_TREE_PTR node2);
 
+/*!
+ * \brief Returns Slab State of a slab
+ * \param cache_ptr - Cache
+ * \param slab_ptr - Slab for which state needs to be return
+ * \return SLAB_STATE
+ */
 static inline SLAB_STATE GetSlabState(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 {
 	if ( slab_ptr->used_buffer_count == 0 ) 
@@ -79,7 +77,14 @@ static inline SLAB_STATE GetSlabState(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 
 }
 
-
+/*!
+ * \brief Moves a slab between different list/tree based on its old_state and new_state
+ * \param cache_ptr - Cache
+ * \param slab_ptr - Slab which state is changed
+ * \param old_state
+ * \param new_state
+ * \return 0 on success and -1 on failure
+ */
 static int ManageSlabStateTransition(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr, SLAB_STATE old_state, SLAB_STATE new_state)
 {
 	/*!	quick check for no state change */
@@ -411,15 +416,11 @@ int InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size),
 /*!
  * 	\fn		InitCache
  *	\brief							Initializes an empty cache of specified buffer size.
- *	\param	new_cache				A static cache created in data segment.
  *	\param	size					Size of the buffers in cache.
  *	\param	free_slabs_threshold	Threshold to start VM operation.
  *	\param	min_buffers				Minimum no of buffers to be present always.
  *	\param	max_slabs				Maximum no of slabs allowed.
- *	\param	constructor				Function pointer to a function which initializes the newly created slab.
  *	\param	destructor				Function pointer to function which reuses a slab.
- *	\retval	0						If cache is created.(Success)
- *	\retval	-1						If cache is not created.(Failure)
 */
 int InitCache(CACHE_PTR new_cache, UINT32 size,
 		int free_slabs_threshold, int min_buffers, int max_slabs,

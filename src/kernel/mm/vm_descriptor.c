@@ -1,10 +1,5 @@
 /*!
 	\file		src/kernel/mm/vm_descriptor.c	
-	\author		Samuel
-	\version 	3.0
-	\date	
-  			Created: 07-Jul-08 9:42pm
-  			Last modified: 07-Jul-08 9:42pm
 	\brief	vm descriptor related routines
 */
 #include <string.h>

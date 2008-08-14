@@ -9,7 +9,6 @@
 #include <ds/list.h>
 #include <sync/spinlock.h>
 #include <kernel/mm/vm.h>
-#include <kernel/pm/thread.h>
 
 #define KERNEL_STACK_SIZE	(PAGE_SIZE)
 

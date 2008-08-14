@@ -1,6 +1,4 @@
-/*! \file	vga_text.h
-	\author	Samuel (samueldotj@gmail.com)
-	\date	26/09/07 15:09
+/*! \file	kernel/i386/vga_text.h
 	\brief	serial port read and write function declarations
 */
 #ifndef SERIAL__H

@@ -1,7 +1,5 @@
 /*!	\file string.h
 	\brief standard string function declarations
-	\author Samuel (samueldotj@gmail.com)
-	\date 21/09/07 16:53
 	This file contains all the common string function declaration. 
 */
 #ifndef STRING_H

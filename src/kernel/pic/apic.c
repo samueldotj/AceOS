@@ -1,10 +1,5 @@
 /*!
   \file		kernel/pic/apic.c
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created:	Sat Jun 14, 2008  06:16PM
-  			Last modified: Tue Aug 12, 2008  01:13AM
   \brief	Provides support for Advanced programmable interrupt controller on P4 machine.
 */
 

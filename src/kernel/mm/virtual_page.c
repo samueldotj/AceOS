@@ -1,10 +1,5 @@
 /*!
-	\file		src/kernel/mm/virtual_page.c	
-	\author		Samuel
-	\version 	3.0
-	\date	
-  			Created: 02-Jun-2008 10:22pm
-  			Last modified: 02-Jun-2008 10:22pm
+	\file	kernel/mm/virtual_page.c	
 	\brief	virtual page related routines
 */
 #include <kernel/mm/vm.h>

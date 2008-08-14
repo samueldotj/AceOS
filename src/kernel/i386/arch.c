@@ -1,10 +1,5 @@
 /*!
-	\file		arch.c
-	\author		Samuel
-	\version 	3.0
-	\date	
-  			Created: 26/09/07 15:21
-  			Last modified: Fri Aug 08, 2008  11:34PM
+	\file	kernel/i386/arch.c
 	\brief	contains architecture related interface routines.
 */
 #include <string.h>
@@ -123,13 +118,7 @@ UINT32 CreatePageForSecondaryCPUStart()
 	return VP_TO_PHYS(vp);
 }
 
-/*!
-	\brief	 Get apic information by calling ACPI.
-
-	\param	 void
-
-	\return	 void
-*/
+/*! Get apic information by calling ACPI.*/
 void SetupAPIC(void)
 {
 	ACPI_TABLE_MADT *madt_ptr;

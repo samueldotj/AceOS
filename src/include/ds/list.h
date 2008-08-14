@@ -1,10 +1,6 @@
 /*! 
-	\file list.h
-	\brief Generic doubly linked circular list implementation
-	\author Samuel & Dilip
-	\date 
-		Created: 04-Feb-2008 17:24
-		Last modified: Wed Mar 05, 2008  03:51PM
+	\file 	ds/list.h
+	\brief 	Generic doubly linked circular list implementation
 */
 
 #ifndef LIST__H
@@ -36,16 +32,17 @@ struct list {
 	for ((pos) = (head)->next; (pos) != (head) ; (pos) = (pos)->next)
 
 /*! To iterate a list backwards use this macro.
+	\param pos - the &struct list_head to use as a loop counter.
+	\param head - the head for your list.
 */
 #define LIST_FOR_EACH_PREV(pos, head) \
 	for ((pos) = (head)->prev; (pos) != (head); (pos) = (pos)->prev)
 
-/*!
- * list_for_each_safe	-	iterate over a list safe against removal of list entry
- * @pos:	the &struct list_head to use as a loop counter.
- * @n:		another &struct list_head to use as temporary storage
- * @head:	the head for your list.
- */
+/*! iterate over a list safe against removal of list entry
+	\param pos - the &struct list_head to use as a loop counter.
+	\param n - another &struct list_head to use as temporary storage
+	\param head - the head for your list.
+*/
 #define LIST_FOR_EACH_SAFE(pos, n, head) \
 	for (pos = (head)->next, n = pos->next; (head) && pos && pos != (head); \
 		pos = n, n = pos->next)

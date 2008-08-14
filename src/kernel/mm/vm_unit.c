@@ -1,10 +1,5 @@
 /*!
 	\file		src/kernel/mm/vm_unit.c	
-	\author		Samuel
-	\version 	3.0
-	\date	
-  			Created: 02-Jun-2008 10:34pm
-  			Last modified: 02-Jun-2008 10:34pm
 	\brief	vm unit related routines
 */
 #include <string.h>

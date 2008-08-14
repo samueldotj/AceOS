@@ -1,10 +1,5 @@
 /*!
-  \file		ioapic.c
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created:
-  			Last modified: Tue Aug 12, 2008  09:31AM
+  \file		kernel/pic/ioapic.c
   \brief	Contains APIC stuff in general and LAPIC.
 */
 
@@ -30,10 +25,8 @@ static int FindIOAPIC(UINT8 ioapic_id);
 
 
 /*!
-	\brief	 Search for IOAPIC using ioapic id as the primary key.
-
-	\param	ioapic_id: unique id associated with each ioapic.
-
+	\brief	Search for IOAPIC using ioapic id as the primary key.
+	\param	ioapic_id - unique id associated with each ioapic.
 	\return	index of ioapic(Positive number): success
 			-1: Failure
 */
@@ -51,13 +44,7 @@ static int FindIOAPIC(UINT8 ioapic_id)
 }
 
 
-/*!
-	\brief	 Initializies IOAPIC memory mapped registers and redirection table.
-
-	\param	 void
-
-	\return	 void
-*/
+/*! Initializies IOAPIC memory mapped registers and redirection table.*/
 void InitIOAPIC(void)
 {
 	UINT32 index;
@@ -78,15 +65,12 @@ void InitIOAPIC(void)
 	return;
 }
 
-
 /*!
-	\brief	Read data from IOAPIC for the given register.
-
-	\param	reg: IOAPIC register to be accessed.
-			data: Pointer to 32 bit memory in which data is filled from IOAPIC.
-
-	\return	 void
-*/
+ * \brief Read data from IOAPIC for the given register.
+ * \param reg - IOAPIC register to be accessed.
+ * \param data - Pointer to 32 bit memory in which data is filled from IOAPIC.
+ * \param index
+ */
 static void ReadFromIOAPIC(enum IOAPIC_REGISTER reg, UINT32 *data, UINT8 index)
 {
 	(ioapic_base_reg[index])->reg = reg;
@@ -96,11 +80,8 @@ static void ReadFromIOAPIC(enum IOAPIC_REGISTER reg, UINT32 *data, UINT8 index)
 
 /*!
 	\brief	Write to the specified register in IOAPIC.
-
-	\param	reg: IOAPIC register to be accessed.
-			data: 32 bit data that has to be written into the specified register.
-
-	\return	 void
+	\param	reg - IOAPIC register to be accessed.
+	\param	data - 32 bit data that has to be written into the specified register.
 */
 static void WriteToIOAPIC(enum IOAPIC_REGISTER reg, UINT32 data, UINT8 index)
 {
@@ -108,12 +89,9 @@ static void WriteToIOAPIC(enum IOAPIC_REGISTER reg, UINT32 data, UINT8 index)
 	(ioapic_base_reg[index])->data = data;
 }
 
-
 /*!
 	\brief	Fetch the IOAPIC ID. 
-
-	\param	index: index to the IOAPIC inside ioapic_base_reg array.
-
+	\param	index - index to the IOAPIC inside ioapic_base_reg array.
 	\return	 4 bit IOAPIC id.
 */
 UINT8 GetIOAPICId(UINT8 index)
@@ -126,9 +104,6 @@ UINT8 GetIOAPICId(UINT8 index)
 
 /*!
 	\brief	 Get the maximum number of entries in IOAPIC redirection table. These many Interrupt lines are avilable.
-
-	\param	 void
-
 	\return	 Positive number of redirection entries.
 */
 UINT8 GetMaximumIOAPICRedirectionEntries(UINT8 index)
@@ -139,15 +114,10 @@ UINT8 GetMaximumIOAPICRedirectionEntries(UINT8 index)
 	return (UINT8)( ((IOAPIC_VERSION_PTR)&data)->max_redirection_entries );
 }
 
-
-
 /*!
 	\brief	Load the redirection table structure with details obtained from IOAPIC for the required vector.
-
-	\param	reg:	IOAPIC register that is to be accessed.
-			table:	Pointer to redirection table which has to be loaded with details from IOAPIC.
-
-	\return	void
+	\param	reg -	IOAPIC register that is to be accessed.
+			table -	Pointer to redirection table which has to be loaded with details from IOAPIC.
 */
 void GetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table, UINT8 index)
 {
@@ -164,14 +134,10 @@ void GetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TA
 	return;
 }
 
-
 /*!
 	\brief	Set the IOAPIC redirection table with given details.
-
-	\param	reg:	IOAPIC register that is to be accessed.
-			table:	Pointer to redirection table which has to be loaded with details from IOAPIC.
-
-	\return	void
+	\param	reg -	IOAPIC register that is to be accessed.
+	\param  table -	Pointer to redirection table which has to be loaded with details from IOAPIC.
 */
 void SetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table, UINT8 index)
 {
@@ -187,12 +153,9 @@ void SetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TA
 	return;
 }
 
-
 /*!
 	\brief	Initial set up the redirection table entry to deliver Interrupts as vector number starting from <starting_vector>
-
 	\param	starting_vector: The starting vector number from which interrupts have to be redirected.
-
 	\return	0: Success
 			-1: Invalid starting vector number.
 			-2: Invalid max entries in redirection table.

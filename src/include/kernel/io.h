@@ -1,7 +1,5 @@
 /*! \file	io.h
 	\brief	read/write io ports
-	\author	Samuel (samueldotj@gmail.com)
-	\date	18-Jan-07 21:48
 */
 #ifndef IO__H
 #define IO__H

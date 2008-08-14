@@ -1,10 +1,5 @@
 /*!
   \file		kernel/ioapic.h
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created: Wed Aug 06, 2008  11:25PM
-  			Last modified: Tue Aug 12, 2008  01:11AM
   \brief	Contains IO-APIC stuff.
 */
 
@@ -14,12 +9,12 @@
 
 #include <ace.h>
 
+/*! Maximum IOAPIC supported by Ace*/
 #define MAX_IOAPIC 16
+/*! Starting interrrupt vector number for IOAPIC*/
 #define IOAPIC_STARTING_VECTOR_NUMBER 32
+/*!	Default base address of IOAPIC*/
 #define IOAPIC_BASE_MSR_START 0xfec00000
-
-//IOAPIC registers
-
 
 /* IOAPIC */
 typedef struct ioapic
@@ -76,76 +71,76 @@ typedef struct ioapic_reg
 
 typedef struct ioapic_id
 {
-	UINT32 reserved1		:	24, //0-23
-		   ioapic_id		:	4, //24-27
-		   reserved2		:	4; //28-31
+	UINT32 reserved1		:	24,
+		   ioapic_id		:	4,
+		   reserved2		:	4;
 }IOAPIC_ID, *IOAPIC_ID_PTR;
 
 typedef struct ioapic_version
 {
-	UINT32	apic_version			:	8, //0-7
-			reserved1				:	8, //8-15
-			max_redirection_entries	:	8, //16-23
-			reserved2				:	8; //24-31
+	UINT32	apic_version			:	8,
+			reserved1				:	8,
+			max_redirection_entries	:	8,
+			reserved2				:	8;
 }IOAPIC_VERSION, *IOAPIC_VERSION_PTR;
 
 typedef struct ioapic_arbitration
 {
-	UINT32	reserved1		:	24, //0-23
-			arbitration_id	:	4, //24-27
-			reserved2		:	4; //28-31
+	UINT32	reserved1		:	24,
+			arbitration_id	:	4,
+			reserved2		:	4;
 }IOAPIC_ARBITRATION, *IOAPIC_ARBITRATION_PTR;
 
 typedef struct ioapic_redirect_table
 {
-	UINT32	interrupt_vector	:	8, //0-7
-			delivery_mode		:	3, //8-10
-			destination_mode	:	1, //1
-			delivery_status		:	1, //12
-			input_polarity		:	1, //13
-			remote_irr			:	1, //14
-			trigger_mode		:	1, //15
-			interrupt_mask		:	1, //16
-			reserved1			:	15; //17-31
+	UINT32	interrupt_vector	:	8,
+			delivery_mode		:	3,
+			destination_mode	:	1,
+			delivery_status		:	1,
+			input_polarity		:	1,
+			remote_irr			:	1,
+			trigger_mode		:	1,
+			interrupt_mask		:	1,
+			reserved1			:	15;
 
-	UINT32	reserved2			:	24, //31-55
-			destination_field	:	8; //56-63
+	UINT32	reserved2			:	24,
+			destination_field	:	8;
 }IOAPIC_REDIRECT_TABLE, *IOAPIC_REDIRECT_TABLE_PTR;
 
 enum IOAPIC_TRIGGER_MODE
 {
-	IOAPIC_TRIGGER_MODE_EDGE, //0
-	IOAPIC_TRIGGER_MODE_LEVEL //1
+	IOAPIC_TRIGGER_MODE_EDGE,
+	IOAPIC_TRIGGER_MODE_LEVEL
 };
 
 enum IOAPIC_INPUT_POLARITY
 {
-	IOAPIC_INPUT_POLARITY_HIGH_ACTIVE, 	//0
-	IOAPIC_INPUT_POLARITY_LOW_ACTIVE 	//1
+	IOAPIC_INPUT_POLARITY_HIGH_ACTIVE,
+	IOAPIC_INPUT_POLARITY_LOW_ACTIVE
 };
 
 enum IOAPIC_DELIVERY_STATUS
 {
-	IOAPIC_DELIVERY_STATUS_IDLE, 		//0
-	IOAPIC_DELIVERY_STATUS_SEND_PENDING //1
+	IOAPIC_DELIVERY_STATUS_IDLE,
+	IOAPIC_DELIVERY_STATUS_SEND_PENDING
 };
 
 enum IOAPIC_DESTINATION_MODE
 {
-	IOAPIC_DESTINATION_MODE_PHYSICAL,	//0
-	IOAPIC_DESTINATION_MODE_LOGICAL 	//1
+	IOAPIC_DESTINATION_MODE_PHYSICAL,
+	IOAPIC_DESTINATION_MODE_LOGICAL
 };
 
 enum IOAPIC_DELIVERY_MODE
 {
-	IOAPIC_DELIVERY_MODE_FIXED, 			//0
-	IOAPIC_DELIVERY_MODE_LOWEST_PRIORITY,	//1
-	IOAPIC_DELIVERY_MODE_SMI,				//2
-	IOAPIC_DELIVERY_MODE_RESERVED1,			//3
-	IOAPIC_DELIVERY_MODE_NMI,				//4
-	IOAPIC_DELIVERY_MODE_INIT,				//5
-	IOAPIC_DELIVERY_MODE_RESERVED2,			//6
-	IOAPIC_DELIVERY_MODE_ExtINT				//7
+	IOAPIC_DELIVERY_MODE_FIXED,
+	IOAPIC_DELIVERY_MODE_LOWEST_PRIORITY,
+	IOAPIC_DELIVERY_MODE_SMI,
+	IOAPIC_DELIVERY_MODE_RESERVED1,
+	IOAPIC_DELIVERY_MODE_NMI,
+	IOAPIC_DELIVERY_MODE_INIT,
+	IOAPIC_DELIVERY_MODE_RESERVED2,
+	IOAPIC_DELIVERY_MODE_ExtINT
 };
 
 extern IOAPIC ioapic[MAX_IOAPIC];

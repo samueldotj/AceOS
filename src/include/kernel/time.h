@@ -1,7 +1,5 @@
-/*! \file kernel/time.h
-    \brief timer and rtc related data structures and functions
-	\author Samuel 
-    \date 26-May-08 4:06PM
+/*! \file 	kernel/time.h
+    \brief 	timer and rtc related data structures and functions
 */
 
 #include <ace.h>

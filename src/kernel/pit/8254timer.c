@@ -1,10 +1,5 @@
 /*!
   \file		kernel/pit/8254timer.c
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created: Thu May 29, 2008  11:06AM
-  			Last modified: Thu May 29, 2008  11:11AM
   \brief	8254 timer specific functionality.
 */
 #include <ace.h>
@@ -17,10 +12,7 @@
 
 /*!
 	\brief	 Initializes 8254 timer
-
-	\param	 frequency: No of oscillator's cycles per second
-
-	\return	 void
+	\param	 frequency - No of oscillator's cycles per second
 */
 void Init8254Timer(UINT32 frequency)
 {

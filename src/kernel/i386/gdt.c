@@ -1,10 +1,5 @@
 /*!
   \file		gdt.c
-  \author	DilipSimha N M
-  \version 	3.0
-  \date	
-  			Created: Tue Oct 09, 2007  04:35PM
-  			Last modified: Fri Oct 12, 2007  04:52PM
   \brief	This file contains GDT(Global descriptor table) information.
 */
 

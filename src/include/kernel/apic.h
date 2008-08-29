@@ -9,211 +9,291 @@
 #include <ace.h>
 
 /*! Default base address of the LAPIC*/
-#define LAPIC_BASE_MSR_START 		0xfee00000
+#define LAPIC_BASE_MSR_START 		0xFEE00000
+#define LAPIC_MEMORY_MAP_SIZE		4096
+
 /*! returns true if the current processor is primary processor*/
 #define AM_I_BOOTSTRAP_PROCESSOR 	ia32_lapic_base_msr.bsp
 
 /* Enums */
-enum ICR_DELIVERY_MODE
+typedef enum
 {
     ICR_DELIVERY_MODE_FIXED,
     ICR_DELIVERY_MODE_LOWEST_PRIORITY,
     ICR_DELIVERY_MODE_SMI,
-    ICR_DELIVERY_MODE_RESERVED1,
+    ICR_DELIVERY_MODE_RESERVED,
     ICR_DELIVERY_MODE_NMI,
     ICR_DELIVERY_MODE_INIT,
     ICR_DELIVERY_MODE_SIPI,
     ICR_DELIVERY_MODE_ExtINT
-};
+}ICR_DELIVERY_MODE;
 
-enum ICR_DESTINATION_MODE
+typedef enum
 {
     ICR_DESTINATION_MODE_PHYSICAL,
     ICR_DESTINATION_MODE_LOGICAL
-};
+}ICR_DESTINATION_MODE;
 
-enum ICR_DELIVERY_STATUS
+typedef enum
 {
     ICR_DELIVERY_STATUS_IDLE,
     ICR_DELIVERY_STATUS_SEND_PENDING
-};
+}ICR_DELIVERY_STATUS;
 
-enum ICR_LEVEL
+typedef enum
 {
     ICR_LEVEL_DE_ASSERT,
     ICR_LEVEL_ASSERT
-};
+}ICR_LEVEL;
 
-enum ICR_TRIGGER_MODE
+typedef enum
 {
     ICR_TRIGGER_MODE_EDGE,
     ICR_TRIGGER_MODE_LEVEL
-};
+}ICR_TRIGGER_MODE;
 
-enum ICR_DESTINATION_SHORTHAND
+typedef enum
 {
     ICR_DESTINATION_SHORTHAND_NO_SHORTHAND,
     ICR_DESTINATION_SHORTHAND_SELF,
     ICR_DESTINATION_SHORTHAND_ALL_INCLUDING_SELF,
     ICR_DESTINATION_SHORTHAND_ALL_EXCLUDING_SELF
-};
+}ICR_DESTINATION_SHORTHAND;
 
-enum DFR_MODEL
+typedef enum
 {
     DFR_MODEL_FLAT_MODEL,
     DFR_MODEL_CLUSTER_MODEL
-};
+}DFR_MODEL;
 
 /*! LAPIC */
 typedef struct ia32_apic_base_msr
 {
-    UINT32  reserved1: 8,
-            bsp: 1,
-            reserved2: 2,
-            enable: 1,
-            base_low: 20;
-    UINT32  base_high: 4,
-            reserved3: 28;
+	union
+	{
+		struct 
+		{
+			UINT32  base_high: 4,
+					reserved3: 28;
+		};
+		UINT32 dword_low;
+	};
+	union
+	{
+		struct 
+		{
+			UINT32  reserved1: 8,
+					bsp: 1,
+					reserved2: 2,
+					enable: 1,
+					base_low: 20;
+		};
+		UINT32	dword_high;
+	};
 } IA32_APIC_BASE_MSR, * IA32_APIC_BASE_MSR_PTR;
 
-typedef struct interrupt_command_register
+typedef union interrupt_command_register_low
 {
-    UINT32  vector: 8,
-            delivery_mode: 3,
-            destination_mode: 1,
-            delivery_status: 1,
-            reserved1: 1,
-            level: 1,
-            trigger_mode: 1,
-            reserved2: 2,
-            destination_shorthand: 2,
-            reserved3: 12;
-    UINT32  reserved4: 24,
-            destination_field: 8;
-}INTERRUPT_COMMAND_REGISTER, * INTERRUPT_COMMAND_REGISTER_PTR;
+	struct 
+	{
+		UINT32  vector: 8,
+				delivery_mode: 3,
+				destination_mode: 1,
+				delivery_status: 1,
+				reserved1: 1,
+				level: 1,
+				trigger_mode: 1,
+				reserved2: 2,
+				destination_shorthand: 2,
+				reserved3: 12;
+	};
+	UINT32 dword;
+}INTERRUPT_COMMAND_REGISTER_LOW, * INTERRUPT_COMMAND_REGISTER_LOW_PTR;
+
+typedef union interrupt_command_register_high
+{
+	struct
+	{
+		UINT32  reserved: 24,
+				destination_field: 8;
+	};
+	UINT32 dword;
+}INTERRUPT_COMMAND_REGISTER_HIGH, * INTERRUPT_COMMAND_REGISTER_HIGH_PTR;
 
 /*! Start of Local Vector Table */
-typedef struct timer_register
+typedef union timer_register
 {
-    UINT32  vector: 8,
-            reserved1: 4,
-            delivery_status: 1,
-            reserved2: 3,
-            mask: 1,
-            timer_mode: 1,
-            reserved3: 14;
+	struct
+	{
+		UINT32  vector: 8,
+				reserved1: 4,
+				delivery_status: 1,
+				reserved2: 3,
+				mask: 1,
+				timer_mode: 1,
+				reserved3: 14;
+	};
+	UINT32 dword;
 }TIMER_REGISTER, * TIMER_REGISTER_PTR;
 
-typedef struct lint0_reg
+typedef union lint0_reg
 {
-    UINT32  vector: 8,
-            delivery_mode: 3,
-            reserved1: 1,
-            delivery_status: 1,
-            interrupt_input_pin_polarity: 1,
-            remote_irr: 1,
-            trigger_mode: 1,
-            mask: 1,
-            reserved2: 15;
+	struct
+	{
+		UINT32  vector: 8,
+				delivery_mode: 3,
+				reserved1: 1,
+				delivery_status: 1,
+				interrupt_input_pin_polarity: 1,
+				remote_irr: 1,
+				trigger_mode: 1,
+				mask: 1,
+				reserved2: 15;
+	};
+	UINT32 dword;
 }LINT0_REG, * LINT0_REG_PTR;
 
-typedef struct lint1_reg
+typedef union lint1_reg
 {
-    UINT32  vector: 8,
-            delivery_mode: 3,
-            reserved1: 1,
-            delivery_status: 1,
-            interrupt_input_pin_polarity: 1,
-            remote_irr: 1,
-            trigger_mode: 1,
-            mask: 1,
-            reserved2: 15;
+	struct
+	{
+		UINT32  vector: 8,
+				delivery_mode: 3,
+				reserved1: 1,
+				delivery_status: 1,
+				interrupt_input_pin_polarity: 1,
+				remote_irr: 1,
+				trigger_mode: 1,
+				mask: 1,
+				reserved2: 15;
+	};
+	UINT32 dword;
 }LINT1_REG, * LINT1_REG_PTR;
 
-typedef struct error_reg
+typedef union error_reg
 {
-    UINT32  vector: 8,
-            reserved1: 4,
-            delivery_status: 1,
-            reserved2: 3,
-            mask: 1,
-            reserved3: 15;
+	struct 
+	{
+		UINT32  vector: 8,
+				reserved1: 4,
+				delivery_status: 1,
+				reserved2: 3,
+				mask: 1,
+				reserved3: 15;
+	};
+	UINT32 dword;
 }ERROR_REG, * ERROR_REG_PTR;
 
-typedef struct performance_monitor_count_reg
+typedef union performance_monitor_count_reg
 {
-    UINT32  vector: 8,
-            delivery_mode: 3,
-            reserved1: 1,
-            delivery_status: 1,
-            reserved2: 3,
-            mask: 1,
-            reserved3: 15;
+	struct 
+	{
+		UINT32  vector: 8,
+				delivery_mode: 3,
+				reserved1: 1,
+				delivery_status: 1,
+				reserved2: 3,
+				mask: 1,
+				reserved3: 15;
+	};
+	UINT32 dword;
 }PERFORMANCE_MONITOR_COUNT_REG, * PERFORMANCE_MONITOR_COUNT_REG_PTR;
 
-typedef struct thermal_sensor_reg
+typedef union thermal_sensor_reg
 {
-    UINT32  vector: 8,
-            delivery_mode: 3,
-            reserved1: 1,
-            delivery_status: 1,
-            reserved2: 3,
-            mask: 1,
-            reserved3: 15;
+	struct
+	{
+		UINT32  vector: 8,
+				delivery_mode: 3,
+				reserved1: 1,
+				delivery_status: 1,
+				reserved2: 3,
+				mask: 1,
+				reserved3: 15;
+	};
+	UINT32 dword;
 }THERMAL_SENSOR_REG, * THERMAL_SENSOR_REG_PTR;
 
-typedef struct error_status_reg
+typedef union error_status_reg
 {
-    UINT32  send_checksum_error: 1,
-            receive_checksum_error: 1,
-            send_accept_error: 1,
-            receive_accept_error: 1,
-            reserved1: 1,
-            send_illegal_vector: 1,
-            received_illegal_vector: 1,
-            illegal_register_address: 1,
-            reserved2: 24; 
+	struct
+	{
+		UINT32  send_checksum_error: 1,
+				receive_checksum_error: 1,
+				send_accept_error: 1,
+				receive_accept_error: 1,
+				reserved1: 1,
+				send_illegal_vector: 1,
+				received_illegal_vector: 1,
+				illegal_register_address: 1,
+				reserved2: 24; 
+	};
+	UINT32 dword;
 }ERROR_STATUS_REG, * ERROR_STATUS_REG_PTR;
 
-typedef struct local_apic_version_reg
+typedef union local_apic_version_reg
 {
-    UINT32  version: 8,
-            reserved1: 8,
-            max_lvt_entry: 8,
-            reserved2: 8;
+	struct
+	{
+		UINT32  version: 8,
+				reserved1: 8,
+				max_lvt_entry: 8,
+				reserved2: 8;
+	};
+	UINT32 dword;
 }LOCAL_APIC_VERSION_REG, * LOCAL_APIC_VERSION_REG_PTR;
 
-typedef struct logical_destination_reg
+typedef union logical_destination_reg
 {
-    UINT32  reserved1: 24,
-            logical_apic_id: 8;
+	struct
+	{
+		UINT32  reserved1: 24,
+				logical_apic_id: 8;
+	};
+	UINT32 dword;
 }LOGICAL_DESTINATION_REG, * LOGICAL_DESTINATION_REG_PTR;
 
-typedef struct destination_format_reg
+typedef union destination_format_reg
 {
-    UINT32  reserved1: 28,
-            model: 4;
+	struct
+	{
+		UINT32  reserved1: 28,
+				model: 4;
+	};
+	UINT32 dword;
 }DESTINATION_FORMAT_REG, * DESTINATION_FORMAT_REG_PTR;
 
-typedef struct arbitration_priority_reg
+typedef union arbitration_priority_reg
 {
-    UINT32  arbitration_priority_subclass: 4,
-            arbitration_priority:4,
-            reserved: 24;
+	struct
+	{
+		UINT32  arbitration_priority_subclass: 4,
+				arbitration_priority:4,
+				reserved: 24;
+	};
+	UINT32 dword;
 }ARBITRATION_PRIORITY_REG, * ARBITRATION_PRIORITY_REG_PTR;
 
-typedef struct task_priority_reg
+typedef union task_priority_reg
 {
-    UINT32  task_priority_subclass: 4,
-            task_priority: 4,
-            reserved: 24;
+	struct
+	{
+		UINT32  task_priority_subclass: 4,
+				task_priority: 4,
+				reserved: 24;
+	};
+	UINT32 dword;
 }TASK_PRIORITY_REG, *TASK_PRIORITY_REG_PTR;
 
-typedef struct processor_priority_reg
+typedef union processor_priority_reg
 {
-    UINT32  processor_priority_subclass: 4,
-            processor_priority: 4,
-            reserved: 24;
+	struct
+	{
+		UINT32  processor_priority_subclass: 4,
+				processor_priority: 4,
+				reserved: 24;
+	};
+	UINT32 dword;
 }PROCESSOR_PRIORITY_REG, *PROCESSOR_PRIORITY_REG_PTR;
 
 typedef union interrupt_request_reg
@@ -239,22 +319,24 @@ typedef struct eoi_reg
     UINT32 zero;
 }EOI_REG, * EOI_REG_PTR;
 
-typedef struct spurious_interrrupt_reg
+typedef union spurious_interrrupt_reg
 {
-	UINT32	spurious_vector:8,
-			apic_enable:1,
-			focus_processor_checking:1,
-			reserved;
+	struct
+	{
+		UINT32	spurious_vector:8,
+				apic_enable:1,
+				focus_processor_checking:1,
+				reserved:22;
+	};
+	UINT32 dword;
 }SPURIOUS_INTERRUPT_REG, * SPURIOUS_INTERRUPT_REG_PTR;
 
-extern IA32_APIC_BASE_MSR_PTR lapic_base_msr;
+extern IA32_APIC_BASE_MSR_PTR lapic_base_address;
 
-int DetectAPIC(UINT8 cpu_id);
-void UseAPIC(int enable);
-void InitAPIC(void);
+void InitLAPIC(void);
 void SendEndOfInterrupt(int int_no);
-void RelocateBaseLAPICAddress(UINT32 addr);
-void InitSmp(void);
-void IssueInterprocessorInterrupt(UINT32 vector, UINT32 apic_id, enum ICR_DELIVERY_MODE delivery_mode, enum ICR_DESTINATION_SHORTHAND destination_shorthand);
+
+void IssueInterprocessorInterrupt(BYTE vector, UINT32 apic_id, ICR_DELIVERY_MODE delivery_mode, ICR_DESTINATION_SHORTHAND destination_shorthand);
+int StartProcessor(UINT32 apic_id, UINT32 physical_address);
 
 #endif

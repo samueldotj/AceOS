@@ -54,12 +54,19 @@ void InitVm()
 	MapKernel(kmem_start_va, kmem_end_va);
 }
 
-/*! maps the static code/data of the kernel
-	and also reserved kmem
+/*! Updates the kernel virtual map data structures.
+		1) Maps static kernel code 
+		2) Maps static kernel data 
+		3) Maps kmem
 */
 static ERROR_CODE MapKernel(VADDR kmem_start_va, VADDR kmem_end_va)
 {
 	VM_UNIT_PTR vm_unit;
+	
+	kernel_map.physical_map = &kernel_physical_map;
+	kernel_map.start = kernel_virtual_address;
+	kernel_map.end = kmem_end_va;
+	
 	/*map code and data*/
 	InitVmDescriptor( &kernel_static_code_descriptor, &kernel_map, (VADDR)&kernel_virtual_address, (UINT32)&kernel_code_end, NULL, &protection_kernel_read);
 	InitVmDescriptor( &kernel_static_data_descriptor, &kernel_map, (VADDR)&kernel_data_start, (UINT32)&ebss, NULL, &protection_kernel_write);
@@ -68,10 +75,6 @@ static ERROR_CODE MapKernel(VADDR kmem_start_va, VADDR kmem_end_va)
 	vm_unit = CreateVmUnit( 0, kmem_end_va-kmem_start_va);
 	CreateVmDescriptor(&kernel_map, kmem_start_va, kmem_end_va, vm_unit, &protection_kernel_write);
 	/*todo update all the pages in the vtoparray*/
-	
-	kernel_map.physical_map = &kernel_physical_map;
-	kernel_map.start = kernel_virtual_address;
-	kernel_map.end = kmem_end_va;
 	
 	return ERROR_SUCCESS;
 }
@@ -131,7 +134,8 @@ ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR pre
 	start = (VADDR)FindFreeVmRange(vmap, preferred_start, size, VA_RANGE_SEARCH_FROM_TOP);
 	if ( start == NULL )
 	{
-		kprintf("AllocateVirtualMemory() - No memory range available\n");
+		kprintf("AllocateVirtualMemory(%d) - No memory range available \n", size);
+		SpinUnlock(&vmap->lock);
 		return ERROR_NOT_ENOUGH_MEMORY;
 	}
 	if ( vmap->end < start + size )

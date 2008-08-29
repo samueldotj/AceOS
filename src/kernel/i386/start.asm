@@ -1,6 +1,5 @@
-;Ace OS Startup file
-;author: Samuel
-;date: 26-09-2007 4:02pm
+;Ace Kernel Startup file
+;32bit Kernel gets control from multiboot loader here.
 
 %include "kernel/i386/i386.inc"
 
@@ -55,6 +54,15 @@ KernelEntry:
 	jmp eax
 .2:
 
+	;load the Global Descriptor Table into GDTR
+    call LoadGdt
+	;load the Interrupt descriptor table into IDTR
+    call LoadIdt
+	
+	;setup exception handlers and interrupt hanlders
+	call SetupExceptionHandlers
+	call SetupInterruptStubs
+	
 	;correct stack pointer
 	add esp, (KERNEL_VIRTUAL_ADDRESS - KERNEL_PHYSICAL_ADDRESS)
 	
@@ -64,7 +72,7 @@ KernelEntry:
 	add ebx, (KERNEL_VIRTUAL_ADDRESS- KERNEL_PHYSICAL_ADDRESS)
 	push ebx
 	push eax
-		
+	
 	call cmain
 
 	;endless loop should not be reached.
@@ -73,8 +81,16 @@ KernelEntry:
 	
 ;this function is called by secondary CPUs while starting
 SecondaryCPUEntry:
+	;load cr3 with page directory address
+	mov eax, KERNEL_BOOT_ADDRESS(kernel_page_directory)
+	mov cr3, eax
+	
+	;set cr4 for 4MB page size and global page
+	mov eax, CR4_PAGE_SIZE_EXT | CR4_PAGE_GLOBAL_ENABLE
+	mov cr4, eax
+
 	;init paging
-	mov eax, (kernel_page_directory - KERNEL_VIRTUAL_ADDRESS) + KERNEL_PHYSICAL_ADDRESS
+	mov eax, cr0
 	or eax, 0x80000000
 	mov cr0, eax
 
@@ -86,8 +102,7 @@ SecondaryCPUEntry:
 	mov eax, .2
 	jmp eax
 .2:
-
-	call SecondaryCPUStart
+	call SecondaryCpuStart
 	
 	;endless loop should not be reached.
 	jmp $

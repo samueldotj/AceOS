@@ -14,7 +14,8 @@
 
 typedef struct spinlock
 {
-	void * data;
+	void * 			last_locker;		/*! address of the last locker*/
+	unsigned long 	locked;				/*! 1 if locked else 0*/
 }SPIN_LOCK, * SPIN_LOCK_PTR;
 
 #ifdef __cplusplus
@@ -29,6 +30,8 @@ inline int BitSpinLock(void * pLockData, int iPos);
 inline void BitSpinUnlock(void * pLockData, int iPos);
 inline int BitSpinLockTry(void * pLockData, int iPos);
 
+/*This function is called during spinlock timeout*/
+void SpinLockTimeout(SPIN_LOCK_PTR pLockData, void * caller);
 
 #ifdef __cplusplus
 	}

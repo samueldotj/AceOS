@@ -1,190 +1,140 @@
 /*!
-  \file		kernel/pic/ioapic.c
-  \brief	Contains APIC stuff in general and LAPIC.
+	\file	kernel/pic/ioapic.c
+	\brief	Contains IOAPIC and PIC(8259) related routines.
+	\todo	Based on _PRT table initiailize the IOAPIC - read http://people.freebsd.org/~jhb/papers/bsdcan/2007/article/node5.html
 */
 
 #include <ace.h>
+#include <kernel/error.h>
+#include <kernel/debug.h>
+#include <kernel/io.h>
 #include <kernel/ioapic.h>
 #include <kernel/apic.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/pmem.h>
-#include <kernel/error.h>
 #include <kernel/mm/virtual_page.h>
-#include <kernel/debug.h>
-#include <string.h>
 
+/*! Data read/write address from the base address*/
+#define IOAPIC_IOWIN_OFFSET		0x10
 
-IOAPIC_REG_PTR ioapic_base_reg[MAX_IOAPIC]; /*! This can also be used as IA32_APIC_BASE_MSR_PTR */
+/*! 8259's master ports*/
+#define PIC_MASTER_IO_PORT_A	0x20
+#define PIC_MASTER_IO_PORT_B	0x21
+/*! 8259's slave ports*/
+#define PIC_SLAVE_IO_PORT_A		0xA0
+#define PIC_SLAVE_IO_PORT_B		0xA1
 
-IOAPIC ioapic[MAX_IOAPIC];
-UINT8 count_ioapic;
+/*! If the PIC is wired to different IRQ pin in IOAPIC then there will be entry in this table to indicate there is a redirection*/
+UINT32 legacy_irq_redirection_table[16];
 
-static void ReadFromIOAPIC(enum IOAPIC_REGISTER reg, UINT32 *data, UINT8 index);
-static void WriteToIOAPIC(enum IOAPIC_REGISTER reg, UINT32 data, UINT8 index);
-static int FindIOAPIC(UINT8 ioapic_id);
-
+IOAPIC ioapic[MAX_IOAPIC];		/*! All IOAPICs in the system are stored here*/
+UINT8 count_ioapic;				/*! Total IOAPICs found*/
 
 /*!
- *	\brief						Search for IOAPIC using ioapic id as the primary key.
- *	\param	ioapic_id			unique id associated with each ioapic.
- *	\retval	Positive_Integer	int	index of ioapic(Positive number): success
- *	\retval	-1					Failure
-*/
-static int FindIOAPIC(UINT8 ioapic_id)
+ * \brief 	Read data from IOAPIC for the given register.
+ * \param   ioapic_base_va		Base address of the IOAPIC
+ * \param 	reg					IOAPIC register to be accessed.
+ * \param 	data				Pointer to 32 bit memory in which data is filled from IOAPIC.
+  */
+static void ReadFromIoApic(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va, IOAPIC_REGISTER reg, UINT32 *data)
 {
-	UINT32	index;
-
-	for(index = 0; index < count_ioapic; index++)
-	{
-		if( ioapic_id ==  GetIOAPICId(index)) /*! found */
-			return index;
-	}
-
-	return -1;
-}
-
-
-/*! Initializies IOAPIC memory mapped registers and redirection table.*/
-void InitIOAPIC(void)
-{
-	UINT32 index;
+	IOAPIC_REGISTER_SELECTOR cmd;
 	
-	for (index=0; index < count_ioapic; index++)
-	{
-		ioapic_base_reg[index] = (IOAPIC_REG_PTR)MapPhysicalMemory(&kernel_map, (ioapic[index]).physical_address, PAGE_SIZE);
-		if(!ioapic_base_reg[index])
-			panic("Mapping PA in ioapic failed\n");
-
-		/*! Now setup the redirection table in each of the ioapic.
-		 * Each IOAPIC is initialized from acpi and we load the GlobalIrqBase count in starting_vector.
-		 * So use that info in getting the starting vector number for each of the apic.
-		 */
-		InitIOAPICRedirectionTable(IOAPIC_STARTING_VECTOR_NUMBER + (ioapic[index]).starting_vector, index);
-	}
-
-	return;
+	/*! select the register*/
+	cmd.dword = 0;
+	cmd.ioapic_register = reg;
+	ioapic_base_va->dword = cmd.dword;
+	
+	/*! read the data*/
+	*data = *((UINT32 *)(((UINT32)ioapic_base_va) + IOAPIC_IOWIN_OFFSET));
 }
-
-/*!
- * \brief 			Read data from IOAPIC for the given register.
- * \param 	reg		IOAPIC register to be accessed.
- * \param 	data	Pointer to 32 bit memory in which data is filled from IOAPIC.
- * \param	index	index to tell which ioapic to use.
- */
-static void ReadFromIOAPIC(enum IOAPIC_REGISTER reg, UINT32 *data, UINT8 index)
-{
-	(ioapic_base_reg[index])->reg = reg;
-	*data = (ioapic_base_reg[index])->data;
-}
-
 
 /*!
  *	\brief	Write to the specified register in IOAPIC.
+ *  \param  ioapic_base_va		Base address of the IOAPIC 
  *	\param	reg - IOAPIC register to be accessed.
  *	\param	data - 32 bit data that has to be written into the specified register.
- *	\param	index	index to tell which ioapic to use.
 */
-static void WriteToIOAPIC(enum IOAPIC_REGISTER reg, UINT32 data, UINT8 index)
+static void WriteToIoApic(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va, IOAPIC_REGISTER reg, UINT32 data)
 {
-	(ioapic_base_reg[index])->reg = reg;
-	(ioapic_base_reg[index])->data = data;
-}
-
-/*!
- *	\brief	Fetch the IOAPIC ID. 
- *	\param	index	index to tell which ioapic to use.
- *	\return	 4 bit IOAPIC id.
-*/
-UINT8 GetIOAPICId(UINT8 index)
-{
-	UINT32 data;
-	(ioapic_base_reg[index])->reg = IOAPIC_REGISTER_IOAPIC_ID;
-	data = (ioapic_base_reg[index])->data;
-	return (UINT8)( ((IOAPIC_ID_PTR)data)->ioapic_id );
-}
-
-/*!
- *	\brief	 Get the maximum number of entries in IOAPIC redirection table. These many Interrupt lines are avilable.
- *	\return	 Positive number of redirection entries.
-*/
-UINT8 GetMaximumIOAPICRedirectionEntries(UINT8 index)
-{
-	UINT32 data;
-	(ioapic_base_reg[index])->reg = IOAPIC_REGISTER_IOAPIC_VERSION;
-	data = (ioapic_base_reg[index])->data;
-	return (UINT8)( ((IOAPIC_VERSION_PTR)&data)->max_redirection_entries );
-}
-
-/*!
- *	\brief	Load the redirection table structure with details obtained from IOAPIC for the required vector.
- *	\param	reg		IOAPIC register that is to be accessed.
- *	\param	table	Pointer to redirection table which has to be loaded with details from IOAPIC.
- *	\param	index	index to tell which ioapic to use.
-*/
-void GetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table, UINT8 index)
-{
-	UINT32 data;
-	(ioapic_base_reg[index])->reg = reg;
-	data = (ioapic_base_reg[index])->data;
+	IOAPIC_REGISTER_SELECTOR cmd;
 	
-	*table = *((IOAPIC_REDIRECT_TABLE_PTR)(&data));
-
-	(ioapic_base_reg[index])->reg = reg + 0x1;
-	data = (ioapic_base_reg[index])->data;
-
-	table->destination_field = (data & 0xff000000); //get the MSB 8 bits
-	return;
-}
-
-/*!
- *	\brief	Set the IOAPIC redirection table with given details.
- *	\param	reg -	IOAPIC register that is to be accessed.
- *	\param  table -	Pointer to redirection table which has to be loaded with details from IOAPIC.
- *	\param	index	index to tell which ioapic to use.
-*/
-void SetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table, UINT8 index)
-{
-	UINT32 data = (UINT32)((char*)(table));
-	(ioapic_base_reg[index])->reg = reg;
-	(ioapic_base_reg[index])->data = data;
+	/*! select the register*/
+	cmd.dword = 0;
+	cmd.ioapic_register = reg;
+	ioapic_base_va->dword = cmd.dword;
 	
-	data = (UINT32)( (table->destination_field) << 24 );
-
-	(ioapic_base_reg[index])->reg = reg + 0x1;
-	(ioapic_base_reg[index])->data = data;
-
-	return;
+	/*! write the data*/
+	*((UINT32 *)(((UINT32)ioapic_base_va) + IOAPIC_IOWIN_OFFSET))= data;
 }
 
-/*!
- *	\brief					Initial set up the redirection table entry to deliver Interrupts as vector number starting from starting_vector
- *	\param	starting_vector	The starting vector number from which interrupts have to be redirected.
- *	\param	index			index to tell which ioapic to use.
- *	\retval	0				Success
- *	\retval	-1				Invalid starting vector number.
- *	\retval	-2				Invalid max entries in redirection table.
+/*! Initializes the Programmable Interrupt Controller 8259
+	\param start_vector - The interrupt vector number where the IRQ should raised
+	\reference http://www.cs.sun.ac.za/~lraitt/doc_8259.html
 */
-int InitIOAPICRedirectionTable(int starting_vector, UINT8 index)
+void InitPIC(BYTE start_vector)
 {
-	UINT8 max_entries, i;
+	/*! Initialize the master PIC by sending Initialization Command Words 1 to 4*/
+	_outp(PIC_MASTER_IO_PORT_A, 0x11);				/* ICW1 - Set expect ICW4 bit*/
+	_outp(PIC_MASTER_IO_PORT_B, start_vector);		/* ICW2 - Set the interrupt vector number*/
+	_outp(PIC_MASTER_IO_PORT_B, 0x4);				/* ICW3 - Set where the slave is connected*/
+	_outp(PIC_MASTER_IO_PORT_B, 0x1);				/* ICW4 - Set operating mode is 8086 and not MCS-80/85*/
+	
+	/*! Initialize the slave PIC by sending Initialization Command Words 1-4*/
+	_outp(PIC_SLAVE_IO_PORT_A, 0x11);				/* ICW1 - Set expect ICW4 bit*/
+	_outp(PIC_SLAVE_IO_PORT_B, start_vector+8);		/* ICW2 - Set the interrupt vector number*/
+	_outp(PIC_SLAVE_IO_PORT_B, 0x2);				/* ICW3 - Set where the slave is connected*/
+	_outp(PIC_SLAVE_IO_PORT_B, 0x1);				/* ICW4 - Set operating mode is 8086 and not MCS-80/85*/
+}
+
+/*! Masks all PIC interrupts from PIC*/
+void MaskPic()
+{
+	_outp(PIC_MASTER_IO_PORT_B, 0xff );
+	_outp(PIC_SLAVE_IO_PORT_B, 0xff );
+}
+
+/*! Mask the IOAPIC interrupts
+ *	\param	ioapic_base_va -	Base address of the IOAPIC 
+ */
+void MaskIoApic(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va)
+{
 	IOAPIC_REDIRECT_TABLE redirect_table;
-	enum IOAPIC_REGISTER reg;
-
-	if (starting_vector < 16 || starting_vector > 230) //254-24 = 230
-		return -1;
-
+	IOAPIC_VERSION ver;
+	int i, table_index;
+	
+	redirect_table.dword_high = redirect_table.dword_low = 0;
+	table_index = IOAPIC_REGISTER_REDIRECT_TABLE;
+	
 	/*! Get the number of maximum redirection table entries supported on this IOAPIC. */
-	max_entries = GetMaximumIOAPICRedirectionEntries(index);
-	if( max_entries > 24)
-		return -2;
-
-	ioapic[index].max_entries = max_entries;
-
-	for(i=0; i< max_entries; i++)
+	ReadFromIoApic(ioapic_base_va, IOAPIC_REGISTER_IOAPIC_VERSION, &ver.dword );
+	/*! loop the the table entries and add their starting vector number*/
+	for(i=0; i<= ver.max_redirection_entries; i++)
 	{
-		redirect_table.interrupt_vector = starting_vector + i;
-		reg = (enum IOAPIC_REGISTER)(0x10 + i*2);
-		SetIOAPICRedirectionTableEntry(reg, &redirect_table, index);
+		/*! read the redirection table entry, modify it and write back*/
+		ReadFromIoApic( ioapic_base_va, table_index, &redirect_table.dword_low );
+		redirect_table.interrupt_mask = 1;
+		WriteToIoApic( ioapic_base_va, table_index, redirect_table.dword_low );
+		
+		table_index+=2;
 	}
-	return 0;
+}
+/*! Enables a IOAPIC irq and assigns the interrupt vector to it.
+ * \param ioapic_base_va 	- 	Base address of the IOAPIC 
+ * \param irq_number		-	IRQ number relative to the current IOAPIC
+ * \param interrupt_vector	-	CPU interrupt vector on which this interrrupt should be raised
+ */
+void EnableIoApicIrq(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va, BYTE irq_number, BYTE interrupt_vector)
+{
+	IOAPIC_REDIRECT_TABLE redirect_table;
+	int table_index;
+	
+	redirect_table.dword_high = redirect_table.dword_low = 0;
+	table_index = IOAPIC_REGISTER_REDIRECT_TABLE + (irq_number*2); /*index in the ioapic redirection table*/
+	
+	/*! read the redirection table entry, modify it and write back*/
+	ReadFromIoApic( ioapic_base_va, table_index, &redirect_table.dword_low );
+	redirect_table.interrupt_mask = 0;
+	redirect_table.interrupt_vector = interrupt_vector;
+	WriteToIoApic( ioapic_base_va, table_index, redirect_table.dword_low );
 }

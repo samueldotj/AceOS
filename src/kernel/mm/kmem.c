@@ -35,13 +35,19 @@ void InitKmem(VADDR kmem_start_va)
 	kernel_free_virtual_address = ((VADDR)kmem_start_va)+kmem_reserved_mem_size;
 }
 
+/*! kmem Wrapper function for AllocateVirtualMemory
+  * \param size - size in bytes(should be PAGE_SIZE aligned)
+ */
 static void * kmem_page_alloc(int size)
 {
 	VADDR va;
 	ERROR_CODE ret;
 #ifdef KMEM_DEBUG
 	if ( size <= 0 || size % PAGE_SIZE )
+	{
+		kprintf("kmem_page_alloc(%d)\n", size);
 		panic("kmem_page_alloc() - size is incorrect\n");
+	}
 #endif
 	ret = AllocateVirtualMemory(&kernel_map, &va, 0, size, 0, 0);
 	if ( ret == ERROR_SUCCESS )
@@ -50,6 +56,10 @@ static void * kmem_page_alloc(int size)
 		return NULL;
 }
 
+/*! Kmem wrapper function for FreeVirtualMemory
+ * \param va	-	address which should be freed
+ * \param size	-	size of the range
+ */
 static int kmem_page_free(void * va, int size)
 {
 #ifdef KMEM_DEBUG
@@ -62,6 +72,9 @@ static int kmem_page_free(void * va, int size)
 	return FreeVirtualMemory(&kernel_map, (VADDR)va, size, NULL);
 }
 
+/*!	Updates protection right for a given kmem range
+ * \todo implement protection
+ */
 static int kmem_page_protect(void * va, int size, int protection)
 {
 #ifdef KMEM_DEBUG

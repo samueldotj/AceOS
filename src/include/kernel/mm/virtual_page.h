@@ -69,11 +69,12 @@ enum VIRTUAL_PAGE_RANGE_TYPE
 	VIRTUAL_PAGE_RANGE_TYPE_BELOW_16MB,
 };
 
-void InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 start_physical_address);
+UINT32 InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 start_physical_address);
 
 VIRTUAL_PAGE_PTR AllocateVirtualPages(int pages, enum VIRTUAL_PAGE_RANGE_TYPE vp_range_type);
 UINT32 FreeVirtualPages(VIRTUAL_PAGE_PTR vp, int pages);
 
 VIRTUAL_PAGE_PTR PhysicalToVirtualPage(UINT32 physical_address);
 
+extern UINT32 limit_physical_memory;
 #endif

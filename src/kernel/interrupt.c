@@ -9,7 +9,7 @@
 #include <kernel/mm/kmem.h>
 
 /*define this to print debug problems*/
-//#define DEBUG_INTERRUPT
+#define DEBUG_INTERRUPT
 
 extern void SendEndOfInterrupt(int);
 

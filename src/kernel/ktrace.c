@@ -43,6 +43,6 @@ void _assert(const char *msg, const char *file, int line)
 */
 void panic(char * message) 
 {
-	kprintf(message);
+	kprintf("panic() : %s", message);
 	ArchHalt();
 }

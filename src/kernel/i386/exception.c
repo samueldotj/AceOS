@@ -109,7 +109,7 @@ char *exception_messages[] =
 	kprintf("eax="REG_FORMAT"ebx="REG_FORMAT"ecx="REG_FORMAT"edx="REG_FORMAT"\n", reg->eax, reg->ebx, reg->ecx, reg->edx);\
 	kprintf("esi="REG_FORMAT"edi="REG_FORMAT"ebp="REG_FORMAT"esp="REG_FORMAT"\n", reg->esi, reg->edi, reg->ebp, reg->esp);\
 	kprintf("cs:eip="SEG_FORMAT":"REG_FORMAT"[user stack ss:esp="SEG_FORMAT":"REG_FORMAT"]\n", reg->cs, reg->eip, reg->ss, reg->useresp);\
-	kprintf("ds="SEG_FORMAT" es="SEG_FORMAT" gs="SEG_FORMAT" fs="SEG_FORMAT" eflags=0x%X\n", reg->ds, reg->es, reg->gs, reg->fs, reg->eflags);\
+	kprintf("ds="SEG_FORMAT" es="SEG_FORMAT" gs="SEG_FORMAT" fs="SEG_FORMAT" eflags=0x%X err=0x%X\n", reg->ds, reg->es, reg->gs, reg->fs, reg->eflags, reg->error_code);\
 	kprintf("cr0="REG_FORMAT" cr1="REG_FORMAT" cr2="REG_FORMAT" cr3="REG_FORMAT"\n", reg->cr0, reg->cr1, reg->cr2, reg->cr3);
 
 /* All of our Exception handling Interrupt Service Routines will point to this function. 
@@ -128,14 +128,14 @@ void PageFaultHandler(REGS_PTR reg)
 {
 	PF_ERROR_CODE err;
 	err.all = reg->error_code;
-	if ( err._.rsvd ) 
+	if ( err.rsvd ) 
 		kprintf( "Page fault - RESERVED BIT SET\n");
 	else
 		kprintf("Page fault(code %d): %s page %s attempt and %s fault.\n",  
 			reg->error_code,
-			err._.user ? "User" : "Supervisor" ,
-			err._.write ? "write" : "read",
-			err._.present ? "protection" : "page not present");
+			err.user ? "User" : "Supervisor" ,
+			err.write ? "write" : "read",
+			err.present ? "protection" : "page not present");
 			
 	PRINT_REGS(reg);
 	ArchHalt();

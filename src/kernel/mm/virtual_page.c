@@ -8,6 +8,15 @@
 #include <kernel/debug.h>
 #include <string.h>
 
+/*! kernel parameter to limit the physical memory usage.
+
+	If this variable is set to a non zero value only that much physical memory is assumed to be present in the system.
+	This setting enables debugging easier on real machines. The size is in megabytes.
+	The maximum value is 3GB on 32 bit machines.
+	The minimum value is 8MB and the default value is 0 which means use all memory.
+*/
+UINT32 limit_physical_memory=0;
+
 /*virtual page - avl tree*/
 #define VP_AVL_TREE(vp)	(&(vp)->free_tree.avltree)
 
@@ -27,15 +36,23 @@ static COMPARISION_RESULT free_range_compare_fn(BINARY_TREE_PTR node1, BINARY_TR
 	\param vpa	- starting address of the virtual page array
 	\param page_count - total number of virtual pages
 	\param start_physical_address - starting physical address of the first virtual page
+	\return Returns how many pages added to virtual page array
 */
-void InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 start_physical_address)
+UINT32 InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 start_physical_address)
 {
 	int i;
 	AVL_TREE_PTR * vp_current_free_tree, * vp_prev_free_tree = NULL;
+	
+	
 	for(i=0; i<page_count ;i++)
 	{
 		InitVirtualPage( &vpa[i], start_physical_address );
 		start_physical_address += PAGE_SIZE;
+		if ( limit_physical_memory && ( start_physical_address * ( 1024*1024) ) > limit_physical_memory )
+		{
+			page_count = i;	/*we can use only upto this memory*/
+			break;
+		}
 	}
 	/*Adding a page to Tree/list involves operations on other pages also, so do this after initializing a page*/
 	for(i=0; i<page_count ;i++)
@@ -44,6 +61,7 @@ void InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 start_
 		AddVirtualPageToVmFreeTree( &vpa[i], vp_prev_free_tree == vp_current_free_tree);
 		vp_prev_free_tree = vp_current_free_tree;
 	}
+	return page_count;
 }
 
 /*! Initializes a virtual page
@@ -371,7 +389,7 @@ VIRTUAL_PAGE_PTR PhysicalToVirtualPage(UINT32 physical_address)
 	\return VIRTUAL_PAGE_PTR	First virtual page in the free range
 	\note 	1) This function does not allocate the pages.
 			2) Caller is responsible for taking the lock.
-			
+				
 	This function traverses the vm free avl tree to find a closest free range.
 */
 static VIRTUAL_PAGE_PTR FindFreeVirtualPageRange(AVL_TREE_PTR free_tree, UINT32 total_pages_required)

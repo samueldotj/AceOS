@@ -11,6 +11,17 @@
 
 /*! Total heap buckets*/
 #define MAX_HEAP_BUCKETS 		12
+#define VM_BUCKET				(MAX_HEAP_BUCKETS+1)
+
+/*! Contains fields to maintain heap internals*/
+typedef struct heap_metadata
+{
+	UINT32	vm_page_size;									/*! size of a virtual page - get it from the kernel*/
+	UINT32	vm_page_shift;									/*! 1 << vm_page_shift = to get the page size - \todo - automatically calculate it*/
+	void * 	(*virtual_alloc)(int size);						/*! Function pointer to allocate memory in page granulrity*/
+	int 	(*virtual_free)(void * va, int size);
+	int 	(*virtual_protect)(void * va, int size, int protection);
+} HEAP_METADATA, * HEAP_METADATA_PTR;
 
 /*! main heap data structure*/
 typedef struct heap 

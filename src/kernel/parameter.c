@@ -8,8 +8,10 @@
 #include <ds/sort.h>
 #include <kernel/debug.h>
 #include <kernel/gdb.h>
-#include <kernel/mm/kmem.h>
 #include <kernel/parameter.h>
+#include <kernel/mm/kmem.h>
+#include <kernel/mm/virtual_page.h>
+
 
 char * sys_kernel_cmd_line = NULL;
 
@@ -19,7 +21,8 @@ static KERNEL_PARAMETER_PTR FindKernelParameter(char * parameter_name);
 /*! global kernel parameters*/
 static KERNEL_PARAMETER kernel_parameters[] = {
 	{"gdb_port", &sys_gdb_port, UINT32Validator, {0, 0xFFFF, 0}, UINT32Assignor, NULL},
-	{"kmem_reserved_mem_size", &kmem_reserved_mem_size, UINT32Validator, {0, 1024*1024*1024, 0}, UINT32Assignor, NULL}
+	{"kmem_reserved_mem_size", &kmem_reserved_mem_size, UINT32Validator, {0, 1024*1024*1024, 0}, UINT32Assignor, NULL},
+	{"limit_pmem", &limit_physical_memory, UINT32Validator, {8, (UINT32)4*1024*1024, 0}, UINT32Assignor, NULL}
 };
 
 /*! Initializes the kernel parameter*/

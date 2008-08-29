@@ -13,5 +13,6 @@
 int InitPit(UINT32 frequency);
 UINT32 ElapsedTicks();
 void TimerSleep(UINT32 ticks);
+void Delay(UINT32 ms);
 
 #endif

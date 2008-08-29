@@ -17,51 +17,51 @@
 #define CPUID_MAX_CACHE_CONFIGURATION	0x3
 
 /*! Checks whether the given cpuid level is supported by the processor*/
-#define CPUID_IS_STD_LEVEL_SUPPORTED(cpu, level) (cpuid_info[(cpu)].basic._.max_std_level >= (level))
+#define CPUID_IS_STD_LEVEL_SUPPORTED(index, level) 	(processor_i386[(index)].cpuid.basic._.max_std_level >= (level))
 
 /*! \internal Internal macro which returns the given true value if the CPUID level is supported on a CPU else the given "false" value*/
 #define CPUID_VALUE(cpu, level, true, false)		(CPUID_IS_STD_LEVEL_SUPPORTED(cpu, level) ? true : false)
 
-/*macros to get CPUID values for a given cpu number*/
-#define CPU_VENDOR_ID(cpu_no)					(cpuid_info[(cpu_no)].basic._.vendor_id)
+/*macros to get CPUID values for a given cpu. index is index number in the processor array*/
+#define CPU_VENDOR_ID(index)					(processor_i386[(index)].cpuid.basic._.vendor_id)
 
-#define CPU_STEPPING(cpu_no)					(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.stepping, 0) )
-#define CPU_MODEL(cpu_no)						(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, (cpuid_info[(cpu_no)].feature._.extended_model<<4) + cpuid_info[(cpu_no)].feature._.model, 0) )
-#define CPU_FAMILY(cpu_no)						(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.extended_family + cpuid_info[(cpu_no)].feature._.family, 0) )
-#define CPU_TYPE(cpu_no)						(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.type, 0) )
-#define CPU_LOGICAL_PROCESSOR_COUNT(cpu_no)		(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.logical_processor_count, 0) )
-#define CPU_APIC_ID(cpu_no)						(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.apic_id, 0) )
+#define CPU_STEPPING(index)						(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.stepping, 0) )
+#define CPU_MODEL(index)						(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, (processor_i386[(index)].cpuid.feature._.extended_model<<4) + processor_i386[(index)].cpuid.feature._.model, 0) )
+#define CPU_FAMILY(index)						(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.extended_family + processor_i386[(index)].cpuid.feature._.family, 0) )
+#define CPU_TYPE(index)							(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.type, 0) )
+#define CPU_LOGICAL_PROCESSOR_COUNT(index)		(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.logical_processor_count, 0) )
+#define CPU_APIC_ID(index)						(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.apic_id, 0) )
 
-#define	CPU_FEATURE_FPU(cpu_no)					(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.fpu_on_chip, 0) )
-#define	CPU_FEATURE_VME(cpu_no)					(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.virtual_mode_extension, 0) )
-#define	CPU_FEATURE_DEBUG(cpu_no)				(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.debugging_extension, 0) )
-#define	CPU_FEATURE_PAGE_SIZE(cpu_no)			(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.page_size_extension, 0) )
-#define	CPU_FEATURE_TIME_STAMP(cpu_no)			(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.time_stamp_counter, 0) )
-#define	CPU_FEATURE_MSR(cpu_no)					(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.model_specific_registers, 0) )
-#define	CPU_FEATURE_PAE(cpu_no)					(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.physical_address_extension, 0) )
-#define	CPU_FEATURE_MCE(cpu_no)					(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.machine_check_extension, 0) )
-#define	CPU_FEATURE_CMPXCHG8(cpu_no)			(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.cmpxchg8, 0) )
-#define	CPU_FEATURE_APIC(cpu_no)				(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.apic, 0) )
-#define	CPU_FEATURE_SYSENTER(cpu_no)			(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.sysenter, 0) )
-#define	CPU_FEATURE_MTRR(cpu_no)				(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.memory_type_range_registers, 0) )
-#define	CPU_FEATURE_PAGE_GLOBAL(cpu_no)			(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.page_global_enable, 0) )
-#define	CPU_FEATURE_MCA(cpu_no)					(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.machine_check_architecture, 0) )
-#define	CPU_FEATURE_CMOV(cpu_no)				(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.conditional_move_instruction, 0) )
-#define	CPU_FEATURE_PAT(cpu_no)					(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.page_attribute_table, 0) )
-#define	CPU_FEATURE_PAGE_SIZE_32(cpu_no)		(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.page_size_extension_32bit, 0) )
-#define	CPU_FEATURE_SERIAL(cpu_no)				(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.processor_serial_number, 0) )
-#define	CPU_FEATURE_CFLUSH(cpu_no)				(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.clflush_instruction, 0) )
-#define	CPU_FEATURE_DTE(cpu_no)					(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.dte, 0) )
-#define	CPU_FEATURE_ACPI_THERMAL(cpu_no)		(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.acpi_thermal_control_msr, 0) )
-#define	CPU_FEATURE_MMX(cpu_no)					(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.mmx, 0) )
-#define	CPU_FEATURE_FLOAT(cpu_no)				(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.fast_floating_point, 0) )
-#define	CPU_FEATURE_SSE(cpu_no)					(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.sse, 0) )
-#define	CPU_FEATURE_SSE2(cpu_no)				(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.sse2, 0) )
-#define	CPU_FEATURE_SELF_SNOOP(cpu_no)			(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.self_snoop, 0) )
-#define	CPU_FEATURE_SELF_HTT(cpu_no)			(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.hyper_threading_technology, 0) )
-#define	CPU_FEATURE_SELF_THERMAL(cpu_no)		(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.thermal_interrupt, 0) )
-#define	CPU_FEATURE_SELF_IA64(cpu_no)			(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.ia64, 0) )
-#define	CPU_FEATURE_SELF_PENDING_BREAK(cpu_no)	(CPUID_VALUE(cpu_no, CPUID_STD_PROCESSOR_TYPE, cpuid_info[(cpu_no)].feature._.pending_break_enable, 0) )
+#define	CPU_FEATURE_FPU(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.fpu_on_chip, 0) )
+#define	CPU_FEATURE_VME(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.virtual_mode_extension, 0) )
+#define	CPU_FEATURE_DEBUG(index)				(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.debugging_extension, 0) )
+#define	CPU_FEATURE_PAGE_SIZE(index)			(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.page_size_extension, 0) )
+#define	CPU_FEATURE_TIME_STAMP(index)			(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.time_stamp_counter, 0) )
+#define	CPU_FEATURE_MSR(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.model_specific_registers, 0) )
+#define	CPU_FEATURE_PAE(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.physical_address_extension, 0) )
+#define	CPU_FEATURE_MCE(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.machine_check_extension, 0) )
+#define	CPU_FEATURE_CMPXCHG8(index)				(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.cmpxchg8, 0) )
+#define	CPU_FEATURE_APIC(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.apic, 0) )
+#define	CPU_FEATURE_SYSENTER(index)				(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.sysenter, 0) )
+#define	CPU_FEATURE_MTRR(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.memory_type_range_registers, 0) )
+#define	CPU_FEATURE_PAGE_GLOBAL(index)			(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.page_global_enable, 0) )
+#define	CPU_FEATURE_MCA(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.machine_check_architecture, 0) )
+#define	CPU_FEATURE_CMOV(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.conditional_move_instruction, 0) )
+#define	CPU_FEATURE_PAT(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.page_attribute_table, 0) )
+#define	CPU_FEATURE_PAGE_SIZE_32(index)			(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.page_size_extension_32bit, 0) )
+#define	CPU_FEATURE_SERIAL(index)				(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.processor_serial_number, 0) )
+#define	CPU_FEATURE_CFLUSH(index)				(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.clflush_instruction, 0) )
+#define	CPU_FEATURE_DTE(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.dte, 0) )
+#define	CPU_FEATURE_ACPI_THERMAL(index)			(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.acpi_thermal_control_msr, 0) )
+#define	CPU_FEATURE_MMX(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.mmx, 0) )
+#define	CPU_FEATURE_FLOAT(index)				(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.fast_floating_point, 0) )
+#define	CPU_FEATURE_SSE(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.sse, 0) )
+#define	CPU_FEATURE_SSE2(index)					(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.sse2, 0) )
+#define	CPU_FEATURE_SELF_SNOOP(index)			(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.self_snoop, 0) )
+#define	CPU_FEATURE_SELF_HTT(index)				(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.hyper_threading_technology, 0) )
+#define	CPU_FEATURE_SELF_THERMAL(index)			(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.thermal_interrupt, 0) )
+#define	CPU_FEATURE_SELF_IA64(index)			(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.ia64, 0) )
+#define	CPU_FEATURE_SELF_PENDING_BREAK(index)	(CPUID_VALUE(index, CPUID_STD_PROCESSOR_TYPE, processor_i386[(index)].cpuid.feature._.pending_break_enable, 0) )
 			
 
 enum
@@ -290,12 +290,6 @@ typedef struct cpuid_info
 	
 }CPUID_INFO, * CPUID_INFO_PTR;
 
-extern CPUID_INFO cpuid_info[MAX_PROCESSORS];
 void LoadCpuIdInfo(CPUID_INFO_PTR cpuid_info);
-
-/* Macros to return attributes from cpuid_info database. */
-#define EXTRACT_FROM_CPUID_LAPIC cpuid_info[0].feature._.apic
-#define EXTRACT_FROM_CPUID_APIC_ID cpuid_info[0].feature._.apic_id
-
 
 #endif

@@ -21,20 +21,18 @@ struct regs
 
 typedef struct regs REGS, *REGS_PTR;
 
-typedef struct pf_error_code
+/*! Page fault error code*/
+typedef union pf_error_code
 {
-	union 
+	UINT32 	all;
+	struct 
 	{
-		UINT32 	all;
-		struct 
-		{
-			UINT32 	
-				present:1,
-				write:1,
-				user:1,
-				rsvd:1,
-				reserved:28;
-		}_;
+		UINT32 	
+			present:1,
+			write:1,
+			user:1,
+			rsvd:1,
+			reserved:28;
 	};
 }PF_ERROR_CODE, * PF_ERROR_CODE_PTR;
 

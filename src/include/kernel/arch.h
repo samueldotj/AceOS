@@ -6,20 +6,23 @@
 #define ARCH__H
 
 #include <ace.h>
+#include <kernel/multiboot.h>
 
 #ifdef __cplusplus
     extern "C" {
 #endif
 
 void panic(char * message);
-void ArchInit();
-void ArchHalt();
+void InitArchPhase1(MULTIBOOT_INFO_PTR mbi);
+void InitArchPhase2(MULTIBOOT_INFO_PTR mbi);
+void InitPrintf();
+void InitSmp();
 
 void InvalidateTlb(void * va);
 void InvalidateAllTlb();
 void FlushCpuCache(BOOLEAN write_back);
-UINT32 CreatePageForSecondaryCPUStart();
-void SetupAPIC(void);
+
+void ArchHalt();
 
 #ifdef __cplusplus
 	}

@@ -28,21 +28,43 @@ typedef struct acpi_isr_handler
 static ACPI_TABLE_DESC      Tables[ACPI_MAX_INIT_TABLES];
 int InitACPI()
 {
-	if ( AcpiInitializeSubsystem() != AE_OK )
+	ACPI_STATUS result;
+	result = AcpiInitializeSubsystem();
+	if ( result != AE_OK )
+	{
+		kprintf("AcpiInitializeSubsystem() failed %x\n", result);
 		return -1;
-    if ( AcpiInitializeTables (Tables, ACPI_MAX_INIT_TABLES, TRUE) != AE_OK )
+	}
+	result = AcpiInitializeTables (Tables, ACPI_MAX_INIT_TABLES, TRUE);
+    if ( result != AE_OK )
+	{
+		kprintf("AcpiInitializeTables() failed %x\n", result);
 		return -1;
-    if ( AcpiReallocateRootTable () != AE_OK )
+	}
+    result = AcpiReallocateRootTable ();
+	if ( result != AE_OK )
+	{
+		kprintf("AcpiReallocateRootTable() failed %x\n", result);
 		return -1;
-		
-	if ( AcpiLoadTables() != AE_OK )
+	}
+	result = AcpiLoadTables();
+	if ( result != AE_OK )
+	{
+		kprintf("AcpiLoadTables() failed %x\n", result);
 		return -1;
-	
-	if ( AcpiEnableSubsystem(ACPI_FULL_INITIALIZATION) != AE_OK )
+	}
+	result = AcpiEnableSubsystem(ACPI_FULL_INITIALIZATION);
+	if ( result != AE_OK )
+	{
+		kprintf("AcpiEnableSubsystem() failed %x\n", result);
 		return -1;
-		
-	if ( AcpiInitializeObjects(ACPI_FULL_INITIALIZATION) != AE_OK )
+	}
+	result = AcpiInitializeObjects(ACPI_FULL_INITIALIZATION);
+	if ( result != AE_OK )
+	{
+		kprintf("AcpiInitializeObjects() failed %x\n", result);
 		return -1;
+	}
 	
 	return 0;
 }

@@ -431,7 +431,7 @@ AcpiGetTable (
         if (!ACPI_COMPARE_NAME (&(AcpiGbl_RootTableList.Tables[i].Signature),
                 Signature))
         {
-            continue;
+		   continue;
         }
 
         if (++j < Instance)

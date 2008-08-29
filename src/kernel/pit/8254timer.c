@@ -5,9 +5,9 @@
 #include <ace.h>
 #include <kernel/io.h>
 
-#define CONTROL_PORT (0x43)
-#define COUNTER0_PORT (0x40)
-#define FREQUENCY_8254 (1193180)
+#define CONTROL_PORT 	(0x43)
+#define COUNTER0_PORT 	(0x40)
+#define FREQUENCY_8254 	(1193180)
 
 
 /*!

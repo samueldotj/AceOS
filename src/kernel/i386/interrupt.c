@@ -42,35 +42,3 @@ void SetupInterruptStubs()
 	SetIdtGate(46, (unsigned)InterruptStub14);
 	SetIdtGate(47, (unsigned)InterruptStub15);
 }
-
-#if 0
-/*! TODO - The following functions should move to PIC folder after APIC implementation*/
-/*! pic specific end of interrupt generator
-*/
-void SendEndOfInterrupt(int int_no)
-{
-	/* If the IDT entry that was invoked was greater than 40 (meaning IRQ8 - 15), then we need to send an EOI to the slave controller */
-	if (int_no >= 40)
-	    _outp(0xA0, 0x20);
-
-	/* In either case, we need to send an EOI to the master interrupt controller too */
-	_outp(0x20, 0x20);
-}
-/* Normally, IRQs 0 to 7 are mapped to entries 8 to 15. 
-*  We send commands to the Programmable Interrupt Controller in order to make IRQ0 to 15 be remapped to IDT entries 32 to 47 
-*/
-static void SetupPIC(void)
-{
-	_outp(0x20, 0x11);
-	_outp(0xA0, 0x11);
-	_outp(0x21, 0x20);
-	_outp(0xA1, 0x28);
-	_outp(0x21, 0x04);
-	_outp(0xA1, 0x02);
-	_outp(0x21, 0x01);
-	_outp(0xA1, 0x01);
-	_outp(0x21, 0x0);
-	_outp(0xA1, 0x0);
-}
-
-#endif

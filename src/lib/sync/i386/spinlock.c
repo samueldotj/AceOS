@@ -5,6 +5,7 @@
 */
 #include <ace.h>
 #include <assert.h>
+#include <stdlib.h>
 #include <sync/spinlock.h>
 
 /*!	InitSpinLock - initialize the spinlock data structure
@@ -12,7 +13,8 @@
 */
 inline void InitSpinLock(SPIN_LOCK_PTR pSpinLock)
 {
-	pSpinLock->data = 0;
+	pSpinLock->last_locker = __builtin_return_address(0);
+	pSpinLock->locked = 0;
 }
 
 /*!	SpinLock - Spin to get a lock until timeout occurs
@@ -21,7 +23,7 @@ inline void InitSpinLock(SPIN_LOCK_PTR pSpinLock)
 */
 inline int SpinLock(SPIN_LOCK_PTR pSpinLock)
 {
-	UINT32 result, count=SPIN_LOCK_TRY_COUNT;
+	UINT32 result=0, count=SPIN_LOCK_TRY_COUNT;
 	/*loop until acquiring the lock*/
 	do
 	{
@@ -30,9 +32,13 @@ inline int SpinLock(SPIN_LOCK_PTR pSpinLock)
         	lock xchgl %%eax, (%%edx);\
 			pause"
             :"=a"(result)
-            :"d"(pSpinLock)
+            :"d"(&pSpinLock->locked)
 			);
 	}while( result && count-- );
+	if ( result )
+		SpinLockTimeout(pSpinLock, __builtin_return_address(0) );
+	
+	pSpinLock->last_locker = __builtin_return_address(0);
 	
 	return result;
 }
@@ -43,13 +49,16 @@ inline int SpinLock(SPIN_LOCK_PTR pSpinLock)
 */
 inline int TrySpinLock(SPIN_LOCK_PTR pSpinLock)
 {
-	int result;
+	int result=1;
 	asm volatile("\
 			movl $1, %%eax;\
        	    lock xchgl %%eax, (%%edx);"
            	:"=a"(result)
-            :"d"(pSpinLock)
+            :"d"(&pSpinLock->locked)
 			);
+	/*if locked update the caller address */
+	if ( result == 0 )
+		pSpinLock->last_locker = __builtin_return_address(0);
 	return result;
 }
 
@@ -58,14 +67,18 @@ inline int TrySpinLock(SPIN_LOCK_PTR pSpinLock)
 */
 inline void SpinUnlock(SPIN_LOCK_PTR pSpinLock)
 {
-	assert( pSpinLock->data != 0 );
-	
+	int result;
+
 	/*adding lock prefix causes an invalid instruction execption
 	although lock is not neccesssary for an unlock operation - it is good to have*/
-	asm volatile("movl $0, (%%ebx)"
-        :
-        :"b"(pSpinLock)
+	asm volatile("\
+		movl $0, %%eax;\
+		lock xchgl %%eax, (%%edx);"
+        : "=a" (result)
+        :"d"(&pSpinLock->locked)
 		);
+
+	assert( result == 1 );
 }
 /*! 	BitSpinLock - Spin to get a bit lock until timeout occurs
 	\param pBitData - Pointer to the bit lock array

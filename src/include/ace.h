@@ -11,12 +11,6 @@
 
 /*! define this macro to enable SMP compilation*/
 #define CONFIG_SMP
-#ifdef CONFIG_SMP
-	/*max processors supported*/
-	#define MAX_PROCESSORS	64
-#else
-	#define MAX_PROCESSORS	1
-#endif
 
 #define FALSE		0
 #define TRUE  		1

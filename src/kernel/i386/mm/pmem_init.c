@@ -221,26 +221,26 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 	pt_index = PAGE_TABLE_ENTRY_INDEX(va);
 	
 	//if we dont have a page table, create it
-	if ( !k_page_dir[ pd_index ]._.present )
+	if ( !k_page_dir[ pd_index ].present )
 	{
 		UINT32 pa = (UINT32)GetFreePhysicalPage();
 		page_table = (PAGE_TABLE_ENTRY_PTR) pa;
 		
 		/*enter pde*/
 		k_page_dir[pd_index].all = KERNEL_PTE_FLAG;
-		k_page_dir[pd_index]._.page_table_pfn = PA_TO_PFN(pa);
+		k_page_dir[pd_index].page_table_pfn = PA_TO_PFN(pa);
 	}
 	else
 	{
 		//get the page table address
-		page_table = (PAGE_TABLE_ENTRY_PTR) ( PFN_TO_PA(k_page_dir[ pd_index ]._.page_table_pfn) ) ;
+		page_table = (PAGE_TABLE_ENTRY_PTR) ( PFN_TO_PA(k_page_dir[ pd_index ].page_table_pfn) ) ;
 	}
 	
 	//enter pte in the page table.
-	if ( !page_table[ pt_index ]._.present )
+	if ( !page_table[ pt_index ].present )
 	{
 		page_table[pt_index].all = KERNEL_PTE_FLAG;
-		page_table[pt_index]._.page_pfn =  PA_TO_PFN(pa);
+		page_table[pt_index].page_pfn =  PA_TO_PFN(pa);
 	}
 }
 
@@ -257,7 +257,7 @@ void InitPhysicalMemoryManagerPhaseII()
 	kernel_physical_map.page_directory = kernel_page_directory;
 	
 	/*clear the boot PTE*/
-	kernel_page_directory[0].all = 0;
+	//kernel_page_directory[0].all = 0;
 	/*invalidate the TLB*/
 	asm volatile("invlpg 0");
 
@@ -274,8 +274,7 @@ void InitPhysicalMemoryManagerPhaseII()
 			
 			if ( pmr->type == PMEM_TYPE_AVAILABLE )
 			{
-				InitVirtualPageArray(pmr->virtual_page_array, pmr->virtual_page_count, pmr->start_physical_address);
-				vm_data.total_memory_pages += pmr->virtual_page_count;
+				vm_data.total_memory_pages += InitVirtualPageArray(pmr->virtual_page_array, pmr->virtual_page_count, pmr->start_physical_address);
 			}
 		}
 	}

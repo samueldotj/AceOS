@@ -99,49 +99,43 @@ typedef struct virtual_address
 			page_directory_index:10;
 }VIRTUAL_ADDRESS, VIRTUAL_ADDRESS_PTR;
 
-typedef struct page_directory_entry
+typedef union page_directory_entry
 {
-	union
+	UINT32	all;
+	struct 
 	{
-		UINT32	all;
-		struct 
-		{
-			UINT32	
-				present:1,
-				write:1,
-				supervisior:1,
-				write_through:1,
-				cache_disabled:1,
-				accessed:1,
-				reserved:1,
-				page_size:1,
-				global:1,
-				software:3,
-				page_table_pfn:20;
-		}_;
+		UINT32	
+			present:1,
+			write:1,
+			supervisior:1,
+			write_through:1,
+			cache_disabled:1,
+			accessed:1,
+			reserved:1,
+			page_size:1,
+			global:1,
+			software:3,
+			page_table_pfn:20;
 	};
 }PAGE_DIRECTORY_ENTRY, * PAGE_DIRECTORY_ENTRY_PTR;
 
-typedef struct page_table_entry
+typedef union page_table_entry
 {
-	union
+	UINT32	all;
+	struct 
 	{
-		UINT32	all;
-		struct 
-		{
-			UINT32	
-				present:1,
-				write:1,
-				supervisior:1,
-				write_through:1,
-				cache_disabled:1,
-				accessed:1,
-				dirty:1,
-				page_table_attribute_index:1,
-				global:1,
-				software:3,
-				page_pfn:20;
-		}_;
+		UINT32	
+			present:1,
+			write:1,
+			supervisior:1,
+			write_through:1,
+			cache_disabled:1,
+			accessed:1,
+			dirty:1,
+			page_table_attribute_index:1,
+			global:1,
+			software:3,
+			page_pfn:20;
 	};
 }PAGE_TABLE_ENTRY, * PAGE_TABLE_ENTRY_PTR;
 

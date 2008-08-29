@@ -5,11 +5,9 @@
 
 #include <ace.h>
 #include <string.h>
-#include <kernel/i386/cpuid.h>
 #include <ds/bits.h>
-
-/*! cache to hold all processor's CPUID_INFO*/
-CPUID_INFO cpuid_info[MAX_PROCESSORS];
+#include <kernel/i386/cpuid.h>
+#include <kernel/i386/processor.h>
 
 /*! Executes CPUID instruction and stores the result
 	\param raw - buffer to store the result
@@ -88,3 +86,4 @@ void LoadCpuIdInfo(CPUID_INFO_PTR cpuid_info)
 		ExecuteCpuId( data );
 	}
 }
+

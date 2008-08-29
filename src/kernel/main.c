@@ -21,53 +21,38 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 {
 	SYSTEM_TIME boot_time;
 	
-	/*initialize architecture depend parts*/
-	ArchInit(mbi);
-	
-	/*boot error*/
-	if ( magic != MULTIBOOT_BOOTLOADER_MAGIC )
-	{
-		kprintf("Boot loader error (%x). Magic != %x", magic, MULTIBOOT_BOOTLOADER_MAGIC);
-		goto fatal_boot_error;
-	}
-	kprintf( ACE_NAME" Version %d.%d Build%s\n", ACE_MAJOR, ACE_MINOR, ACE_BUILD);
-
-	InitVm();
-		
-	if ( InitRtc() )
-	{
-		kprintf("RTC Initialization failed.");
-		goto fatal_boot_error;
-	}
-	GetBootTime( &boot_time );
-	kprintf("Boot time: %d-%d-%d %d:%d\n", boot_time.day, boot_time.month, boot_time.year, boot_time.hour, boot_time.minute);
-
-	/* Initialize PIT with the specified frequency */
-	if ( InitPit(TIMER_FREQUENCY) )	
-	{
-		kprintf("PIT Initialization failed");
-		goto fatal_boot_error;
-	}
-
+	/*initialize architecture depend parts - console and kernel command line*/
+	InitArchPhase1(mbi);
 	/*initialize kernel parameters and parse boot parameters*/
 	InitKernelParameters();
-	kprintf("Initialized kernel parameters\n");
 	ParaseBootParameters();
 
+	kprintf( ACE_NAME" Version %d.%d Build%s\n", ACE_MAJOR, ACE_MINOR, ACE_BUILD);
+
+	/*initialize virtual memory manager*/
+	InitVm();
+	
+	/*initialize architecture depend parts*/
+	InitArchPhase2(mbi);
+		
 	/*start gdb as soon as possible*/
 	if ( sys_gdb_port )
 		InitGdb();
 		
 	if ( InitACPI() != 0 )
 		panic("ACPI Initialization failed.\n");
-	kprintf("ACPI initialized\n");
+		
+	if ( InitRtc() )
+		panic("RTC Initialization failed.");
+		
+	GetBootTime( &boot_time );
+	kprintf("Boot time: %d-%d-%d %d:%d\n", boot_time.day, boot_time.month, boot_time.year, boot_time.hour, boot_time.minute);
 
-	SetupAPIC();
-	kprintf("APIC initialized\n");
-    __asm__ __volatile__ ("sti");
-
+	/* Initialize PIT with the specified frequency */
+	if ( InitPit(TIMER_FREQUENCY) )	
+		panic("PIT Initialization failed");
+	
 	InitSmp();
-	kprintf("SMP initialised\n");
-fatal_boot_error:
-	while(1);
+	
+	kprintf("Kernel initialization complete\n");
 }

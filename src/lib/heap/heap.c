@@ -5,9 +5,17 @@
 
 #include <ace.h>
 #include <ds/align.h>
+#include <ds/bits.h>
 #include <heap/heap.h>
 
+static HEAP_METADATA _heap_metadata;
 static HEAP _heap;
+
+#define VM_PAGE_SIZE	_heap_metadata.vm_page_size
+#define VM_PAGE_SHIFT	_heap_metadata.vm_page_shift
+#define VM_ALLOC		_heap_metadata.virtual_alloc
+#define VM_FREE			_heap_metadata.virtual_free
+#define VM_PROTECT		_heap_metadata.virtual_protect
 
 const static int BUCKET_SIZE[MAX_HEAP_BUCKETS] = {
 		16,
@@ -58,6 +66,13 @@ int InitHeap( int page_size, void * (*v_alloc)(int size),
 {
 	int i;
 	
+	VM_PAGE_SHIFT = 0;
+	VM_PAGE_SIZE = page_size;
+	FindFirstSetBitInBitArray( &VM_PAGE_SIZE, sizeof(VM_PAGE_SIZE)*BITS_PER_BYTE, &VM_PAGE_SHIFT );
+	VM_ALLOC = v_alloc;
+	VM_FREE = v_free;
+	VM_PROTECT = v_protect;
+	
 	if ( InitSlabAllocator(page_size, v_alloc, v_free, v_protect ) == -1 )
 		return -1;
 	for(i=0; i<MAX_HEAP_BUCKETS; i++ )
@@ -79,8 +94,14 @@ void * AllocateFromHeap(int size)
 	bucket_size = ALIGN_UP(size + sizeof(HEAP_DATA), 2);
 	if ( bucket_size > MAX_HEAP_BUCKET_SIZE )
 	{
-		//for simplicity we dont support size greater than page size.
-		return NULL;
+		// if the requested size is greater than PAGE_SIZE then allocate from VM
+		UINT32 page_size = ALIGN_UP(bucket_size, VM_PAGE_SHIFT);
+		heap_data_ptr = VM_ALLOC(page_size);
+		if ( heap_data_ptr == NULL )
+			return NULL;
+		heap_data_ptr->bucket_index = VM_BUCKET;
+		*((UINT32 *)&heap_data_ptr->buffer[0]) = page_size;
+		return &heap_data_ptr->buffer[1];
 	}
 	bucket_index = BUCKET_INDEX(bucket_size);
 	cache_ptr = &CACHE_FROM_INDEX(bucket_index);
@@ -98,6 +119,8 @@ int FreeToHeap(void * free_buffer)
 {
 	HEAP_DATA_PTR heap_data_ptr;
 	heap_data_ptr = STRUCT_ADDRESS_FROM_MEMBER( free_buffer, HEAP_DATA, buffer[0]);
+	if ( heap_data_ptr->bucket_index == VM_BUCKET )
+		VM_FREE( heap_data_ptr, (UINT32)heap_data_ptr->buffer[0]  );
 	return FreeBuffer(heap_data_ptr, &CACHE_FROM_INDEX(heap_data_ptr->bucket_index) );
 }
 

@@ -9,129 +9,160 @@
 
 #include <ace.h>
 
-/*! Maximum IOAPIC supported by Ace*/
-#define MAX_IOAPIC 16
-/*! Starting interrrupt vector number for IOAPIC*/
-#define IOAPIC_STARTING_VECTOR_NUMBER 32
-/*!	Default base address of IOAPIC*/
-#define IOAPIC_BASE_MSR_START 0xfec00000
+#ifdef CONFIG_SMP
+	#define MAX_IOAPIC 16	/*! Maximum IOAPIC supported by Ace*/
+#else
+	#define MAX_IOAPIC 1
+#endif
 
-/* IOAPIC */
+/*! interrrupt vector numbers*/
+#define IOAPIC_STARTING_VECTOR_NUMBER 		32
+#define PIC_STARTING_VECTOR_NUMBER			IOAPIC_STARTING_VECTOR_NUMBER
+
+/*! Assignment of IRQs in 8259*/
+typedef enum
+{
+	LEGACY_DEVICE_IRQ_TIMER		=0,
+	LEGACY_DEVICE_IRQ_KEYBOARD	=1,
+	LEGACY_DEVICE_IRQ_CASCADE	=2,
+	LEGACY_DEVICE_IRQ_COM2		=3,
+	LEGACY_DEVICE_IRQ_COM1		=4,
+	LEGACY_DEVICE_IRQ_PCI0		=5,
+	LEGACY_DEVICE_IRQ_FLOPPY	=6,
+	LEGACY_DEVICE_IRQ_PRINTER	=7,
+	
+	LEGACY_DEVICE_IRQ_RTC		=8,
+	LEGACY_DEVICE_IRQ_PCI3		=9,
+	LEGACY_DEVICE_IRQ_PCI2		=10,
+	LEGACY_DEVICE_IRQ_PCI1		=11,
+	LEGACY_DEVICE_IRQ_MOUSE		=12,
+	LEGACY_DEVICE_IRQ_FPU		=13,
+	LEGACY_DEVICE_IRQ_IDE0		=14,
+	LEGACY_DEVICE_IRQ_IDE1		=15
+}LEGACY_DEVICE_IRQ;
+
+/*! This structure abstracts a IOAPIC, this is a software abstraction and IOAPIC has nothing todo in this*/
 typedef struct ioapic
 {
-	UINT32 ioapic_id;
-	UINT32 physical_address;
-	UINT32 starting_vector;
-	UINT32 max_entries;
+	UINT32	ioapic_id;					/*! IOAPIC id*/
+	UINT32	starting_vector;			/*! Starting interrupt vector number*/
+	
+	void *	base_physical_address;		/*! Base address where this IOAPIC can be accessed*/
+	void * 	base_virtual_address;		/*! virtual address where it is mapped in the kernel address space*/
 }IOAPIC, *IOAPIC_PTR;
 
-enum IOAPIC_REGISTER
+/*! Enumerates the IOAPIC register index*/
+typedef enum ioapic_register
 {
-	IOAPIC_REGISTER_IOAPIC_ID=0,
-	IOAPIC_REGISTER_IOAPIC_VERSION=1,
-	IOAPIC_REGISTER_IOAPIC_ARBITRATION=2,
-	IOAPIC_REGISTER_REDIRECT_TABLE0=0x10,
-	IOAPIC_REGISTER_REDIRECT_TABLE1=0x12,
-	IOAPIC_REGISTER_REDIRECT_TABLE2=0x14,
-	IOAPIC_REGISTER_REDIRECT_TABLE3=0x16,
-	IOAPIC_REGISTER_REDIRECT_TABLE4=0x18,
-	IOAPIC_REGISTER_REDIRECT_TABLE5=0x1A,
-	IOAPIC_REGISTER_REDIRECT_TABLE6=0x1C,
-	IOAPIC_REGISTER_REDIRECT_TABLE7=0x1E,
-	IOAPIC_REGISTER_REDIRECT_TABLE8=0x20,
-	IOAPIC_REGISTER_REDIRECT_TABLE9=0x22,
-	IOAPIC_REGISTER_REDIRECT_TABLE10=0x24,
-	IOAPIC_REGISTER_REDIRECT_TABLE11=0x26,
-	IOAPIC_REGISTER_REDIRECT_TABLE12=0x28,
-	IOAPIC_REGISTER_REDIRECT_TABLE13=0x2A,
-	IOAPIC_REGISTER_REDIRECT_TABLE14=0x2C,
-	IOAPIC_REGISTER_REDIRECT_TABLE15=0x2E,
-	IOAPIC_REGISTER_REDIRECT_TABLE16=0x30,
-	IOAPIC_REGISTER_REDIRECT_TABLE17=0x32,
-	IOAPIC_REGISTER_REDIRECT_TABLE18=0x34,
-	IOAPIC_REGISTER_REDIRECT_TABLE19=0x36,
-	IOAPIC_REGISTER_REDIRECT_TABLE20=0x38,
-	IOAPIC_REGISTER_REDIRECT_TABLE21=0x3A,
-	IOAPIC_REGISTER_REDIRECT_TABLE22=0x3C,
-	IOAPIC_REGISTER_REDIRECT_TABLE23=0x3E
-};
+	IOAPIC_REGISTER_IOAPIC_ID			=0,
+	IOAPIC_REGISTER_IOAPIC_VERSION		=1,
+	IOAPIC_REGISTER_IOAPIC_ARBITRATION	=2,
+	IOAPIC_REGISTER_REDIRECT_TABLE		=0x10
+}IOAPIC_REGISTER;
 
-
-/* This structure is reimposed with IA32_APIC_BASE_MSR structure. So be careful in handling the reserved fields. */
-typedef struct ioapic_reg
+/*! IOAPIC IOREGSEL address*/
+typedef union ioapic_register_selector
 {
-	//First byte specifies the register which has to be accessed.
-	UINT32 reg:8,	//IO_REG_SEL register
-		   reserved1:24;
-	UINT32 reserved2[3];
+	struct
+	{
+		UINT32	ioapic_register:8,	
+				reserved:24;
+	};
+	UINT32		dword;
+}IOAPIC_REGISTER_SELECTOR, * IOAPIC_REGISTER_SELECTOR_PTR;
 
-	//at an offset of 4 bytes from base, specify the data.
-	UINT32 data;	//IO_WIN register. This must be accessed as an Dword only.
-}IOAPIC_REG, *IOAPIC_REG_PTR;
-
-typedef struct ioapic_id
+/*! IOAPIC ID data format*/
+typedef union ioapic_id
 {
-	UINT32 reserved1		:	24,
-		   ioapic_id		:	4,
-		   reserved2		:	4;
+	struct
+	{
+		UINT32 	reserved1	:24,
+				ioapic_id	:4,
+				reserved2	:4;
+	};
+	UINT32		dword;
 }IOAPIC_ID, *IOAPIC_ID_PTR;
 
-typedef struct ioapic_version
+/*! IOAPIC version data format*/
+typedef union ioapic_version
 {
-	UINT32	apic_version			:	8,
-			reserved1				:	8,
-			max_redirection_entries	:	8,
-			reserved2				:	8;
+	struct
+	{
+		UINT32	apic_version			:8,
+				reserved1				:8,
+				max_redirection_entries	:8,
+				reserved2				:8;
+	};
+	UINT32 		dword;
 }IOAPIC_VERSION, *IOAPIC_VERSION_PTR;
 
-typedef struct ioapic_arbitration
+/*! IOAPIC arbitration data format*/
+typedef union ioapic_arbitration
 {
-	UINT32	reserved1		:	24,
-			arbitration_id	:	4,
-			reserved2		:	4;
+	struct
+	{
+		UINT32	reserved1		:24,
+				arbitration_id	:4,
+				reserved2		:4;
+	};
+	UINT32		dword;
 }IOAPIC_ARBITRATION, *IOAPIC_ARBITRATION_PTR;
 
+/*! IOAPIC redirect table format*/
 typedef struct ioapic_redirect_table
 {
-	UINT32	interrupt_vector	:	8,
-			delivery_mode		:	3,
-			destination_mode	:	1,
-			delivery_status		:	1,
-			input_polarity		:	1,
-			remote_irr			:	1,
-			trigger_mode		:	1,
-			interrupt_mask		:	1,
-			reserved1			:	15;
-
-	UINT32	reserved2			:	24,
-			destination_field	:	8;
+	union
+	{
+		struct
+		{
+			UINT32	reserved2			:24,
+					destination_field	:8;
+		};
+		UINT32		dword_high;
+	};
+	union
+	{
+		struct
+		{
+			UINT32	interrupt_vector	:8,
+					delivery_mode		:3,
+					destination_mode	:1,
+					delivery_status		:1,
+					interrupt_polarity	:1,
+					remote_irr			:1,
+					trigger_mode		:1,
+					interrupt_mask		:1,
+					reserved1			:15;
+		};
+		UINT32		dword_low;
+	};
 }IOAPIC_REDIRECT_TABLE, *IOAPIC_REDIRECT_TABLE_PTR;
 
-enum IOAPIC_TRIGGER_MODE
+typedef enum 
 {
 	IOAPIC_TRIGGER_MODE_EDGE,
 	IOAPIC_TRIGGER_MODE_LEVEL
-};
+}IOAPIC_TRIGGER_MODE;
 
-enum IOAPIC_INPUT_POLARITY
+typedef enum 
 {
 	IOAPIC_INPUT_POLARITY_HIGH_ACTIVE,
 	IOAPIC_INPUT_POLARITY_LOW_ACTIVE
-};
+}IOAPIC_INPUT_POLARITY;
 
-enum IOAPIC_DELIVERY_STATUS
+typedef enum
 {
 	IOAPIC_DELIVERY_STATUS_IDLE,
 	IOAPIC_DELIVERY_STATUS_SEND_PENDING
-};
+}IOAPIC_DELIVERY_STATUS;
 
-enum IOAPIC_DESTINATION_MODE
+typedef enum
 {
 	IOAPIC_DESTINATION_MODE_PHYSICAL,
 	IOAPIC_DESTINATION_MODE_LOGICAL
-};
+}IOAPIC_DESTINATION_MODE;
 
-enum IOAPIC_DELIVERY_MODE
+typedef enum
 {
 	IOAPIC_DELIVERY_MODE_FIXED,
 	IOAPIC_DELIVERY_MODE_LOWEST_PRIORITY,
@@ -141,16 +172,14 @@ enum IOAPIC_DELIVERY_MODE
 	IOAPIC_DELIVERY_MODE_INIT,
 	IOAPIC_DELIVERY_MODE_RESERVED2,
 	IOAPIC_DELIVERY_MODE_ExtINT
-};
+}IOAPIC_DELIVERY_MODE;
 
+extern UINT32 legacy_irq_redirection_table[16];
 extern IOAPIC ioapic[MAX_IOAPIC];
 extern UINT8 count_ioapic;
 
-void InitIOAPIC(void);
-UINT8 GetIOAPICId(UINT8 index);
-UINT8 GetMaximumIOAPICRedirectionEntries(UINT8 index);
-void GetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table, UINT8 index);
-void SetIOAPICRedirectionTableEntry(enum IOAPIC_REGISTER reg, IOAPIC_REDIRECT_TABLE_PTR table, UINT8 index);
-int InitIOAPICRedirectionTable(int starting_vector, UINT8 index);
+void InitPIC(BYTE start_vector);
+void MaskPic();
+void MaskIoApic(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va);
 
 #endif

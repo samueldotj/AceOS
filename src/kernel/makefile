@@ -38,6 +38,9 @@ acpi: 	$(OBJ)/acpi.sys
 	@make -C acpi
 	echo "done"
 
+kernel_build_number:	always
+	@$(INCLUDE)/version.sh $(INCLUDE)	
+	
 #phony commmand - clean - remove all .o, .d in all directories
 clean:	always
 	@rm -f $(OBJS) $(OBJS:.o=.d)
@@ -46,8 +49,7 @@ clean:	always
 	@rm	-f $(TARGET)
 
 #increment the build number, link the kernel and copy the kernel to image file
-$(TARGET):  $(OBJS)
-	@$(INCLUDE)/version.sh $(INCLUDE)
+$(TARGET):  kernel_build_number $(OBJS)
 	@$(LD) -T kernel.ld $(LDFLAGS) -o $(TARGET) $(OBJS) $(OBJ)/acpi.sys $(LIBS) -Map kernel.map
 	@echo "New kernel is at $(TARGET)"
 

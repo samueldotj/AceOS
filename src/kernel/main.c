@@ -27,7 +27,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	InitKernelParameters();
 	ParaseBootParameters();
 
-	kprintf( ACE_NAME" Version %d.%d Build%s\n", ACE_MAJOR, ACE_MINOR, ACE_BUILD);
+	kprintf( ACE_NAME"%d.%d %s\n", ACE_MAJOR, ACE_MINOR, ACE_BUILD);
 
 	/*initialize virtual memory manager*/
 	InitVm();

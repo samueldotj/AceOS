@@ -11,7 +11,9 @@
 #include <kernel/parameter.h>
 #include <kernel/processor.h>
 #include <kernel/ioapic.h>
+#include <kernel/interrupt.h>
 #include <kernel/apic.h>
+#include <kernel/pit.h>
 #include <kernel/acpi/acpi.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/pmem.h>
@@ -24,11 +26,19 @@
 #include <kernel/i386/cpuid.h>
 #include <kernel/i386/processor.h>
 
+extern void Start8254Timer(UINT32 frequency);
 extern void SetupInterruptStubs();
 extern UINT32 trampoline_data, trampoline_end;
 
+static void InitInterruptControllers();
+
 PROCESSOR_I386 processor_i386[MAX_PROCESSORS];
 UINT16 master_processor_id = 0;
+
+/*! CPU frequency - Ace requires all the processor to run at the same frequency
+	This variable should populated during init.
+*/
+UINT32 cpu_frequency = 0;
 
 /*! Initializes printf and corrects kenrel command line during early boot
 	\param mbi - multiboot information passed by multiboot loader(grub)
@@ -43,6 +53,29 @@ void InitArchPhase1(MULTIBOOT_INFO_PTR mbi)
 	kprintf_putc = VgaPrintCharacter;
 	VgaClearScreen();
 }
+
+/*! ReaD Time Stamp Counter
+ * Reads the current processor time stamp using the rdtsc instruction.
+ * cpuid instruction is used to serialize the read operation. 
+ * \return current processor time stamap
+ */
+inline UINT64 rdtsc() 
+{
+	UINT32 lo, hi;
+	/*
+	* cpuid will serialize the following rdtsc with respect to all other
+	* instructions the processor may be handling.
+	*/
+	__asm__ __volatile__ (
+		"xorl %%eax, %%eax\n"
+		"cpuid\n"
+		"rdtsc\n"
+		: "=a" (lo), "=d" (hi)
+		:
+		: "%ebx", "%ecx");
+	return (UINT64)hi << 32 | lo;
+}
+
 /*! Initializes i386 specific data structures
 
 	This function is called after InitVm() so it is safe to use kmalloc and other vm functions
@@ -51,6 +84,7 @@ void InitArchPhase1(MULTIBOOT_INFO_PTR mbi)
 void InitArchPhase2(MULTIBOOT_INFO_PTR mbi)
 {
 	CPUID_INFO cpuid;
+	UINT64 start_time;
 
 	/*execute cpuid and load the data structure*/
 	LoadCpuIdInfo( &cpuid );
@@ -62,6 +96,33 @@ void InitArchPhase2(MULTIBOOT_INFO_PTR mbi)
 	
 	/*intialize master cpu's LACPI*/
 	InitLAPIC();
+	
+	/* Initialize interrupt controllers and start receiving interrupts
+		Enabling interrupts are done very early because we need to calculate CPU frequency to program LAPIC timer.
+	*/
+	InitInterruptControllers();
+	
+	/* Install interrupt handler for the 8254*/
+	InstallInterruptHandler( legacy_irq_redirection_table[LEGACY_DEVICE_IRQ_TIMER], _8254Handler, 0);
+	/* Program 8254 timer to interrupt at given frequency per second*/
+	Start8254Timer(TIMER_FREQUENCY);
+	
+	/* Find master CPUs frequency*/
+	start_time = rdtsc();
+	Delay(10);
+	cpu_frequency = (rdtsc() - start_time) * 100;
+	kprintf("Primary CPU frequency %d MHz\n", cpu_frequency / (1024*1024) );
+	
+	/*! There is no way to stop the 8254 so we mask the interrupt*/
+	MaskInterrupt(legacy_irq_redirection_table[LEGACY_DEVICE_IRQ_TIMER]);
+	
+	/* Install interrupt handler for the LAPIC timer*/
+	InstallInterruptHandler( LOCAL_TIMER_VECTOR_NUMBER-32, LapicTimerHandler, 0);
+	/* Program LAPIC timer to interrupt at given frequency per second*/
+	StartTimer(TIMER_FREQUENCY, TRUE);
+	
+	/* Initialize real time clock*/
+	InitRtc();
 }
 
 /*! returns the current processor's LAPIC id
@@ -89,7 +150,6 @@ void SecondaryCpuStart()
 	memcpy( &processor_i386[cpuid.feature._.apic_id].cpuid, &cpuid, sizeof(CPUID_INFO) );
 	
 	//kprintf("Secondary CPU %d is started\n", cpuid.feature._.apic_id);
-	
 }
 /*! Create a physical page with appropriate real mode code to start a secondary CPU
 	\return Physical address of the page
@@ -115,14 +175,9 @@ static UINT32 CreatePageForSecondaryCPUStart()
 	return VP_TO_PHYS(vp);
 }
 
-/*! Initializes the Secondary processors and IOAPIC
-
-	1) Read the ACPI tables to processor count and their ids
-	2) While reading the table start processors if LAPIC ids are found
-		This is done here beacause ACPI spec says, processor initialization should be done in the same order as they appear in the APIC table
-	3) If IOAPIC id is found during the table read store it.
+/*! Initialize interrupt controllers
 */
-void InitSmp()
+static void InitInterruptControllers()
 {
 	ACPI_TABLE_MADT *madt_ptr;
 	ACPI_SUBTABLE_HEADER *sub_header, *table_end;
@@ -131,13 +186,15 @@ void InitSmp()
 	
 	/* disable all interrupts*/
 	asm volatile("cli");
+
+	memset(interrupt_handlers, 0, sizeof(interrupt_handlers));
 	
 	/*! Initialize the PIC*/
-	InitPIC(PIC_STARTING_VECTOR_NUMBER);
+	InitPic(PIC_STARTING_VECTOR_NUMBER);
 	/*initialize the legacy IRQ to interrupt mapping table*/
 	for(i=0;i<16;i++)
 		legacy_irq_redirection_table[i]=i;
-	
+
 	/*! try to read APIC table*/
 	result = AcpiGetTable ("APIC", 1, (ACPI_TABLE_HEADER**)(&madt_ptr));
 	if ( result == AE_OK )
@@ -150,9 +207,78 @@ void InitSmp()
 		sub_header = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + sizeof(ACPI_TABLE_MADT) );
 		table_end = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + madt_ptr->Header.Length );
 
+		count_ioapic = 0;
+		while ( sub_header < table_end )
+		{
+			if ( sub_header->Type == ACPI_MADT_TYPE_IO_APIC )
+			{
+				ACPI_MADT_IO_APIC *p = ( ACPI_MADT_IO_APIC * ) sub_header;
+				kprintf("IOAPIC ID %d IOAPIC Physical Address = %p GlobalIRQBase %d\n", p->Id, p->Address, p->GlobalIrqBase);
+				
+				/*!initialize IOAPIC structures*/
+				ioapic[count_ioapic].ioapic_id = p->Id;
+				ioapic[count_ioapic].end_irq = ioapic[count_ioapic].start_irq = p->GlobalIrqBase;
+				ioapic[count_ioapic].base_physical_address = (void *) p->Address;
+				ioapic[count_ioapic].base_virtual_address = (void *) MapPhysicalMemory(&kernel_map, p->Address, PAGE_SIZE);
+				
+				/*! initialize the ioapic chip and get total irq supported*/
+				ioapic[count_ioapic].end_irq += InitIoApic(ioapic[count_ioapic].base_virtual_address, ioapic[count_ioapic].start_irq+IOAPIC_STARTING_VECTOR_NUMBER);
+							
+				count_ioapic++;
+			}
+			else if ( sub_header->Type == ACPI_MADT_TYPE_INTERRUPT_OVERRIDE )
+			{
+				ACPI_MADT_INTERRUPT_OVERRIDE * override = (ACPI_MADT_INTERRUPT_OVERRIDE *)sub_header;
+				legacy_irq_redirection_table[override->SourceIrq] = override->GlobalIrq;
+			}
+			else
+			{
+				/* if found someother structure just print the type for debugging*/
+				if ( sub_header->Type != ACPI_MADT_TYPE_LOCAL_APIC )
+					kprintf("ACPI MADT Structure type %d is not yet implemented\n", sub_header->Type);
+			}
+
+			sub_header = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)sub_header) + sub_header->Length );
+		}
+	}
+	else
+	{
+		#ifdef CONFIG_SMP
+			kprintf("AcpiGetTable() failed Code=%d, assuming uniprocessor and using 8259 PIC\n", result);
+		#endif
+		disable_8259 = 0;
+	}
+	
+	/*! disable PIC if we dont need it*/
+	if ( disable_8259 )
+		MaskPic();
+	
+	/*! enable interrupts*/
+	asm volatile("sti");
+}
+
+/*! Initializes the Secondary processors and IOAPIC
+
+	1) Read the ACPI tables to processor count and their ids
+	2) While reading the table start processors if LAPIC ids are found
+		This is done here beacause ACPI spec says, processor initialization should be done in the same order as they appear in the APIC table
+	3) If IOAPIC id is found during the table read store it.
+*/
+void InitSecondaryProcessors()
+{
+	ACPI_TABLE_MADT *madt_ptr;
+	ACPI_SUBTABLE_HEADER *sub_header, *table_end;
+	ACPI_STATUS result;
+
+	/*! try to read APIC table*/
+	result = AcpiGetTable ("APIC", 1, (ACPI_TABLE_HEADER**)(&madt_ptr));
+	if ( result == AE_OK )
+	{
+		sub_header = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + sizeof(ACPI_TABLE_MADT) );
+		table_end = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + madt_ptr->Header.Length );
+
 		/*only master is running now*/
 		count_running_processors = 1;
-		count_ioapic = 0;
 		while ( sub_header < table_end )
 		{
 			if ( sub_header->Type == ACPI_MADT_TYPE_LOCAL_APIC )
@@ -175,57 +301,9 @@ void InitSmp()
 					kprintf("CPU %d (APIC id %d state %d) cant added to the processor array\n", p->ProcessorId, p->Id, p->LapicFlags);
 				}
 			}
-			else if ( sub_header->Type == ACPI_MADT_TYPE_IO_APIC )
-			{
-				ACPI_MADT_IO_APIC *p = ( ACPI_MADT_IO_APIC * ) sub_header;
-				kprintf("IOAPIC ID %d IOAPIC Physical Address = %p GlobalIRQBase %d\n", p->Id, p->Address, p->GlobalIrqBase);
-				
-				/*!initialize IOAPIC structures*/
-				ioapic[count_ioapic].ioapic_id = p->Id;
-				ioapic[count_ioapic].starting_vector = p->GlobalIrqBase;
-				ioapic[count_ioapic].base_physical_address = (void *) p->Address;
-				ioapic[count_ioapic].base_virtual_address = (void *) MapPhysicalMemory(&kernel_map, p->Address, PAGE_SIZE);
-				
-				/*! Mask the interrupts*/
-				MaskIoApic(ioapic[count_ioapic].base_virtual_address);
-							
-				count_ioapic++;
-			}
-			else if ( sub_header->Type == ACPI_MADT_TYPE_INTERRUPT_OVERRIDE )
-			{
-				ACPI_MADT_INTERRUPT_OVERRIDE * override = (ACPI_MADT_INTERRUPT_OVERRIDE *)sub_header;
-				legacy_irq_redirection_table[override->Bus] = override->GlobalIrq;
-			}
-			else if ( sub_header->Type == ACPI_MADT_TYPE_INTERRUPT_SOURCE )
-			{
-				kprintf("ACPI INTERRUPT INTERRUPT SOURCE STRUCTURE PRESENT BUT KERNEL YET TO IMPLEMENT IT\n");
-			}
-			else if ( sub_header->Type == ACPI_MADT_TYPE_NMI_SOURCE )
-			{
-				kprintf("ACPI INTERRUPT NMI SOURCE STRUCTURE PRESENT BUT KERNEL YET TO IMPLEMENT IT\n");
-			}
-			else
-			{
-				kprintf("ACPI MADT Structure type %d is not yet implemented\n", sub_header->Type);
-			}
-
 			sub_header = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)sub_header) + sub_header->Length );
 		}
 	}
-	else
-	{
-		#ifdef CONFIG_SMP
-			kprintf("AcpiGetTable() failed Code=%d, assuming uniprocessor and using 8259 PIC\n", result);
-		#endif
-		disable_8259 = 0;
-	}
-	
-	/*! disable PIC if we dont need it*/
-	if ( disable_8259 )
-		MaskPic();
-	
-	/*! enable interrupts*/
-	asm volatile("sti");
 }
 
 /*! This function should halt the processor after terminating all the processes

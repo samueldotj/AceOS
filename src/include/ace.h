@@ -26,6 +26,10 @@ typedef unsigned short UINT16;
 
 typedef long INT32;
 typedef unsigned long UINT32;
+
+typedef long long INT64;
+typedef unsigned long long UINT64;
+
 typedef UINT32 VADDR;
 
 #define BITS_PER_BYTE	(8)

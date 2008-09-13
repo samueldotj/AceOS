@@ -7,12 +7,20 @@
 #ifndef _PIT_H_
 #define _PIT_H_
 
+#include <ace.h>
+#include <kernel/interrupt.h>
+
 /* Timer frequency is 100 Hz */
 #define TIMER_FREQUENCY (100)
 
-int InitPit(UINT32 frequency);
+void InitPit(UINT32 frequency);
 UINT32 ElapsedTicks();
 void TimerSleep(UINT32 ticks);
 void Delay(UINT32 ms);
+
+ISR_RETURN_CODE _8254Handler(INTERRUPT_INFO_PTR interrupt_info, void * arg);
+ISR_RETURN_CODE LapicTimerHandler(INTERRUPT_INFO_PTR interrupt_info, void * arg);
+
+extern volatile UINT32 ElapsedSeconds;
 
 #endif

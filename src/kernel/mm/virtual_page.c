@@ -43,12 +43,11 @@ UINT32 InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 star
 	int i;
 	AVL_TREE_PTR * vp_current_free_tree, * vp_prev_free_tree = NULL;
 	
-	
 	for(i=0; i<page_count ;i++)
 	{
 		InitVirtualPage( &vpa[i], start_physical_address );
 		start_physical_address += PAGE_SIZE;
-		if ( limit_physical_memory && ( start_physical_address * ( 1024*1024) ) > limit_physical_memory )
+		if ( limit_physical_memory &&  start_physical_address  > (limit_physical_memory * (1024*1024) ) )
 		{
 			page_count = i;	/*we can use only upto this memory*/
 			break;

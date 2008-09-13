@@ -198,8 +198,8 @@
  *
  ******************************************************************************/
 
-typedef COMPILER_DEPENDENT_UINT64       UINT64;
-typedef COMPILER_DEPENDENT_INT64        INT64;
+//typedef COMPILER_DEPENDENT_UINT64       UINT64;
+//typedef COMPILER_DEPENDENT_INT64        INT64;
 
 /*! [End] no source code translation !*/
 

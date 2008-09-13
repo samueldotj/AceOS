@@ -52,7 +52,7 @@ UINT32 GetLocalTime(SYSTEM_TIME_PTR pTime)
 	memmove(pTime, &boot_time, sizeof(SYSTEM_TIME) );
 
 	//convert the elapsed ticks to time format
-	TicksToTime(ElapsedTicks(), &pElapsedTime);
+	TicksToTime(ElapsedSeconds, &pElapsedTime);
 	
 	//add the elapsed time to boot_time
 	TimeAdd( pTime, &pElapsedTime);

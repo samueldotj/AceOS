@@ -120,8 +120,8 @@ typedef union interrupt_command_register_high
 	UINT32 dword;
 }INTERRUPT_COMMAND_REGISTER_HIGH, * INTERRUPT_COMMAND_REGISTER_HIGH_PTR;
 
-/*! Start of Local Vector Table */
-typedef union timer_register
+/*! Local Vector Table */
+typedef union lvt_timer_register
 {
 	struct
 	{
@@ -130,13 +130,13 @@ typedef union timer_register
 				delivery_status: 1,
 				reserved2: 3,
 				mask: 1,
-				timer_mode: 1,
+				timer_periodic_mode: 1,
 				reserved3: 14;
 	};
 	UINT32 dword;
-}TIMER_REGISTER, * TIMER_REGISTER_PTR;
+}LVT_TIMER_REGISTER, * LVT_TIMER_REGISTER_PTR;
 
-typedef union lint0_reg
+typedef union lvt_lint0_reg
 {
 	struct
 	{
@@ -151,9 +151,9 @@ typedef union lint0_reg
 				reserved2: 15;
 	};
 	UINT32 dword;
-}LINT0_REG, * LINT0_REG_PTR;
+}LVT_LINT0_REG, * LVT_LINT0_REG_PTR;
 
-typedef union lint1_reg
+typedef union lvt_lint1_reg
 {
 	struct
 	{
@@ -168,9 +168,9 @@ typedef union lint1_reg
 				reserved2: 15;
 	};
 	UINT32 dword;
-}LINT1_REG, * LINT1_REG_PTR;
+}LVT_LINT1_REG, * LVT_LINT1_REG_PTR;
 
-typedef union error_reg
+typedef union lvt_error_reg
 {
 	struct 
 	{
@@ -182,9 +182,9 @@ typedef union error_reg
 				reserved3: 15;
 	};
 	UINT32 dword;
-}ERROR_REG, * ERROR_REG_PTR;
+}LVT_ERROR_REG, * LVT_ERROR_REG_PTR;
 
-typedef union performance_monitor_count_reg
+typedef union lvt_performance_monitor_count_reg
 {
 	struct 
 	{
@@ -197,9 +197,9 @@ typedef union performance_monitor_count_reg
 				reserved3: 15;
 	};
 	UINT32 dword;
-}PERFORMANCE_MONITOR_COUNT_REG, * PERFORMANCE_MONITOR_COUNT_REG_PTR;
+}LVT_PERFORMANCE_MONITOR_COUNT_REG, * LVT_PERFORMANCE_MONITOR_COUNT_REG_PTR;
 
-typedef union thermal_sensor_reg
+typedef union lvt_thermal_sensor_reg
 {
 	struct
 	{
@@ -212,7 +212,7 @@ typedef union thermal_sensor_reg
 				reserved3: 15;
 	};
 	UINT32 dword;
-}THERMAL_SENSOR_REG, * THERMAL_SENSOR_REG_PTR;
+}LVT_THERMAL_SENSOR_REG, * LVT_THERMAL_SENSOR_REG_PTR;
 
 typedef union error_status_reg
 {
@@ -335,6 +335,9 @@ extern IA32_APIC_BASE_MSR_PTR lapic_base_address;
 
 void InitLAPIC(void);
 void SendEndOfInterrupt(int int_no);
+
+void StartTimer(UINT32 frequency, BYTE periodic);
+void StopTimer();
 
 void IssueInterprocessorInterrupt(BYTE vector, UINT32 apic_id, ICR_DELIVERY_MODE delivery_mode, ICR_DESTINATION_SHORTHAND destination_shorthand);
 int StartProcessor(UINT32 apic_id, UINT32 physical_address);

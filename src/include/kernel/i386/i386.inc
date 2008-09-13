@@ -35,7 +35,5 @@ EXTERN idt
 EXTERN cmain
 EXTERN LoadGdt
 EXTERN LoadIdt
-EXTERN SetupExceptionHandlers
-EXTERN SetupInterruptStubs
 EXTERN InitPhysicalMemoryManagerPhaseI
 EXTERN SecondaryCpuStart

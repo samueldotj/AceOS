@@ -72,13 +72,15 @@ static void WriteToIoApic(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va, IOAPIC_RE
 	\param start_vector - The interrupt vector number where the IRQ should raised
 	\reference http://www.cs.sun.ac.za/~lraitt/doc_8259.html
 */
-void InitPIC(BYTE start_vector)
+void InitPic(BYTE start_vector)
 {
 	/*! Initialize the master PIC by sending Initialization Command Words 1 to 4*/
 	_outp(PIC_MASTER_IO_PORT_A, 0x11);				/* ICW1 - Set expect ICW4 bit*/
 	_outp(PIC_MASTER_IO_PORT_B, start_vector);		/* ICW2 - Set the interrupt vector number*/
 	_outp(PIC_MASTER_IO_PORT_B, 0x4);				/* ICW3 - Set where the slave is connected*/
 	_outp(PIC_MASTER_IO_PORT_B, 0x1);				/* ICW4 - Set operating mode is 8086 and not MCS-80/85*/
+	
+	_outp(PIC_MASTER_IO_PORT_B, 0x4);				/* Mask cascade interrupt*/
 	
 	/*! Initialize the slave PIC by sending Initialization Command Words 1-4*/
 	_outp(PIC_SLAVE_IO_PORT_A, 0x11);				/* ICW1 - Set expect ICW4 bit*/
@@ -94,10 +96,11 @@ void MaskPic()
 	_outp(PIC_SLAVE_IO_PORT_B, 0xff );
 }
 
-/*! Mask the IOAPIC interrupts
+/*! Initialize the IOAPIC chip to receive and send interrupts to LAPIC
  *	\param	ioapic_base_va -	Base address of the IOAPIC 
+ *  \return total number of irq supported by this ioapic 
  */
-void MaskIoApic(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va)
+int InitIoApic(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va, BYTE start_vector)
 {
 	IOAPIC_REDIRECT_TABLE redirect_table;
 	IOAPIC_VERSION ver;
@@ -113,28 +116,35 @@ void MaskIoApic(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va)
 	{
 		/*! read the redirection table entry, modify it and write back*/
 		ReadFromIoApic( ioapic_base_va, table_index, &redirect_table.dword_low );
-		redirect_table.interrupt_mask = 1;
+		redirect_table.interrupt_vector = start_vector+i;
+		redirect_table.interrupt_mask = 0;
+		/*! \todo add destination field - to interrupt only master cpu*/
 		WriteToIoApic( ioapic_base_va, table_index, redirect_table.dword_low );
 		
 		table_index+=2;
 	}
+	return i;
 }
-/*! Enables a IOAPIC irq and assigns the interrupt vector to it.
- * \param ioapic_base_va 	- 	Base address of the IOAPIC 
- * \param irq_number		-	IRQ number relative to the current IOAPIC
- * \param interrupt_vector	-	CPU interrupt vector on which this interrrupt should be raised
- */
-void EnableIoApicIrq(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va, BYTE irq_number, BYTE interrupt_vector)
+void MaskIoApicInterrupt(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va, BYTE vector)
 {
 	IOAPIC_REDIRECT_TABLE redirect_table;
-	int table_index;
-	
-	redirect_table.dword_high = redirect_table.dword_low = 0;
-	table_index = IOAPIC_REGISTER_REDIRECT_TABLE + (irq_number*2); /*index in the ioapic redirection table*/
+	int table_index = IOAPIC_REGISTER_REDIRECT_TABLE + (2*vector);
 	
 	/*! read the redirection table entry, modify it and write back*/
 	ReadFromIoApic( ioapic_base_va, table_index, &redirect_table.dword_low );
-	redirect_table.interrupt_mask = 0;
-	redirect_table.interrupt_vector = interrupt_vector;
+	redirect_table.interrupt_mask = 1;
 	WriteToIoApic( ioapic_base_va, table_index, redirect_table.dword_low );
+}
+
+void MaskInterrupt(BYTE interrupt_number)
+{
+	int i;
+	for(i=0; i<count_ioapic; i++)
+	{
+		if ( (interrupt_number >= ioapic[i].start_irq) && (interrupt_number <= ioapic[i].end_irq) )
+		{
+			MaskIoApicInterrupt( ioapic[i].base_virtual_address, interrupt_number);
+			break;
+		}
+	}
 }

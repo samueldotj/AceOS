@@ -14,7 +14,7 @@
 	\brief	 Initializes 8254 timer
 	\param	 frequency - No of oscillator's cycles per second
 */
-void Init8254Timer(UINT32 frequency)
+void Start8254Timer(UINT32 frequency)
 {
 	UINT32 divisor;
 

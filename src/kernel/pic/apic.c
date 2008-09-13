@@ -60,33 +60,35 @@ IA32_APIC_BASE_MSR_PTR lapic_base_address = NULL;
 #define INTERRUPT_COMMAND_REGISTER_ADDRESS_HIGH(lapic_base_address) 	\
 																((volatile INTERRUPT_COMMAND_REGISTER_HIGH_PTR)( (UINT32)(lapic_base_address) + INTERRUPT_COMMAND_REGISTER_OFFSET_HIGH ))
 
-#define TIMER_REGISTER_OFFSET 									0x320
-#define TIMER_REGISTER_ADDRESS(lapic_base_address)				((volatile TIMER_REGISTER_PTR) ((UINT32)(lapic_base_address) + TIMER_REGISTER_OFFSET) )
+#define LVT_TIMER_REGISTER_OFFSET 								0x320
+#define LVT_TIMER_REGISTER_ADDRESS(lapic_base_address)			((volatile LVT_TIMER_REGISTER_PTR) ((UINT32)(lapic_base_address) + LVT_TIMER_REGISTER_OFFSET) )
 
-#define THERMAL_SENSOR_REGISTER_OFFSET							0x330
-#define THERMAL_SENSOR_REG_ADDRESS(lapic_base_address)			((volatile THERMAL_SENSOR_REG_PTR) ((UINT32)(lapic_base_address) + THERMAL_SENSOR_REGISTER_OFFSET) )
+#define LVT_THERMAL_SENSOR_REGISTER_OFFSET						0x330
+#define LVT_THERMAL_SENSOR_REG_ADDRESS(lapic_base_address)		((volatile LVT_THERMAL_SENSOR_REG_PTR) ((UINT32)(lapic_base_address) + LVT_THERMAL_SENSOR_REGISTER_OFFSET) )
 
-#define PERF_MON_CNT_REGISTER_OFFSET 							0x340
-#define PERF_MON_CNT_REGISTER_ADDRESS(lapic_base_address)		((volatile PERFORMANCE_MONITOR_COUNT_REG_PTR) ((UINT32)(lapic_base_address) + PERF_MON_CNT_REGISTER_OFFSET) )
+#define LVT_PERF_MON_CNT_REGISTER_OFFSET 						0x340
+#define LVT_PERF_MON_CNT_REGISTER_ADDRESS(lapic_base_address)	((volatile LVT_PERFORMANCE_MONITOR_COUNT_REG_PTR) ((UINT32)(lapic_base_address) + LVT_PERF_MON_CNT_REGISTER_OFFSET) )
 
-#define LINT0_REGISTER_OFFSET 									0x350
-#define LINT0_REGISTER_ADDRESS(lapic_base_address)				((volatile LINT0_REG_PTR) ((UINT32)(lapic_base_address) + LINT0_REGISTER_OFFSET) )
+#define LVT_LINT0_REGISTER_OFFSET 								0x350
+#define LVT_LINT0_REGISTER_ADDRESS(lapic_base_address)			((volatile LVT_LINT0_REG_PTR) ((UINT32)(lapic_base_address) + LVT_LINT0_REGISTER_OFFSET) )
 
-#define LINT1_REGISTER_OFFSET 									0x360
-#define LINT1_REGISTER_ADDRESS(lapic_base_address)				((volatile LINT1_REG_PTR) ((UINT32)(lapic_base_address) + LINT1_REGISTER_OFFSET) )
+#define LVT_LINT1_REGISTER_OFFSET 								0x360
+#define LVT_LINT1_REGISTER_ADDRESS(lapic_base_address)			((volatile LVT_LINT1_REG_PTR) ((UINT32)(lapic_base_address) + LVT_LINT1_REGISTER_OFFSET) )
 
-#define ERROR_REGISTER_OFFSET 									0x370
-#define ERROR_REGISTER_ADDRESS(lapic_base_address)				((volatile ERROR_REG_PTR) ((UINT32)(lapic_base_address) + ERROR_REGISTER_OFFSET) )
+#define LVT_ERROR_REGISTER_OFFSET 								0x370
+#define LVT_ERROR_REGISTER_ADDRESS(lapic_base_address)			((volatile LVT_ERROR_REG_PTR) ((UINT32)(lapic_base_address) + LVT_ERROR_REGISTER_OFFSET) )
+
+#define LAPIC_TIMER_INITIAL_COUNT_REGISTER_OFFSET				0x380
+#define LAPIC_TIMER_INITIAL_COUNT_REGISTER_ADDRESS(lapic_base_address)	\
+																((volatile UINT32*) ((UINT32)(lapic_base_address) + LAPIC_TIMER_INITIAL_COUNT_REGISTER_OFFSET) )
+#define LAPIC_TIMER_CURRENT_COUNT_REGISTER_OFFSET				0x390
+#define LAPIC_TIMER_CURRENT_COUNT_REGISTER_ADDRESS(lapic_base_address)	\
+																((volatile UINT32*) ((UINT32)(lapic_base_address) + LAPIC_TIMER_CURRENT_COUNT_REGISTER_OFFSET) )
+#define	LAPIC_TIMER_DIVIDE_REGISTER_OFFSET						0x3E0
+#define	LAPIC_TIMER_DIVIDE_REGISTER_ADDRESS(lapic_base_address)	((volatile UINT32*) ((UINT32)(lapic_base_address) + LAPIC_TIMER_DIVIDE_REGISTER_OFFSET) )
+
 
 #define ACPI_MEMORY_MAP_SIZE									0x400
-
-#define LOCAL_TIMER_VECTOR_NUMBER								238		/*! Local apic timer interrupt vector number*/
-#define SPURIOUS_VECTOR_NUMBER									239		/*! Spurious interrupt vector number*/
-#define LINT0_VECTOR_NUMBER										240		/*! LINT0 interrupt vector number*/
-#define LINT1_VECTOR_NUMBER										241		/*! LINT1 interrupt vector number*/
-#define ERROR_VECTOR_NUMBER										242		/*! error interrupt vector number*/
-#define PERF_MON_VECTOR_NUMBER									243		/*! performance monitor interrupt vector number*/
-#define THERMAL_SENSOR_VECTOR_NUMBER							244		/*! thermal sensor interrupt vector number*/
 
 /*! Initialize LAPIC to receive interrupts.
  *		1) Enable APIC
@@ -96,13 +98,14 @@ IA32_APIC_BASE_MSR_PTR lapic_base_address = NULL;
 void InitLAPIC()
 {
 	volatile SPURIOUS_INTERRUPT_REG sir_cmd;
-	volatile TIMER_REGISTER tmr_cmd;
-	volatile LINT0_REG lint0_cmd;
-	volatile LINT1_REG lint1_cmd;
+	volatile LVT_TIMER_REGISTER tmr_cmd;
+	volatile LVT_PERFORMANCE_MONITOR_COUNT_REG pr_cmd;
+	volatile LVT_LINT0_REG lint0_cmd;
+	volatile LVT_LINT1_REG lint1_cmd;
+	volatile LVT_ERROR_REG er_cmd;
 	volatile TASK_PRIORITY_REG tpr_cmd;
-	volatile ERROR_REG er_cmd;
-	volatile PERFORMANCE_MONITOR_COUNT_REG pr_cmd;
 	volatile LOCAL_APIC_VERSION_REG ver_cmd;
+	volatile DESTINATION_FORMAT_REG dest_cmd;
 	
 	/*! enable APIC */
 	sir_cmd.dword = SPURIOUS_INTERRUPT_VECTOR_REGISTER_ADDRESS(lapic_base_address)->dword;
@@ -111,36 +114,42 @@ void InitLAPIC()
 	SPURIOUS_INTERRUPT_VECTOR_REGISTER_ADDRESS(lapic_base_address)->dword = sir_cmd.dword;
 
 	ver_cmd.dword = LOCAl_APIC_VERSION_REGISTER_ADDRESS(lapic_base_address)->dword;
+	
+	/*! set destination mode to flat*/
+	dest_cmd.dword = DESTINATION_FORMAT_REGISTER_ADDRESS(lapic_base_address)->dword;
+	dest_cmd.model = 0xF;
+	DESTINATION_FORMAT_REGISTER_ADDRESS(lapic_base_address)->dword = dest_cmd.dword;
 
-	/*! mask error register */
-	er_cmd.dword = ERROR_REGISTER_ADDRESS(lapic_base_address)->dword;
+	/*! set error register */
+	er_cmd.dword = LVT_ERROR_REGISTER_ADDRESS(lapic_base_address)->dword;
 	er_cmd.mask = 0;
 	er_cmd.vector = ERROR_VECTOR_NUMBER;
-	ERROR_REGISTER_ADDRESS(lapic_base_address)->dword = er_cmd.dword;
+	LVT_ERROR_REGISTER_ADDRESS(lapic_base_address)->dword = er_cmd.dword;
 	
-	/*! mask timer register*/
-	tmr_cmd.dword = TIMER_REGISTER_ADDRESS(lapic_base_address)->dword;
+	/*! set timer register*/
+	tmr_cmd.dword = LVT_TIMER_REGISTER_ADDRESS(lapic_base_address)->dword;
 	tmr_cmd.mask = 0;
+	tmr_cmd.timer_periodic_mode = 0;
 	tmr_cmd.vector = LOCAL_TIMER_VECTOR_NUMBER;
-	TIMER_REGISTER_ADDRESS(lapic_base_address)->dword = tmr_cmd.dword;
+	LVT_TIMER_REGISTER_ADDRESS(lapic_base_address)->dword = tmr_cmd.dword;
 	
-	/*! Mask LINT0 and LINT1 interrupts */
-	lint0_cmd.dword = LINT0_REGISTER_ADDRESS(lapic_base_address)->dword;
+	/*! set LINT0 and LINT1 interrupts */
+	lint0_cmd.dword = LVT_LINT0_REGISTER_ADDRESS(lapic_base_address)->dword;
 	lint0_cmd.delivery_mode = ICR_DELIVERY_MODE_ExtINT;
 	lint0_cmd.mask = 0;
 	lint0_cmd.vector = LINT0_VECTOR_NUMBER;
-	LINT0_REGISTER_ADDRESS(lapic_base_address)->dword = lint0_cmd.dword;
+	LVT_LINT0_REGISTER_ADDRESS(lapic_base_address)->dword = lint0_cmd.dword;
 	
-	lint1_cmd.dword = LINT1_REGISTER_ADDRESS(lapic_base_address)->dword;
+	lint1_cmd.dword = LVT_LINT1_REGISTER_ADDRESS(lapic_base_address)->dword;
 	lint1_cmd.mask = 0;
 	lint1_cmd.vector = LINT1_VECTOR_NUMBER;
-	LINT1_REGISTER_ADDRESS(lapic_base_address)->dword = lint1_cmd.dword;
+	LVT_LINT1_REGISTER_ADDRESS(lapic_base_address)->dword = lint1_cmd.dword;
 	
-	/*! mask performance monitoring registers */
-	pr_cmd.dword = PERF_MON_CNT_REGISTER_ADDRESS(lapic_base_address)->dword;
+	/*! set performance monitoring registers */
+	pr_cmd.dword = LVT_PERF_MON_CNT_REGISTER_ADDRESS(lapic_base_address)->dword;
 	pr_cmd.mask = 0;
 	pr_cmd.vector = PERF_MON_VECTOR_NUMBER;
-	PERF_MON_CNT_REGISTER_ADDRESS(lapic_base_address)->dword = pr_cmd.dword;
+	LVT_PERF_MON_CNT_REGISTER_ADDRESS(lapic_base_address)->dword = pr_cmd.dword;
 	
 	/*! set task priority to 0 to receive all interrupts */
 	tpr_cmd.dword = TASK_PRIORITY_REGISTER_ADDRESS(lapic_base_address)->dword;
@@ -148,14 +157,54 @@ void InitLAPIC()
 	TASK_PRIORITY_REGISTER_ADDRESS(lapic_base_address)->dword = tpr_cmd.dword;
 }
 
+/*! Setup the local apic timer
+	\param frequency - How many times the timer interrupt should generated per second
+	\param periodic - If zero one shot timer else periodic timer
+*/
+void StartTimer(UINT32 frequency, BYTE periodic)
+{
+	volatile LVT_TIMER_REGISTER tmr_cmd;
+	volatile UINT32 dummy;
+	
+	/* divide by 1*/
+	dummy = *LAPIC_TIMER_DIVIDE_REGISTER_ADDRESS(lapic_base_address);
+	*LAPIC_TIMER_DIVIDE_REGISTER_ADDRESS(lapic_base_address) = 0xB;
+	
+	/* enable timer*/
+	tmr_cmd.dword = LVT_TIMER_REGISTER_ADDRESS(lapic_base_address)->dword;
+	tmr_cmd.mask = 0;
+	tmr_cmd.timer_periodic_mode = (periodic!=0);
+	tmr_cmd.vector = LOCAL_TIMER_VECTOR_NUMBER;
+	LVT_TIMER_REGISTER_ADDRESS(lapic_base_address)->dword = tmr_cmd.dword;
+	
+	dummy = *LAPIC_TIMER_CURRENT_COUNT_REGISTER_ADDRESS(lapic_base_address);
+	*LAPIC_TIMER_CURRENT_COUNT_REGISTER_ADDRESS(lapic_base_address) = 0;
+	
+	/* set initial count*/
+	dummy = *LAPIC_TIMER_INITIAL_COUNT_REGISTER_ADDRESS(lapic_base_address);
+	*LAPIC_TIMER_INITIAL_COUNT_REGISTER_ADDRESS(lapic_base_address) = cpu_frequency / frequency;
+	
+}
+
+/*! Stops the LAPIC timer
+*/
+void StopTimer()
+{
+	volatile LVT_TIMER_REGISTER tmr_cmd;
+	/* disable timer*/
+	tmr_cmd.dword = LVT_TIMER_REGISTER_ADDRESS(lapic_base_address)->dword;
+	tmr_cmd.mask = 1;
+	LVT_TIMER_REGISTER_ADDRESS(lapic_base_address)->dword = tmr_cmd.dword;
+}
+
 /*! The act of writing anything to this register will cause an EOI to be issued.
  *	\param	int_no	Interrupt number
 */
 void SendEndOfInterrupt(int int_no)
 {
-	EOI_REG_PTR er;
-	er = EOI_REGISTER_ADDRESS( lapic_base_address );
-	er->zero = 0;
+	UINT32 dummy;
+	dummy = EOI_REGISTER_ADDRESS( lapic_base_address )->zero;
+	EOI_REGISTER_ADDRESS( lapic_base_address )->zero  = 0;
 }
 
 /*!	Start a application processor by issuing IPI messages in the order: INIT, SIPI, SIPI.

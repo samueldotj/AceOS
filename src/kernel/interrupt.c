@@ -13,16 +13,6 @@
 
 extern void SendEndOfInterrupt(int);
 
-/*! Interrupt handler internal list
-this structure is not used by anyother module so declared inside this c file*/
-typedef struct interrupt_handler
-{
-	ISR_HANDLER 	isr;			//interrrupt service routine for this irq
-	void *			isr_argument;	//custom data registered by the isr
-	
-	LIST			next_isr;		//next isr sharing the same interrupt line
-}INTERRUPT_HANDLER, *INTERRUPT_HANDLER_PTR;
-
 INTERRUPT_HANDLER interrupt_handlers[MAX_INTERRUPTS];
 
 static void InitInterruptHandler(INTERRUPT_HANDLER_PTR handler);
@@ -38,9 +28,15 @@ static void InitInterruptHandler(INTERRUPT_HANDLER_PTR handler);
 void InterruptHandler(REGS_PTR reg)
 {
 	INTERRUPT_INFO interrupt_info;
-	INTERRUPT_HANDLER_PTR handler = &interrupt_handlers[reg->int_no];
+	INTERRUPT_HANDLER_PTR handler;
 	LIST_PTR tmp;
 
+#if ARCH == i386
+	/*! In x86 the first 32 interrupts are exceptions and they are handled separately, so decrement by 32 to get correct interrupt number*/
+	reg->int_no -= 32;
+#endif
+
+	handler = &interrupt_handlers[reg->int_no];
 	interrupt_info.interrupt_number = reg->int_no;
 	/*TODO add code to include other interrupt details also*/
 	
@@ -74,7 +70,10 @@ void InstallInterruptHandler(int interrupt_number, ISR_HANDLER isr_handler, void
 {
 	INTERRUPT_HANDLER_PTR handler;
 	if ( interrupt_handlers[interrupt_number].isr == NULL )
+	{
 		handler = &interrupt_handlers[interrupt_number];
+		InitList( &handler->next_isr );
+	}
 	else
 	{
 		handler = kmalloc( sizeof(INTERRUPT_HANDLER), 0 );

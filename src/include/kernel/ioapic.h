@@ -15,9 +15,24 @@
 	#define MAX_IOAPIC 1
 #endif
 
-/*! interrrupt vector numbers*/
-#define IOAPIC_STARTING_VECTOR_NUMBER 		32
-#define PIC_STARTING_VECTOR_NUMBER			IOAPIC_STARTING_VECTOR_NUMBER
+/*! Interrrupt vector numbers 
+	0	-	31		Exceptions
+	32	-	47		PIC IRQs
+	32	-	xx		IOAPIC IRQs
+	..
+	238	-	244		APIC local interrupts
+*/
+#define PIC_STARTING_VECTOR_NUMBER 			32
+#define IOAPIC_STARTING_VECTOR_NUMBER		PIC_STARTING_VECTOR_NUMBER
+
+#define LOCAL_TIMER_VECTOR_NUMBER			238
+#define SPURIOUS_VECTOR_NUMBER				(LOCAL_TIMER_VECTOR_NUMBER + 1)
+#define LINT0_VECTOR_NUMBER					(LOCAL_TIMER_VECTOR_NUMBER + 2)
+#define LINT1_VECTOR_NUMBER					(LOCAL_TIMER_VECTOR_NUMBER + 3)
+#define ERROR_VECTOR_NUMBER					(LOCAL_TIMER_VECTOR_NUMBER + 4)
+#define PERF_MON_VECTOR_NUMBER				(LOCAL_TIMER_VECTOR_NUMBER + 5)
+#define THERMAL_SENSOR_VECTOR_NUMBER		(LOCAL_TIMER_VECTOR_NUMBER + 6)
+
 
 /*! Assignment of IRQs in 8259*/
 typedef enum
@@ -45,8 +60,9 @@ typedef enum
 typedef struct ioapic
 {
 	UINT32	ioapic_id;					/*! IOAPIC id*/
-	UINT32	starting_vector;			/*! Starting interrupt vector number*/
-	
+	BYTE	start_irq;					/*! Starting global irq number*/
+	BYTE	end_irq;					/*! End global irq number*/
+		
 	void *	base_physical_address;		/*! Base address where this IOAPIC can be accessed*/
 	void * 	base_virtual_address;		/*! virtual address where it is mapped in the kernel address space*/
 }IOAPIC, *IOAPIC_PTR;
@@ -178,8 +194,8 @@ extern UINT32 legacy_irq_redirection_table[16];
 extern IOAPIC ioapic[MAX_IOAPIC];
 extern UINT8 count_ioapic;
 
-void InitPIC(BYTE start_vector);
+void InitPic(BYTE start_vector);
 void MaskPic();
-void MaskIoApic(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va);
+int InitIoApic(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va, BYTE start_vector);
 
 #endif

@@ -6,6 +6,9 @@
 GLOBAL KernelEntry
 GLOBAL SecondaryCPUEntry
 
+EXTERN SetupExceptionStubs
+EXTERN SetupInterruptStubs
+
 [SECTION .boot]
 [BITS 32]
 ;multiboot header
@@ -60,7 +63,7 @@ KernelEntry:
     call LoadIdt
 	
 	;setup exception handlers and interrupt hanlders
-	call SetupExceptionHandlers
+	call SetupExceptionStubs
 	call SetupInterruptStubs
 	
 	;correct stack pointer

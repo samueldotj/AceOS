@@ -489,17 +489,12 @@ typedef struct acpi_integer_overlay
 #define GET_CURRENT_ARG_TYPE(List)      (List & ((UINT32) 0x1F))
 #define INCREMENT_ARG_LIST(List)        (List >>= ((UINT32) ARG_TYPE_WIDTH))
 
-
-#if defined (ACPI_DEBUG_OUTPUT) || !defined (ACPI_NO_ERROR_MESSAGES)
 /*
  * Module name is include in both debug and non-debug versions primarily for
  * error messages. The __FILE__ macro is not very useful for this, because it
  * often includes the entire pathname to the module
  */
 #define ACPI_MODULE_NAME(Name)          static char ACPI_UNUSED_VAR *_AcpiModuleName = Name;
-#else
-#define ACPI_MODULE_NAME(Name)
-#endif
 
 /*
  * Ascii error messages can be configured out

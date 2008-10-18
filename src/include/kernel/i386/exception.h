@@ -12,16 +12,16 @@
 /*! Exception Frame - Stack contains the following values when a exception or interrupts are raised */
 struct regs
 {
-	UINT32 cr0, cr1, cr2, cr3;
-    UINT32 gs, fs, es, ds;      /* pushed the segs last */
-    UINT32 edi, esi, ebp, esp, ebx, edx, ecx, eax;  /* pushed by 'pusha' */
-    UINT32 int_no, error_code;    /* our 'push byte #' and ecodes do this */
-    UINT32 eip, cs, eflags, useresp, ss;   /* pushed by the processor automatically */ 
+	UINT32 cr0, cr1, cr2, cr3;						/*! \todo - pop cr3(page directory register) only if a new task is selected to avoid TLB flush on each interrupt*/
+    UINT32 gs, fs, es, ds;     						/*! \todo - remove pushing/poping segment register as it would cause severe performance problem*/
+    UINT32 edi, esi, ebp, esp, ebx, edx, ecx, eax;  /*! pusha*/
+    UINT32 int_no, error_code;    					/*! manually pushed*/
+    UINT32 eip, cs, eflags, useresp, ss;   			/*! pushed by the processor automatically */ 
 } __attribute__((packed));
 
 typedef struct regs REGS, *REGS_PTR;
 
-/*! Page fault error code*/
+/*! i386 specific Page fault error code*/
 typedef union pf_error_code
 {
 	UINT32 	all;

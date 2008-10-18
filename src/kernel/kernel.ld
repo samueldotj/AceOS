@@ -11,7 +11,9 @@ SECTIONS
 {
 	.boot kernel_virtual_address : AT (kernel_physical_load_address)
 	{	
-		*(.boot*) 
+		*(.boot) 
+		. = ALIGN(4096);	/* align to page boundary */
+		*(.bootdata) 
 	}
 	.text : 
 	{   

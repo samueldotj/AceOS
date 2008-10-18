@@ -1,23 +1,10 @@
 /*!
 	\file	kernel/i386/arch.c
-	\brief	contains architecture related interface routines.
+	\brief	contains i386 specific routines.
 */
 #include <ace.h>
-#include <string.h>
-#include <kernel/io.h>
-#include <kernel/debug.h>
-#include <kernel/gdb.h>
-#include <kernel/multiboot.h>
-#include <kernel/parameter.h>
-#include <kernel/processor.h>
-#include <kernel/ioapic.h>
-#include <kernel/interrupt.h>
-#include <kernel/apic.h>
-#include <kernel/pit.h>
-#include <kernel/acpi/acpi.h>
-#include <kernel/mm/vm.h>
-#include <kernel/mm/pmem.h>
-#include <kernel/mm/virtual_page.h>
+#include <kernel/arch.h>
+#include <kernel/module.h>
 #include <kernel/i386/vga_text.h>
 #include <kernel/i386/gdt.h>
 #include <kernel/i386/idt.h>
@@ -85,6 +72,8 @@ void InitArchPhase2(MULTIBOOT_INFO_PTR mbi)
 {
 	CPUID_INFO cpuid;
 	UINT64 start_time;
+	
+	InitBootModuleContainer();
 
 	/*execute cpuid and load the data structure*/
 	LoadCpuIdInfo( &cpuid );
@@ -114,12 +103,10 @@ void InitArchPhase2(MULTIBOOT_INFO_PTR mbi)
 	kprintf("Primary CPU frequency %d MHz\n", cpu_frequency / (1024*1024) );
 	
 	/*! There is no way to stop the 8254 so we mask the interrupt*/
-	MaskInterrupt(legacy_irq_redirection_table[LEGACY_DEVICE_IRQ_TIMER]);
+	//MaskInterrupt(legacy_irq_redirection_table[LEGACY_DEVICE_IRQ_TIMER]);
 	
 	/* Install interrupt handler for the LAPIC timer*/
 	InstallInterruptHandler( LOCAL_TIMER_VECTOR_NUMBER-32, LapicTimerHandler, 0);
-	/* Program LAPIC timer to interrupt at given frequency per second*/
-	StartTimer(TIMER_FREQUENCY, TRUE);
 	
 	/* Initialize real time clock*/
 	InitRtc();
@@ -141,38 +128,60 @@ UINT16 GetCurrentProcessorId()
 void SecondaryCpuStart()
 {
 	CPUID_INFO cpuid;
+	int processor_id;
 	
-	/*inform master CPU that I started*/
+	/* inform master CPU that I started*/
 	count_running_processors++;
 	
-	/*execute cpuid and load the data structure*/
+	/* execute cpuid and load the data structure*/
 	LoadCpuIdInfo( &cpuid );
-	memcpy( &processor_i386[cpuid.feature._.apic_id].cpuid, &cpuid, sizeof(CPUID_INFO) );
+	processor_id = cpuid.feature._.apic_id;
+	memcpy( &processor_i386[processor_id].cpuid, &cpuid, sizeof(CPUID_INFO) );
 	
-	//kprintf("Secondary CPU %d is started\n", cpuid.feature._.apic_id);
+	/* initalize the boot thread*/
+	InitBootThread( processor_id );
+	
+	/* initialize the lapic*/
+	InitLAPIC();
+
+	/*! enable interrupts*/
+	asm volatile("sti");
+	
+	/* Start the architecture depended timer for master processor - to enable scheduler */
+	StartTimer(SCHEDULER_DEFAULT_QUANTUM, TRUE);
+	
+	kprintf("Secondary CPU %d is started\n", processor_id);
 }
-/*! Create a physical page with appropriate real mode code to start a secondary CPU
-	\return Physical address of the page
+/*! Create a thread with appropriate real mode code to start a secondary CPU
+	\return Physical address of the stack of the thread. This stack contains real mode code to start.
 */
-static UINT32 CreatePageForSecondaryCPUStart()
+static UINT32 CreateSecondaryCPUStartThread()
 {	
 	VADDR va;
 	VIRTUAL_PAGE_PTR vp;
-	int kernel_stack_pages = 2;
+	int i, stack_page_index, size = PAGE_ALIGN_UP( sizeof(THREAD_CONTAINER) );
 	
-	vp = AllocateVirtualPages(kernel_stack_pages, VIRTUAL_PAGE_RANGE_TYPE_BELOW_1MB);
-	if ( vp == NULL )
+	/*allocate contiguous physical pages*/
+	if ( (vp = AllocateVirtualPages( size/PAGE_SIZE , VIRTUAL_PAGE_RANGE_TYPE_BELOW_1MB)) == NULL )
 		panic("PA not available for starting secondary CPU\n");
-	if ( AllocateVirtualMemory(&kernel_map, &va, 0, PAGE_SIZE * kernel_stack_pages, 0, 0) != ERROR_SUCCESS )
-		panic("VA not available for starting secondary CPU\n");
-	if ( CreatePhysicalMapping(kernel_map.physical_map, va, VP_TO_PHYS(vp), 0) != ERROR_SUCCESS )
-		panic("VA to PA mapping failed\n");
 		
-	/*copy the 16 bit real mode  code*/
-	memcpy( (void *)va, (void *)&trampoline_data, ((UINT32)&trampoline_end)-((UINT32)&trampoline_data));
+	/*reserve kernel virtual address*/
+	if ( AllocateVirtualMemory(&kernel_map, &va, 0, size, 0, 0) != ERROR_SUCCESS )
+		panic("VA not available for starting secondary CPU\n");
 	
-	/*return the physical address*/
-	return VP_TO_PHYS(vp);
+	/*create va to pa mapping*/
+	for (i=0;i<size/PAGE_SIZE;i++)
+	{
+		if ( CreatePhysicalMapping(kernel_map.physical_map, va+(i*PAGE_SIZE), VP_TO_PHYS(vp+i), 0) != ERROR_SUCCESS )
+			panic("VA to PA mapping failed\n");
+	}
+		
+	/*copy the 16 bit real mode  code to the kernel stack page*/
+	memcpy( &((THREAD_CONTAINER_PTR)va)->kernel_stack, (void *)&trampoline_data, ((UINT32)&trampoline_end)-((UINT32)&trampoline_data));
+	
+	stack_page_index =  OFFSET_OF_MEMBER(THREAD_CONTAINER, kernel_stack) / PAGE_SIZE;
+	/*return the physical address of the stack*/
+	return VP_TO_PHYS(vp+stack_page_index);
 }
 
 /*! Initialize interrupt controllers
@@ -269,7 +278,7 @@ void InitSecondaryProcessors()
 	ACPI_TABLE_MADT *madt_ptr;
 	ACPI_SUBTABLE_HEADER *sub_header, *table_end;
 	ACPI_STATUS result;
-
+	
 	/*! try to read APIC table*/
 	result = AcpiGetTable ("APIC", 1, (ACPI_TABLE_HEADER**)(&madt_ptr));
 	if ( result == AE_OK )
@@ -291,7 +300,7 @@ void InitSecondaryProcessors()
 					/*master processor is already running, so dont try to start it again*/
 					if ( processor_i386[p->ProcessorId].apic_id != master_processor_id )
 					{
-						UINT32 pa = CreatePageForSecondaryCPUStart();
+						UINT32 pa = CreateSecondaryCPUStartThread();
 						kprintf("Starting secondary processor (ID %d LAPIC %d) \n", p->ProcessorId, p->Id );
 						StartProcessor( processor_i386[p->ProcessorId].apic_id, pa );
 					}

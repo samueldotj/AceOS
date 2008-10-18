@@ -250,7 +250,7 @@ static int inline DownGradePhysicalRange(enum VIRTUAL_PAGE_RANGE_TYPE vp_request
 VIRTUAL_PAGE_PTR AllocateVirtualPages(int pages, enum VIRTUAL_PAGE_RANGE_TYPE vp_range_type)
 {
 	AVL_TREE_PTR * free_tree;
-	VIRTUAL_PAGE_PTR vp, first_vp;
+	VIRTUAL_PAGE_PTR free_vp, first_vp, result;
 	enum VIRTUAL_PAGE_RANGE_TYPE current_vp_range_type = vp_range_type;
 	int i;
 
@@ -278,17 +278,20 @@ try_different_vp_range:
 	}
 	assert ( first_vp->free_size >= pages );
 	
-	vp = PHYS_TO_VP( first_vp->physical_address  + ((first_vp->free_size-1) * PAGE_SIZE) );
-	assert ( vp != NULL );
-	for(i=0; i<pages; i++ )
+	result = first_vp + (first_vp->free_size-1) - pages;
+	free_vp = first_vp + (first_vp->free_size-1);
+	
+	assert ( free_vp != NULL );
+	for(i=0; i<pages; i++)
 	{
 		/*mark page as not free and add to LRU*/
-		vp->free = 0;
-		AddVirtualPageToActiveLRUList( vp );
+		free_vp->free = 0;
+		AddVirtualPageToActiveLRUList( free_vp );
 		
 		first_vp->free_size--;
 		
-		vp = PHYS_TO_VP( vp->physical_address - PAGE_SIZE );
+		/*move to previous vp*/
+		free_vp--;
 	}
 	/*remove the free range from the tree*/
 	RemoveNodeFromAvlTree( free_tree, VP_AVL_TREE(first_vp), 1, free_range_compare_fn );
@@ -298,7 +301,7 @@ try_different_vp_range:
 	
 	SpinUnlock( &vm_data.lock );
 	
-	return vp;
+	return result;
 }
 /*! Adds the given virtual page to active lru list
 	\param vp - virtual page to add
@@ -346,7 +349,7 @@ UINT32 FreeVirtualPages(VIRTUAL_PAGE_PTR first_vp, int pages)
 		RemoveVirtualPageFromLRUList( vp );
 		AddVirtualPageToVmFreeTree( vp, TRUE );
 		
-		vp = PHYS_TO_VP( vp->physical_address + PAGE_SIZE );
+		vp = PHYS_TO_VP( vp->physical_address );
 		
 		SpinUnlock( &vp->lock );
 	}
@@ -364,20 +367,30 @@ UINT32 FreeVirtualPages(VIRTUAL_PAGE_PTR first_vp, int pages)
 VIRTUAL_PAGE_PTR PhysicalToVirtualPage(UINT32 physical_address)
 {
 	int i,j;
+	int x=0;
+retry:
+	
 	for(i=0; i<memory_area_count; i++ )
 	{
 		PHYSICAL_MEMORY_REGION_PTR pmr;
 		for(j=0;j<memory_areas[i].physical_memory_regions_count;j++)
 		{
 			pmr = &memory_areas[i].physical_memory_regions[j];
+			if ( x)
+				kprintf("%p - %p : %p\n", pmr->start_physical_address, pmr->end_physical_address, physical_address);
 			if ( physical_address >= pmr->start_physical_address && physical_address < pmr->end_physical_address )
 			{
 				UINT32 index;
 				index = (physical_address - pmr->start_physical_address)/PAGE_SIZE;
-				assert ( index <= pmr->virtual_page_count);
+				assert ( index <= pmr->virtual_page_count );
 				return &pmr->virtual_page_array[index];
 			}
 		}
+	}
+	if ( x==0 )
+	{
+		x=1;
+		goto retry;
 	}
 	return NULL;
 }

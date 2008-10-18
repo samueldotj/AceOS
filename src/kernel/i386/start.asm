@@ -110,6 +110,9 @@ SecondaryCPUEntry:
 	;endless loop should not be reached.
 	jmp $
 
-align 4
-[SECTION .data]
-	kstack times KSTACK_SIZE dd 0
+[SECTION .bootdata]
+align PAGE_SIZE
+	kthread		times PAGE_SIZE dd 0
+	guard_page 	times PAGE_SIZE dd 0
+	kstack 		times KSTACK_SIZE dd 0
+

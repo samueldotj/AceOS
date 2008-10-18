@@ -4,10 +4,12 @@
 */
 
 #include <ace.h>
+#include <kernel/mm/vm.h>
 #include <kernel/i386/idt.h>
 #include <kernel/i386/exception.h>
 #include <kernel/debug.h>
 #include <kernel/arch.h>
+#include <kernel/error.h>
 
 /*	This is a simple string array. It contains the message that corresponds to each and every exception. 
 *	We get the correct message by accessing like:  exception_message[interrupt_number] 
@@ -74,15 +76,19 @@ void PageFaultHandler(REGS_PTR reg)
 {
 	PF_ERROR_CODE err;
 	err.all = reg->error_code;
-	if ( err.rsvd ) 
-		kprintf( "Page fault - RESERVED BIT SET\n");
-	else
-		kprintf("Page fault(code %d): %s page %s attempt and %s fault.\n",  
-			reg->error_code,
-			err.user ? "User" : "Supervisor" ,
-			err.write ? "write" : "read",
-			err.present ? "protection" : "page not present");
-			
-	PRINT_REGS(reg);
-	ArchHalt();
+	
+	if ( MemoryFaultHandler( reg->cr2, err.user, err.write ) != ERROR_SUCCESS )
+	{
+		if ( err.rsvd ) 
+			kprintf( "Page fault - RESERVED BIT SET\n");
+		else
+			kprintf("Page fault(code %d): %s page %s attempt and %s fault.\n",  
+				reg->error_code,
+				err.user ? "User" : "Supervisor" ,
+				err.write ? "write" : "read",
+				err.present ? "protection" : "page not present");
+	
+		PRINT_REGS(reg);
+		ArchHalt();
+	}
 }

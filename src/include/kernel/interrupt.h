@@ -19,6 +19,10 @@ typedef struct interrupt_info
 	int interrupt_type;				/*! Type of the interrupt //edge, level, etc*/
 	int interrupt_priority;			/*! Priority of the interrupt*/
 	int	device_number;				/*! Device number which generated the interrupt*/
+
+#if	ARCH == i386
+	REGS_PTR	regs;				/*! Register contents at the time of interrupt*/
+#endif 
 }INTERRUPT_INFO, * INTERRUPT_INFO_PTR;
 
 typedef enum isr_return_code
@@ -44,5 +48,7 @@ extern INTERRUPT_HANDLER interrupt_handlers[MAX_INTERRUPTS];
 
 void InstallInterruptHandler(int interrupt_number, ISR_HANDLER isr_handler, void * custom_argument);
 void UninstallInterruptHandler(int interrupt_number, ISR_HANDLER isr_handler);
+
+void SendEndOfInterrupt(int int_no);
 
 #endif

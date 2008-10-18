@@ -34,6 +34,7 @@ void InterruptHandler(REGS_PTR reg)
 #if ARCH == i386
 	/*! In x86 the first 32 interrupts are exceptions and they are handled separately, so decrement by 32 to get correct interrupt number*/
 	reg->int_no -= 32;
+	interrupt_info.regs = reg;
 #endif
 
 	handler = &interrupt_handlers[reg->int_no];

@@ -9,12 +9,11 @@ CUSTOM_FLAG= -I $(ACE_ROOT)/src/include/kernel/acpi -Wno-format
 
 include $(ACE_ROOT)/make.conf
 
-ALL_DIRS= debugger events hardware interpreter/dispatcher interpreter/executer namespace interpreter/parser resources tables utilities
+ALL_DIRS= . debugger events hardware interpreter/dispatcher interpreter/executer namespace interpreter/parser resources tables utilities
 
 TARGET= $(OBJ)/acpi.sys
 
 OBJS= 	$(patsubst %.c,%.o,$(wildcard *.c)) \
-		$(patsubst %.c,%.o,$(wildcard debugger/*.c)) \
 		$(patsubst %.c,%.o,$(wildcard events/*.c)) \
 		$(patsubst %.c,%.o,$(wildcard hardware/*.c)) \
 		$(patsubst %.c,%.o,$(wildcard interpreter/dispatcher/*.c)) \

@@ -71,8 +71,8 @@ struct virtual_map
 	SPIN_LOCK			lock;				/*! lock for the entire structure*/
 	int					reference_count;	/*! total number of references*/
 	
-	UINT32				start;				/*! start virtual address of this map*/
-	UINT32				end;				/*! end virtual address of this map*/
+	VADDR				start;				/*! start virtual address of this map*/
+	VADDR				end;				/*! end virtual address of this map*/
 	
 	AVL_TREE_PTR		descriptors;		/*! root of the descriptor tree*/
 	UINT32 				descriptor_count;	/*! total number of descriptors*/
@@ -89,8 +89,8 @@ struct vm_descriptor
 	VIRTUAL_MAP_PTR		virtual_map;		/*! pointer to the virtual map*/
 	AVL_TREE			tree_node;			/*! avl tree for all descriptor in the map*/
 	
-	UINT32				start;				/*! start virtual address*/
-	UINT32				end;				/*! end virtual address*/
+	VADDR				start;				/*! start virtual address*/
+	VADDR				end;				/*! end virtual address*/
 	
 	VM_PROTECTION		protection;			/*! protection for this range*/
 	
@@ -119,8 +119,16 @@ struct vm_vtop
 	{
 		int 				in_memory;		/*! if 1 means it is in memory*/
 		VIRTUAL_PAGE_PTR	vpage;			/*! pointer to the virtual page*/
-	}p;
+	};
 };
+
+typedef enum mm_fault_type
+{
+	MM_FAULT_TYPE_NONE=0,
+	MM_FAULT_TYPE_READ=1,
+	MM_FAULT_TYPE_WRITE=2,
+	MM_FAULT_TYPE_EXECUTE=4
+}MM_FAULT_TYPE, * MM_FAULT_TYPE_PTR;
 
 extern VM_DATA vm_data;
 extern VIRTUAL_MAP kernel_map;
@@ -140,6 +148,7 @@ void InitVm();
 
 void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, VADDR start, VADDR end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection);
 VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR start, VADDR end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection);
+VM_DESCRIPTOR_PTR GetVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR va);
 void * FindFreeVmRange(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 size, UINT32 option);
 
 VM_UNIT_PTR CreateVmUnit(UINT32 type, UINT32 size);
@@ -148,6 +157,9 @@ ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR pre
 ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32 flags);
 
 VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size);
+
+VIRTUAL_MAP_PTR GetCurrentVirtualMap();
+ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type);
 
 #ifdef __cplusplus
 	}

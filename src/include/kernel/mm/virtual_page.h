@@ -12,7 +12,7 @@
 #include <kernel/mm/vm_types.h>
 
 /*! Virtual Page to Physical address*/
-#define VP_TO_PHYS(vp)		(vp->physical_address)
+#define VP_TO_PHYS(vp)		((vp)->physical_address)
 /*! Physical Address to Virtual Page*/
 #define PHYS_TO_VP(phys)	(PhysicalToVirtualPage(phys))
 

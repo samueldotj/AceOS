@@ -1,8 +1,4 @@
-#	File			:	kernel makefile
-#   Author			:	DilipSimha N M and Samuel Jacob
-#  	Version			:	3.0
-#  	Created 		:	20-Sep-2007 16:14 
-#	Last modified	:
+#	File			:	src/kernel makefile
 #	Brief			:	commands supported are: all generic clean 
 
 include $(ACE_ROOT)/make.conf
@@ -22,7 +18,7 @@ KERNEL_OBJ = $(patsubst %.c,%.o,$(wildcard *.c))  $(patsubst %.c,%.o,$(wildcard 
 RTC_OBJ = $(patsubst %.c,%.o,$(wildcard rtc/*.c))
 PIT_OBJ = $(patsubst %.c,%.o,$(wildcard pit/*.c))
 PIC_OBJ = $(patsubst %.c,%.o,$(wildcard pic/*.c))
-ARCH_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/*.asm)) $(patsubst %.c,%.o,$(wildcard $(ARCH)/mm/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/mm/*.asm))
+ARCH_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/*.asm)) $(patsubst %.c,%.o,$(wildcard $(ARCH)/mm/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/mm/*.asm)) $(patsubst %.c,%.o,$(wildcard $(ARCH)/pm/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/pm/*.asm))
 #kernel objects
 OBJS= $(KERNEL_OBJ) $(ARCH_OBJ) $(DEBUG_OBJ) $(RTC_OBJ) $(PIT_OBJ) $(PIC_OBJ) $(GENERIC_OBJ) 
 

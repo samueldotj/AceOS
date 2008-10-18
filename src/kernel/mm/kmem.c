@@ -5,6 +5,7 @@
 #include <kernel/debug.h>
 #include <kernel/mm/kmem.h>
 #include <kernel/mm/pmem.h>
+#include <kernel/pm/task.h>
 
 static void * kmem_page_alloc(int size);
 static int kmem_page_free(void * va, int size);
@@ -33,6 +34,9 @@ void InitKmem(VADDR kmem_start_va)
 		panic("InitKmem() -  AddMemoryToHeap() failed.");
 		
 	kernel_free_virtual_address = ((VADDR)kmem_start_va)+kmem_reserved_mem_size;
+	
+	if ( InitCache(&thread_cache, sizeof(THREAD_CONTAINER), THREAD_CACHE_FREE_SLABS_THRESHOLD, THREAD_CACHE_MIN_SLABS, THREAD_CACHE_MAX_SLABS, &ThreadCacheConstructor, &ThreadCacheDestructor) == -1 )
+		panic("InitKmem() - InitCache() failed");
 }
 
 /*! kmem Wrapper function for AllocateVirtualMemory

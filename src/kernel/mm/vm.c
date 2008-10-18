@@ -8,6 +8,7 @@
 #include <kernel/mm/vm.h>
 #include <kernel/mm/pmem.h>
 #include <kernel/mm/kmem.h>
+#include <kernel/mm/virtual_page.h>
 
 VM_DATA vm_data;
 VM_DESCRIPTOR kernel_static_code_descriptor;
@@ -70,7 +71,6 @@ static ERROR_CODE MapKernel(VADDR kmem_start_va, VADDR kmem_end_va)
 	/*map code and data*/
 	InitVmDescriptor( &kernel_static_code_descriptor, &kernel_map, (VADDR)&kernel_virtual_address, (UINT32)&kernel_code_end, NULL, &protection_kernel_read);
 	InitVmDescriptor( &kernel_static_data_descriptor, &kernel_map, (VADDR)&kernel_data_start, (UINT32)&ebss, NULL, &protection_kernel_write);
-	
 	/*map kmem*/
 	vm_unit = CreateVmUnit( 0, kmem_end_va-kmem_start_va);
 	CreateVmDescriptor(&kernel_map, kmem_start_va, kmem_end_va, vm_unit, &protection_kernel_write);
@@ -185,3 +185,61 @@ ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32
 	return ERROR_SUCCESS;
 }
 
+/*! Returns the currrent virtual map
+	\todo Add code to get the current from current thread
+*/
+VIRTUAL_MAP_PTR GetCurrentVirtualMap()
+{
+	return &kernel_map;
+}
+
+/*! Generic memory management fault handler
+*/
+ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type)
+{
+	VIRTUAL_MAP_PTR virtual_map;
+	VM_DESCRIPTOR_PTR vd;
+	UINT32 vtop_index;
+	UINT32 protection = access_type;
+	VIRTUAL_PAGE_PTR vp = NULL;
+	
+	/*! \todo implement user mode fault handling*/
+	if ( is_user_mode )
+		return ERROR_NOT_SUPPORTED;
+		
+	virtual_map = GetCurrentVirtualMap();
+	assert( virtual_map != NULL );
+	
+	vd = GetVmDescriptor(virtual_map, va);
+	/*! if the faulting va is kernel va and the kernel map doesnt have descriptor panic*/
+	if ( vd == NULL && !is_user_mode )
+	{
+		kprintf("Kernel memory fault - va = %p virtual_map = %p\n", va, virtual_map);
+		return ERROR_NOT_FOUND;	
+	}
+	
+	vtop_index = (va - vd->start) / PAGE_SIZE;
+	/*! if a page is already allocated use it else allocate new page*/
+	if ( vd->unit->vtop_array[vtop_index].in_memory )
+		vp = (VIRTUAL_PAGE_PTR) ( ((VADDR)vd->unit->vtop_array[vtop_index].vpage) & (~1) );
+	else
+	{
+		vp = AllocateVirtualPages(1, VIRTUAL_PAGE_RANGE_TYPE_NORMAL);
+		if ( vp == NULL )
+		{
+			kprintf("Unable to allocate PAGE during page fault\n");
+			if ( is_user_mode )
+			{
+				/*! \todo make sure the process sleeps for some time*/
+				return ERROR_RETRY;
+			}
+			else
+				panic("Kernel resource shortage");
+		}
+		vd->unit->page_count++;
+		vd->unit->vtop_array[vtop_index].vpage = (VIRTUAL_PAGE_PTR) ( ((VADDR)vp) | 1 );
+	}
+	CreatePhysicalMapping( virtual_map->physical_map, va, vp->physical_address, protection);
+	
+	return ERROR_SUCCESS;
+}

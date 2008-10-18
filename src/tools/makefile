@@ -1,23 +1,11 @@
-#	File			:	src makefile
+#	File			:	src/tools/makefile
 #	Brief			:	commands supported are: ds string all clean 
 
 include $(ACE_ROOT)/make.conf
-ALL_DIRS=	string ds sync heap
+ALL_DIRS=	mc
 
 all:	always
 	@for dir in $(ALL_DIRS); do make -C $$dir all; done
-
-string:	always
-	@make -C string
-
-ds:	always
-	@make -C ds
-
-heap:	always
-	@make -C heap
-
-sync:	always
-	@make -C sync
 
 clean:	always
 	@for dir in $(ALL_DIRS); do make -C $$dir clean; done

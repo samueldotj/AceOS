@@ -20,6 +20,7 @@ trampoline_data:
 	shl eax, 4														;left shift the segment to get physical address
 	add eax, (KERNEL_VIRTUAL_ADDRESS - KERNEL_PHYSICAL_ADDRESS)		;convert the physical address to virtual address
 	mov esp, eax													;this code area is used as stack later
+	add eax, KSTACK_SIZE											;stack starts from bottom
 
 	cli																; We should be safe anyway
 

@@ -18,7 +18,7 @@
 /* define this macro to enable statistics */
 #define SLAB_STAT_ENABLED
 /* define this macro to debug the slab alloctor */
-#define SLAB_DEBUG_ENABLED
+//#define SLAB_DEBUG_ENABLED
 
 #ifdef SLAB_DEBUG_ENABLED
 	#define	slab_debug_options 0

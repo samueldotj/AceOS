@@ -62,7 +62,10 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 		if ( mapped_pte->page_pfn == pfn )
 			goto finish;
 		else
+		{
+			kprintf("VA %p PA %p Existing PA %p\n", va, pa, mapped_pte->page_pfn<<PAGE_SHIFT);
 			panic("Trying to map over a existing map\n");
+		}
 	}
 	
 	if ( !mapped_pte->present )

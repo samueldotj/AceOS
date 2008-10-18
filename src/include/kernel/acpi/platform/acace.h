@@ -121,7 +121,12 @@
 #define ACPI_USE_SYSTEM_CLIBRARY
 #define ACPI_USE_DO_WHILE_0
 #define ACPI_USE_LOCAL_CACHE
+
+#ifdef __DEBUG__
 #define ACPI_DEBUG
+#endif
+
+//#define ACPI_NO_ERROR_MESSAGES
 
 #ifdef __KERNEL_BUILT__
 

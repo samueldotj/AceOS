@@ -1,8 +1,4 @@
-#	File			:	src makefile
-#   Author			:	DilipSimha N M and Samuel Jacob
-#  	Version			:	3.0
-#  	Created 		:	20-Sep-2007 11:55 AM
-#	Last modified	:
+#	File			:	src/makefile
 #	Brief			:	commands supported are: kernel lib all clean 
 
 include $(ACE_ROOT)/make.conf
@@ -16,6 +12,9 @@ kernel:	always
 
 lib:	always
 	@make -C lib
+	
+tools:	always
+	@make -C tools
 
 clean:	always
 	@for dir in $(ALL_DIRS); do make -C $$dir clean; done

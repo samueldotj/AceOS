@@ -14,6 +14,15 @@
 #define EXTRACT_BITS(src, x, y) \
     (((unsigned long int)src<<((sizeof(unsigned long int)*BITS_PER_BYTE)-(y)))>>((sizeof(unsigned long int)*BITS_PER_BYTE)-(y)+(x)-1))
 
+/*! Swaps the value of x and y of type "type"*/
+#define SWAP( x, y, type ) 	\
+{							\
+	type tmp;				\
+	tmp = x;				\
+	x = y;					\
+	y = x;					\
+}
+
 inline int GetBitFromBitArray(void * bit_array, UINT32 bit_index);
 inline void SetBitInBitArray(void * bit_array, UINT32 bit_index);
 inline void ClearBitInBitArray(void * bit_array, UINT32 bit_index);

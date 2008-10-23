@@ -177,9 +177,6 @@ void StartTimer(UINT32 frequency, BYTE periodic)
 	tmr_cmd.vector = LOCAL_TIMER_VECTOR_NUMBER;
 	LVT_TIMER_REGISTER_ADDRESS(lapic_base_address)->dword = tmr_cmd.dword;
 	
-	dummy = *LAPIC_TIMER_CURRENT_COUNT_REGISTER_ADDRESS(lapic_base_address);
-	*LAPIC_TIMER_CURRENT_COUNT_REGISTER_ADDRESS(lapic_base_address) = 0;
-	
 	/* set initial count*/
 	dummy = *LAPIC_TIMER_INITIAL_COUNT_REGISTER_ADDRESS(lapic_base_address);
 	*LAPIC_TIMER_INITIAL_COUNT_REGISTER_ADDRESS(lapic_base_address) = cpu_frequency / frequency;
@@ -200,7 +197,7 @@ void StopTimer()
 /*! The act of writing anything to this register will cause an EOI to be issued.
  *	\param	int_no	Interrupt number
 */
-void SendEndOfInterrupt(int int_no)
+void SendEndOfInterruptToLapic(int int_no)
 {
 	UINT32 dummy;
 	dummy = EOI_REGISTER_ADDRESS( lapic_base_address )->zero;

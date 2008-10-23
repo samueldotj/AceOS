@@ -62,7 +62,9 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	
 	/* Initialize architecture depended portion of processor structure and start secondary processors */
 	InitSecondaryProcessors();
-		
+	
+	CompletePhysicalMemoryManagerInit();
+	
 	kthread1 = CreateThread(TestThread1, 0);
 	kthread2 = CreateThread(TestThread2, 0);
 	

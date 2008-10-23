@@ -13,6 +13,8 @@
 #include <kernel/i386/cpuid.h>
 #include <kernel/i386/processor.h>
 
+static int use_pic_8259 = 0;
+
 extern void Start8254Timer(UINT32 frequency);
 extern void SetupInterruptStubs();
 extern UINT32 trampoline_data, trampoline_end;
@@ -191,7 +193,7 @@ static void InitInterruptControllers()
 	ACPI_TABLE_MADT *madt_ptr;
 	ACPI_SUBTABLE_HEADER *sub_header, *table_end;
 	ACPI_STATUS result;
-	int i, disable_8259=0;
+	int i;
 	
 	/* disable all interrupts*/
 	asm volatile("cli");
@@ -204,6 +206,8 @@ static void InitInterruptControllers()
 	for(i=0;i<16;i++)
 		legacy_irq_redirection_table[i]=i;
 
+	count_ioapic = 0;
+
 	/*! try to read APIC table*/
 	result = AcpiGetTable ("APIC", 1, (ACPI_TABLE_HEADER**)(&madt_ptr));
 	if ( result == AE_OK )
@@ -211,12 +215,11 @@ static void InitInterruptControllers()
 		kprintf("LAPIC Address %p [%s]\n", madt_ptr->Address, madt_ptr->Flags&1 ? "APIC and Dual 8259 Support" : "Only APIC" );
 		/* if the machine has both 8259 and IOAPIC support disable the 8259*/
 		if ( madt_ptr->Flags & 1 )
-			disable_8259 = 1;
+			use_pic_8259 = 0;
 	
 		sub_header = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + sizeof(ACPI_TABLE_MADT) );
 		table_end = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + madt_ptr->Header.Length );
 
-		count_ioapic = 0;
 		while ( sub_header < table_end )
 		{
 			if ( sub_header->Type == ACPI_MADT_TYPE_IO_APIC )
@@ -255,15 +258,23 @@ static void InitInterruptControllers()
 		#ifdef CONFIG_SMP
 			kprintf("AcpiGetTable() failed Code=%d, assuming uniprocessor and using 8259 PIC\n", result);
 		#endif
-		disable_8259 = 0;
+		use_pic_8259 = 1;
 	}
 	
 	/*! disable PIC if we dont need it*/
-	if ( disable_8259 )
+	if ( !use_pic_8259 )
 		MaskPic();
 	
 	/*! enable interrupts*/
 	asm volatile("sti");
+}
+
+void SendEndOfInterrupt(int int_no)
+{
+	if ( use_pic_8259 )
+		SendEndOfInterruptTo8259(int_no);
+	else
+		SendEndOfInterruptToLapic(int_no);
 }
 
 /*! Initializes the Secondary processors and IOAPIC
@@ -279,6 +290,9 @@ void InitSecondaryProcessors()
 	ACPI_SUBTABLE_HEADER *sub_header, *table_end;
 	ACPI_STATUS result;
 	
+	/*only master is running now*/
+	count_running_processors = 1;
+		
 	/*! try to read APIC table*/
 	result = AcpiGetTable ("APIC", 1, (ACPI_TABLE_HEADER**)(&madt_ptr));
 	if ( result == AE_OK )
@@ -286,8 +300,6 @@ void InitSecondaryProcessors()
 		sub_header = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + sizeof(ACPI_TABLE_MADT) );
 		table_end = (ACPI_SUBTABLE_HEADER *) ( ((UINT32)madt_ptr) + madt_ptr->Header.Length );
 
-		/*only master is running now*/
-		count_running_processors = 1;
 		while ( sub_header < table_end )
 		{
 			if ( sub_header->Type == ACPI_MADT_TYPE_LOCAL_APIC )

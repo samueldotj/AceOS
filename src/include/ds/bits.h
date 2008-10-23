@@ -22,11 +22,12 @@
 	x = y;					\
 	y = x;					\
 }
+inline int FindFirstSetBitInLong(register unsigned long value);
 
 inline int GetBitFromBitArray(void * bit_array, UINT32 bit_index);
 inline void SetBitInBitArray(void * bit_array, UINT32 bit_index);
 inline void ClearBitInBitArray(void * bit_array, UINT32 bit_index);
-inline UINT32 FindFirstSetBitInBitArray(void * bit_array, UINT32 length, UINT32 * result);
+inline long FindFirstSetBitInBitArray(void * bit_array, UINT32 length);
 inline UINT32 FindFirstClearBitInBitArray(void * bit_array, UINT32 length, UINT32 * result);
 	   
 #endif

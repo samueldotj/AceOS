@@ -51,12 +51,18 @@ THREAD_CONTAINER_PTR CreateThread(void * start_address, SCHEDULER_PRIORITY_LEVEL
 void InitBootThread(int boot_processor_id)
 {
 	THREAD_PTR boot_thread = GetCurrentThread(); 
+	PROCESSOR_PTR p = &processor[boot_processor_id];
 	
-	boot_thread->current_processor = &processor[boot_processor_id];
-	boot_thread->priority = SCHED_CLASS_VERY_LOW;
 	InitSpinLock( &boot_thread->lock );
 	boot_thread->state = THREAD_STATE_NEW;
-	boot_thread->current_processor = &processor[boot_processor_id];
+	
+	boot_thread->current_processor = p;
+	boot_thread->bind_cpu = boot_processor_id;
+	
+	boot_thread->priority = SCHED_CLASS_VERY_LOW;
+	boot_thread->priority_queue =  p->dormant_ready_queue->priority_queue[boot_thread->priority];
+	InitList( &boot_thread->priority_queue_list );
+	
 	ScheduleThread( boot_thread );
 }
 

@@ -68,7 +68,7 @@ int InitHeap( int page_size, void * (*v_alloc)(int size),
 	
 	VM_PAGE_SHIFT = 0;
 	VM_PAGE_SIZE = page_size;
-	FindFirstSetBitInBitArray( &VM_PAGE_SIZE, sizeof(VM_PAGE_SIZE)*BITS_PER_BYTE, &VM_PAGE_SHIFT );
+	VM_PAGE_SHIFT = FindFirstSetBitInBitArray( &VM_PAGE_SIZE, sizeof(VM_PAGE_SIZE)*BITS_PER_BYTE);
 	VM_ALLOC = v_alloc;
 	VM_FREE = v_free;
 	VM_PROTECT = v_protect;

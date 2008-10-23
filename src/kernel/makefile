@@ -20,19 +20,18 @@ PIT_OBJ = $(patsubst %.c,%.o,$(wildcard pit/*.c))
 PIC_OBJ = $(patsubst %.c,%.o,$(wildcard pic/*.c))
 ARCH_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/*.asm)) $(patsubst %.c,%.o,$(wildcard $(ARCH)/mm/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/mm/*.asm)) $(patsubst %.c,%.o,$(wildcard $(ARCH)/pm/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/pm/*.asm))
 #kernel objects
-OBJS= $(KERNEL_OBJ) $(ARCH_OBJ) $(DEBUG_OBJ) $(RTC_OBJ) $(PIT_OBJ) $(PIC_OBJ) $(GENERIC_OBJ) 
+OBJS= $(KERNEL_OBJ) $(ARCH_OBJ) $(DEBUG_OBJ) $(RTC_OBJ) $(PIT_OBJ) $(PIC_OBJ) $(GENERIC_OBJ)
 
 #phony command - all - makes all object
-all:    generic acpi $(TARGET)
+all:    generic $(TARGET)
 
 #phony command - generic
 generic:	always
 	@make -C generic
 	
-acpi: 	$(OBJ)/acpi.sys
+$(OBJ)/acpi.sys:
 	echo -n "Compiling ACPI ..."
 	@make -C acpi
-	echo "done"
 
 kernel_build_number:	always
 	@$(INCLUDE)/version.sh $(INCLUDE)	
@@ -45,9 +44,10 @@ clean:	always
 	@rm	-f $(TARGET)
 
 #increment the build number, link the kernel and copy the kernel to image file
-$(TARGET):  kernel_build_number $(OBJS)
+$(TARGET):  kernel_build_number $(OBJS) $(OBJ)/acpi.sys
 	@$(LD) -T kernel.ld $(LDFLAGS) -o $(TARGET) $(OBJS) $(OBJ)/acpi.sys $(LIBS) -Map kernel.map
 	@echo "New kernel is at $(TARGET)"
+	$(ACE_ROOT)/img/create_bootcd.sh
 
 #include dependency files
 -include $(OBJS:.o=.d)

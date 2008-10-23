@@ -334,7 +334,7 @@ typedef union spurious_interrrupt_reg
 extern IA32_APIC_BASE_MSR_PTR lapic_base_address;
 
 void InitLAPIC(void);
-void SendEndOfInterrupt(int int_no);
+void SendEndOfInterruptToLapic(int int_no);
 
 void StartTimer(UINT32 frequency, BYTE periodic);
 void StopTimer();

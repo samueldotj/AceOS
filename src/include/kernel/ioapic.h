@@ -196,6 +196,8 @@ extern UINT8 count_ioapic;
 
 void InitPic(BYTE start_vector);
 void MaskPic();
+void SendEndOfInterruptTo8259(int int_no);
+
 int InitIoApic(IOAPIC_REGISTER_SELECTOR_PTR ioapic_base_va, BYTE start_vector);
 
 #endif

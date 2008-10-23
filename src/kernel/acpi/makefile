@@ -28,7 +28,7 @@ OBJS= 	$(patsubst %.c,%.o,$(wildcard *.c)) \
 all:    $(TARGET)
 
 clean:	always
-	@for dir in $(ALL_DIRS); do rm -rf $$dir/*.o *.d; done
+	@for dir in $(ALL_DIRS); do rm -rf $$dir/*.o $$dir/*.d; done
 
 always:	
 

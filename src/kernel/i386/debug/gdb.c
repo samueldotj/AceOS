@@ -36,7 +36,9 @@ inline void putDebugChar(int ch)
 /*! Wrapper for GDB exception handler installer*/
 void exceptionHandler(int exc, void *addr)
 {
-	SetIdtGate(exc, (UINT32)addr);
+	/*dont register page fault with gdb*/
+	if ( exc != 14 )
+		SetIdtGate(exc, (UINT32)addr);
 	
 }
 /*! Flushes instruction cache*/

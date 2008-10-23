@@ -300,8 +300,7 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 }
 
 /*! Initializes the Physical Memory Manager in Virtual Address mode
-	1) This phase will removes the unnessary page table entries that is created before enabling paging.
-	2) Initializes the virtual page array.
+	1) Initializes the virtual page array.
 */
 void InitPhysicalMemoryManagerPhaseII()
 {
@@ -311,11 +310,6 @@ void InitPhysicalMemoryManagerPhaseII()
 	InitSpinLock( &kernel_physical_map.lock );
 	kernel_physical_map.page_directory = kernel_page_directory;
 	
-	/*clear the boot PTE*/
-	//kernel_page_directory[0].all = 0;
-	/*invalidate the TLB*/
-	asm volatile("invlpg 0");
-
 	/*initialize the virtual page array*/
 	for(i=0; i<memory_area_count; i++ )
 	{
@@ -335,4 +329,13 @@ void InitPhysicalMemoryManagerPhaseII()
 	}
 	
 	vm_data.total_free_pages = vm_data.total_memory_pages;
+}
+/*! Completes the initialization of Physical memory manager by removing unncessary pte entries
+ **/
+void CompletePhysicalMemoryManagerInit()
+{
+	/*clear the boot PTE*/
+	kernel_page_directory[0].all = 0;
+	/*invalidate the TLB*/
+	asm volatile("invlpg 0");
 }

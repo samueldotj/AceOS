@@ -53,7 +53,7 @@ static void * kmem_page_alloc(int size)
 		panic("kmem_page_alloc() - size is incorrect\n");
 	}
 #endif
-	ret = AllocateVirtualMemory(&kernel_map, &va, 0, size, 0, 0);
+	ret = AllocateVirtualMemory(&kernel_map, &va, 0, size, 0, 0, NULL);
 	if ( ret == ERROR_SUCCESS )
 		return (void *)va;
 	else

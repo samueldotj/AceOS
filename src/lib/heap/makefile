@@ -1,9 +1,4 @@
-#	File			:	lib/heap makefile
-#   Author			:	DilipSimha
-#  	Version			:	3.0
-#  	Created 		:	24-Mar-2008 12:16
-#	Last modified	:	24-Mar-2008 12:19
-#	Brief			:	commands supported are: all clean 
+#lib/heap/makefile
 
 include $(ACE_ROOT)/make.conf
 
@@ -11,7 +6,7 @@ include $(ACE_ROOT)/make.conf
 #CC = /usr/bin/gcc
 
 #objects for this library
-OBJS = $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.asm,%.o,$(wildcard *.asm))
+OBJS = $(patsubst %.c,%.o,$(wildcard *.c))
 
 #target path
 TARGET= $(OBJ)/libheap.a

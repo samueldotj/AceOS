@@ -76,5 +76,8 @@ UINT32 FreeVirtualPages(VIRTUAL_PAGE_PTR vp, int pages);
 
 VIRTUAL_PAGE_PTR PhysicalToVirtualPage(UINT32 physical_address);
 
+UINT32 LockVirtualPages(VIRTUAL_PAGE_PTR first_vp, int pages);
+UINT32 ReserveVirtualPages(VIRTUAL_PAGE_PTR first_vp, int pages);
+
 extern UINT32 limit_physical_memory;
 #endif

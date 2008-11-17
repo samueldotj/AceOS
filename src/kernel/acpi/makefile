@@ -1,17 +1,16 @@
-#	File			:	kernel/acpi/makefile
-#   Author			:	Samuel
-#  	Version			:	3.0
-#  	Created 		:	06-Jun-2008 11:38
-#	Last modified	:	24-Mar-2008 12:19
-#	Brief			:	06-Jun-2008 11:38
+#kernel/acpi/makefile
 
-CUSTOM_FLAG= -I $(ACE_ROOT)/src/include/kernel/acpi -Wno-format
+ifeq ($(ACPI_DEBUG),)
+	ACPI_DEBUG=	-g0
+endif
+
+CUSTOM_FLAG= -I $(ACE_ROOT)/src/include/kernel/acpi -Wno-format $(ACPI_DEBUG)
 
 include $(ACE_ROOT)/make.conf
 
 ALL_DIRS= . debugger events hardware interpreter/dispatcher interpreter/executer namespace interpreter/parser resources tables utilities
 
-TARGET= $(OBJ)/acpi.sys
+TARGET= $(OBJ)/acpi.a
 
 OBJS= 	$(patsubst %.c,%.o,$(wildcard *.c)) \
 		$(patsubst %.c,%.o,$(wildcard events/*.c)) \
@@ -28,6 +27,7 @@ OBJS= 	$(patsubst %.c,%.o,$(wildcard *.c)) \
 all:    $(TARGET)
 
 clean:	always
+	rm -f $(OBJS)
 	@for dir in $(ALL_DIRS); do rm -rf $$dir/*.o $$dir/*.d; done
 
 always:	

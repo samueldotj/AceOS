@@ -1,21 +1,16 @@
-#	File			:	Global makefile
-#   Author			:	DilipSimha N M and Samuel Jacob
-#  	Version			:	3.0
-#  	Created 		:	20-Sep-2007 11:55 AM
-#	Last modified	:
-#	Brief			:	commands supported are: doc kernel src all clean all_clean	
-
+#makefile
 include make.conf
+
 ALL_DIRS=	src doc 
+
+src:	always
+	make -C src 
 
 doc:	always
 	make -C doc
 
 kernel:	always
 	make -C src/kernel
-
-src:	always
-	make -C src 
 
 all:	always
 	for dir in $(ALL_DIRS); do make -C $$dir all; done

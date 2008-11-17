@@ -48,6 +48,7 @@ extern UINT32 cpu_frequency;
 
 extern VADDR multiboot_module_va_start;
 extern VADDR multiboot_module_va_end;
+extern VADDR multiboot_module_pa_start;
 
 #ifdef __cplusplus
 	}

@@ -168,7 +168,7 @@ static UINT32 CreateSecondaryCPUStartThread()
 		panic("PA not available for starting secondary CPU\n");
 		
 	/*reserve kernel virtual address*/
-	if ( AllocateVirtualMemory(&kernel_map, &va, 0, size, 0, 0) != ERROR_SUCCESS )
+	if ( AllocateVirtualMemory(&kernel_map, &va, 0, size, 0, 0, NULL) != ERROR_SUCCESS )
 		panic("VA not available for starting secondary CPU\n");
 	
 	/*create va to pa mapping*/

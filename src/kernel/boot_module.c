@@ -18,6 +18,7 @@ static int total_modules = 0;
 /*! arch independed boot module variables - updated by arch depended boot functions*/
 VADDR multiboot_module_va_start = 0;
 VADDR multiboot_module_va_end = 0;
+VADDR multiboot_module_pa_start = 0;
 
 /*! load and initalize the boot module container
 	\param file_header - starting virtual address of the module container

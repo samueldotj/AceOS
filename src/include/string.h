@@ -30,6 +30,7 @@ char* str_tolower(char * src);
 int str_pattern_search(const char * src, const char * pattern);
 char* strcat(char *s, const char *append);
 char* strchr(const char *s, int c);
+char * strrchr ( const char *s, int c );
 int strcmp(const char *s1, const char *s2);
 int strcoll(const char *s1, const char *s2);
 char* strcpy(char *dest, const char *src);

@@ -88,7 +88,7 @@ typedef struct multiboot_info
 	{
 		MULTIBOOT_AOUT_SYMBOL_TABLE 		aout_sym;
 		MULTIBOOT_ELF_SECTION_HEADER_TABLE 	elf_sec;
-	} u;
+	};
 	unsigned long mmap_length;
 	unsigned long mmap_addr;
 }MULTIBOOT_INFO, * MULTIBOOT_INFO_PTR;

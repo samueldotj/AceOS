@@ -5,6 +5,7 @@
 #include <string.h>
 #include <ds/avl_tree.h>
 #include <kernel/debug.h>
+#include <kernel/arch.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/pmem.h>
 #include <kernel/mm/kmem.h>
@@ -23,14 +24,21 @@ VM_PROTECTION protection_user_read = {0,1,0,0};
 
 /*from kernel.ld*/
 extern VADDR kernel_virtual_address, kernel_code_end, kernel_data_start, ebss;
+/*from arch dependent pmem*/
+extern VADDR kernel_physical_address_start;
 
 static ERROR_CODE MapKernel();
+static void InitKernelDescriptorVtoP(VM_DESCRIPTOR_PTR vd, VADDR va_start, VADDR va_end, VADDR pa_start);
 
 /*! initializes the Virtual memory subsystem
 */
 void InitVm()
 {
+	VADDR kernel_code_start_va, kernel_code_end_va, kernel_code_start_pa;
+	VADDR kernel_data_start_va, kernel_data_end_va, kernel_data_start_pa;
 	VADDR kmem_start_va, kmem_end_va;
+	VIRTUAL_PAGE_PTR vp;
+	VADDR kernel_code_size;
 	
 	/*initialize the vm_data structure*/
 	InitSpinLock(&vm_data.lock);
@@ -46,13 +54,36 @@ void InitVm()
 	InitPhysicalMemoryManagerPhaseII();
 	kprintf("Total memory: %d KB (PAGE_SIZE %d)\n", (vm_data.total_memory_pages * PAGE_SIZE) / (1024), PAGE_SIZE );
 	
+	kernel_code_start_va = (VADDR)&kernel_virtual_address;
+	kernel_code_end_va = (VADDR)&kernel_code_end;
+	kernel_code_size = PAGE_ALIGN_UP( kernel_code_end_va - kernel_code_start_va );
+	kernel_code_start_pa = kernel_physical_address_start;
+	
+	kernel_data_end_va = (VADDR)&ebss;
+	kernel_data_start_va = (VADDR)&kernel_data_start;
+	kernel_data_start_pa = kernel_code_start_pa + kernel_code_size;
+
+
+	/*lock the pages used by kernel code and data - this needs to be done before initializing kmem because kmem might allocate virtual pages*/
+	vp = PhysicalToVirtualPage( kernel_code_start_pa );
+	assert( vp != NULL );
+	ReserveVirtualPages( vp, (kernel_code_end_va-kernel_code_start_va)/PAGE_SIZE ); 
+	
+	vp = PhysicalToVirtualPage( kernel_data_start_pa );
+	assert( vp != NULL );
+	ReserveVirtualPages( vp, (kernel_data_end_va-kernel_data_start_va)/PAGE_SIZE ); 
+
 	/*Initialize the kernel memory allocator*/
 	kmem_start_va = kernel_free_virtual_address;
 	InitKmem(kernel_free_virtual_address);
 	kmem_end_va = kernel_free_virtual_address;
 	
 	/*map the kernel text, data*/
-	MapKernel(kmem_start_va, kmem_end_va);
+	MapKernel(kernel_code_start_va, kernel_code_end_va, kernel_code_start_pa, kernel_code_size, kernel_data_start_va, kernel_data_end_va, kernel_data_start_pa, kmem_start_va, kmem_end_va);
+
+	/*map kmem*/
+	VM_UNIT_PTR vm_unit = CreateVmUnit( 0, kmem_end_va-kmem_start_va);
+	CreateVmDescriptor(&kernel_map, kmem_start_va, kmem_end_va, vm_unit, &protection_kernel_write);
 }
 
 /*! Updates the kernel virtual map data structures.
@@ -60,23 +91,46 @@ void InitVm()
 		2) Maps static kernel data 
 		3) Maps kmem
 */
-static ERROR_CODE MapKernel(VADDR kmem_start_va, VADDR kmem_end_va)
+static ERROR_CODE MapKernel(VADDR kernel_code_start_va, VADDR kernel_code_end_va, VADDR kernel_code_start_pa, VADDR kernel_code_size,
+						VADDR kernel_data_start_va, VADDR kernel_data_end_va, VADDR kernel_data_start_pa,
+						VADDR kmem_start_va, VADDR kmem_end_va)
 {
 	VM_UNIT_PTR vm_unit;
+	VM_DESCRIPTOR_PTR vd;
 	
 	kernel_map.physical_map = &kernel_physical_map;
-	kernel_map.start = kernel_virtual_address;
+	kernel_map.start = kernel_code_start_va;
 	kernel_map.end = kmem_end_va;
 	
 	/*map code and data*/
-	InitVmDescriptor( &kernel_static_code_descriptor, &kernel_map, (VADDR)&kernel_virtual_address, (UINT32)&kernel_code_end, NULL, &protection_kernel_read);
-	InitVmDescriptor( &kernel_static_data_descriptor, &kernel_map, (VADDR)&kernel_data_start, (UINT32)&ebss, NULL, &protection_kernel_write);
-	/*map kmem*/
-	vm_unit = CreateVmUnit( 0, kmem_end_va-kmem_start_va);
-	CreateVmDescriptor(&kernel_map, kmem_start_va, kmem_end_va, vm_unit, &protection_kernel_write);
+	vm_unit = CreateVmUnit( 0, kernel_code_size);
+	InitVmDescriptor( &kernel_static_code_descriptor, &kernel_map, kernel_code_start_va, kernel_code_end_va, vm_unit, &protection_kernel_read);
+	InitKernelDescriptorVtoP(&kernel_static_code_descriptor, kernel_code_start_va, kernel_code_end_va, kernel_code_start_pa);
+	vm_unit = CreateVmUnit( 0, kernel_data_end_va-kernel_data_start_va);
+	InitVmDescriptor( &kernel_static_data_descriptor, &kernel_map, kernel_data_start_va, kernel_data_end_va, vm_unit, &protection_kernel_write);
+	InitKernelDescriptorVtoP(&kernel_static_data_descriptor, kernel_data_start_va, kernel_data_end_va, kernel_data_start_pa);
+	
+	/*map modules*/
+	vm_unit = CreateVmUnit( 0, multiboot_module_va_end-multiboot_module_va_start);
+	vd = CreateVmDescriptor(&kernel_map, multiboot_module_va_start, multiboot_module_va_end, vm_unit, &protection_kernel_write);
+	InitKernelDescriptorVtoP(vd, multiboot_module_va_start, multiboot_module_va_end, multiboot_module_pa_start );
+
 	/*todo update all the pages in the vtoparray*/
 	
 	return ERROR_SUCCESS;
+}
+static void InitKernelDescriptorVtoP(VM_DESCRIPTOR_PTR vd, VADDR va_start, VADDR va_end, VADDR pa_start)
+{
+	VIRTUAL_PAGE_PTR vp;
+	VADDR va, pa;
+	int i;
+	assert ( vd != NULL );
+	for(i=0, va = va_start, pa = pa_start ; va <= va_end;i++, pa += (VADDR)PAGE_SIZE, va += (VADDR)PAGE_SIZE )
+	{
+		vp = PhysicalToVirtualPage( pa );
+		assert( vp != NULL );
+		vd->unit->vtop_array[i].vpage = (VIRTUAL_PAGE_PTR)((VADDR)vp | 1);
+	}
 }
 
 /*! Creates Virtual Mapping for a given physical address range
@@ -93,7 +147,7 @@ VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size)
 	
 	size = PAGE_ALIGN_UP(size);
 	pa = PAGE_ALIGN(pa);
-	if ( AllocateVirtualMemory( vmap, &va, 0, size, 0, 0) != ERROR_SUCCESS )
+	if ( AllocateVirtualMemory( vmap, &va, 0, size, 0, 0, NULL) != ERROR_SUCCESS )
 		return NULL;
 	for(i=0; i<size;i+=PAGE_SIZE )
 	{
@@ -117,11 +171,10 @@ VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size)
 	\return ERROR_SUCCESS  - sucess
 			ERROR_NOT_ENOUGH_MEMORY - no free space on the map
 */
-ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR preferred_start, UINT32 size, UINT32 protection, UINT32 flags)
+ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR preferred_start, UINT32 size, UINT32 protection, UINT32 flags, VM_UNIT_PTR unit)
 {
 	VADDR start;
 	VM_PROTECTION_PTR prot;
-	VM_UNIT_PTR unit;
 	
 	assert( size > 0 );
 	size = PAGE_ALIGN_UP(size);
@@ -152,14 +205,12 @@ ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR pre
 			prot = &protection_user_read;
 	}
 	
-	if ( flags )
+	/*create new vm_unit(if private mapping)*/
+	if ( !unit )
 	{
-	}
-	else
-	{
-		//private unit - so create new one
 		unit = CreateVmUnit(0, size);
 	}
+	/*link map, descriptor and unit*/
 	CreateVmDescriptor(vmap, start, start+size, unit, prot);
 	
 	* (va_ptr) = start;
@@ -182,6 +233,40 @@ ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32
 	}
 	
 	/*TODO - remove the vm descriptor entry*/
+	return ERROR_SUCCESS;
+}
+
+/*! This function maps va to pa mapping in one virtual address space to another virtual address space*/
+ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, VIRTUAL_MAP_PTR dest_vmap, VADDR *dest_preferred_va, UINT32 dest_size, UINT32 protection)
+{
+	VM_DESCRIPTOR_PTR vd;
+	VM_UNIT_PTR unit;
+	VADDR va, unit_offset;
+	ERROR_CODE ret;
+	
+	src_va = PAGE_ALIGN(src_va);
+	dest_size = PAGE_ALIGN_UP(dest_size);
+	
+	vd = GetVmDescriptor(src_vmap, src_va);
+	assert( vd != NULL );
+	unit_offset = vd->offset_in_unit + PAGE_ALIGN(src_va - vd->start);
+	unit = vd->unit;
+	assert( unit!=NULL && unit_offset < unit->size );
+	
+	/*! allocate virtaul address range and map the same vm unit*/
+	ret = AllocateVirtualMemory(dest_vmap, &va, *dest_preferred_va, dest_size, protection, 0, unit);
+	if ( ret != ERROR_SUCCESS )
+		return ret;
+	
+	*dest_preferred_va = va;
+	/*if the descriptor maps only part of the vm_unit then update the starting offset in unit*/
+	if ( unit_offset )
+	{
+		vd = GetVmDescriptor(dest_vmap, va);
+		assert( vd != NULL );
+		vd->offset_in_unit = unit_offset;
+	}
+	
 	return ERROR_SUCCESS;
 }
 
@@ -218,10 +303,11 @@ ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type)
 		return ERROR_NOT_FOUND;	
 	}
 	
-	vtop_index = (va - vd->start) / PAGE_SIZE;
+	vtop_index = ((va - vd->start) / PAGE_SIZE) + (vd->offset_in_unit/PAGE_SIZE);
+
 	/*! if a page is already allocated use it else allocate new page*/
 	if ( vd->unit->vtop_array[vtop_index].in_memory )
-		vp = (VIRTUAL_PAGE_PTR) ( ((VADDR)vd->unit->vtop_array[vtop_index].vpage) & (~1) );
+		vp = (VIRTUAL_PAGE_PTR) ( (VADDR)vd->unit->vtop_array[vtop_index].vpage & ~1 );
 	else
 	{
 		vp = AllocateVirtualPages(1, VIRTUAL_PAGE_RANGE_TYPE_NORMAL);

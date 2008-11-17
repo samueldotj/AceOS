@@ -1,14 +1,6 @@
-#	File			:	ds/sync makefile
-#   Author			:	Samuel Jacob
-#  	Version			:	1.0
-#  	Created 		:	19-Apr-2008 11:28
-#	Last modified	:
-#	Brief			:	commands supported are: all clean 
+#ds/sync/makefile
 
 include $(ACE_ROOT)/make.conf
-
-#since we might use different cross compiler for Ace, for testing use the host's default compiler.
-#CC = /usr/bin/gcc
 
 #clean dirs 
 CLEAN_DIRS=	$(ARCH)
@@ -17,7 +9,7 @@ CLEAN_DIRS=	$(ARCH)
 TARGET= $(OBJ)/libsync.a
 
 #individual objects
-GENERIC_OBJ = $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.asm,%.o,$(wildcard *.asm))
+GENERIC_OBJ = $(patsubst %.c,%.o,$(wildcard *.c))
 ARCH_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/*.asm)) 
 
 #all objects for this library

@@ -2,6 +2,8 @@
 #define	_ELF_H
 
 #include <ace.h>
+#include <kernel/mm/vm.h>
+#include <kernel/mm/kmem.h>
 
 /*! Type for a 16-bit quantity.  */
 typedef UINT16 ELF32_HALF;
@@ -74,7 +76,8 @@ typedef struct
 	ELF64_HALF		e_shentsize;		/*! Section header table entry size */
 	ELF64_HALF		e_shnum;			/*! Section header table entry count */
 	ELF64_HALF		e_shstrndx;			/*! Section header string table index */
-} ELF64_HEADER;
+} ELF64_HEADER, * ELF64_HEADER_PTR;
+
 
 /*! Fields in the e_ident array.  The EI_* macros are indices into the
    array.  The macros under each EI_* macro are the values the byte
@@ -200,7 +203,7 @@ typedef struct
 	ELF32_WORD		sh_info;		/*! Additional section information */
 	ELF32_WORD		sh_addralign;	/*! Section alignment */
 	ELF32_WORD		sh_entsize;		/*! Entry size if section holds table */
-}ELF32_SECTION_HEADER;
+}ELF32_SECTION_HEADER, * ELF32_SECTION_HEADER_PTR;
 
 typedef struct
 {
@@ -214,7 +217,7 @@ typedef struct
 	ELF64_WORD		sh_info;		/*! Additional section information */
 	ELF64_XWORD		sh_addralign;	/*! Section alignment */
 	ELF64_XWORD		sh_entsize;		/*! Entry size if section holds table */
-}ELF64_SECTION_HEADER;
+}ELF64_SECTION_HEADER, *ELF64_SECTION_HEADER_PTR;
 
 /*! Special section indices.  */
 
@@ -272,7 +275,7 @@ typedef struct
 	unsigned char	st_info;		/*! Symbol type and binding */
 	unsigned char	st_other;		/*! No defined meaning, 0 */
 	ELF32_SECTION	st_shndx;		/*! Section index */
-}ELF32_SYMBOL;
+}ELF32_SYMBOL, *ELF32_SYMBOL_PTR;
 
 typedef struct
 {
@@ -282,7 +285,7 @@ typedef struct
 	ELF64_SECTION	st_shndx;		/*! Section index */
 	ELF64_ADDRESS	st_value;		/*! Symbol value */
 	ELF64_XWORD		st_size;		/*! Symbol size */
-}ELF64_SYMBOL;
+}ELF64_SYMBOL, *ELF64_SYMBOL_PTR;
 
 /*! The syminfo section if available contains additional information about
    every dynamic symbol.  */
@@ -291,13 +294,13 @@ typedef struct
 {
 	ELF32_HALF		si_boundto;		/*! Direct bindings, symbol bound to */
 	ELF32_HALF		si_flags;		/*! Per symbol flags */
-} ELF32_SYMBOL_INFO;
+}ELF32_SYMBOL_INFO, *ELF32_SYMBOL_INFO_PTR;
 
 typedef struct
 {
 	ELF64_HALF		si_boundto;		/*! Direct bindings, symbol bound to */
 	ELF64_HALF		si_flags;		/*! Per symbol flags */
-} ELF64_SYMBOL_INFO;
+}ELF64_SYMBOL_INFO, *ELF64_SYMBOL_INFO_PTR;
 
 /*! Possible values for si_boundto.  */
 #define SYMINFO_BT_SELF			0xffff	/*! Symbol bound to self */
@@ -369,7 +372,7 @@ typedef struct
 {
 	ELF32_ADDRESS	r_offset;	/*! Address */
 	ELF32_WORD	r_info;			/*! Relocation type and symbol index */
-}ELF32_RELOCATION;
+}ELF32_RELOCATION, *ELF32_RELOCATION_PTR;
 
 /*! I have seen two different definitions of the ELF64_RELOCATION and
    ELF64_RELOCATION_ADDEND structures, so we'll leave them out until Novell (or
@@ -380,7 +383,7 @@ typedef struct
 {
 	ELF64_ADDRESS	r_offset;	/*! Address */
 	ELF64_XWORD	r_info;			/*! Relocation type and symbol index */
-}ELF64_RELOCATION;
+}ELF64_RELOCATION, *ELF64_RELOCATION_PTR;
 
 /*! Relocation table entry with addend (in section of type SHT_RELA).  */
 
@@ -389,14 +392,14 @@ typedef struct
 	ELF32_ADDRESS	r_offset;	/*! Address */
 	ELF32_WORD	r_info;			/*! Relocation type and symbol index */
 	ELF32_SWORD	r_addend;		/*! Addend */
-}ELF32_RELOCATION_ADDEND;
+}ELF32_RELOCATION_ADDEND, *ELF32_RELOCATION_ADDEND_PTR;
 
 typedef struct
 {
 	ELF64_ADDRESS	r_offset;	/*! Address */
 	ELF64_XWORD	r_info;			/*! Relocation type and symbol index */
 	ELF64_SXWORD	r_addend;	/*! Addend */
-}ELF64_RELOCATION_ADDEND;
+}ELF64_RELOCATION_ADDEND, *ELF64_RELOCATION_ADDEND_PTR;
 
 /*! How to extract and insert information held in the r_info field.  */
 
@@ -420,7 +423,7 @@ typedef struct
 	ELF32_WORD	p_memsz;		/*! Segment size in memory */
 	ELF32_WORD	p_flags;		/*! Segment flags */
 	ELF32_WORD	p_align;		/*! Segment alignment */
-}ELF32_PROGRAM_HEADER;
+}ELF32_PROGRAM_HEADER, *ELF32_PROGRAM_HEADER_PTR;
 
 typedef struct
 {
@@ -432,7 +435,7 @@ typedef struct
 	ELF64_XWORD	p_filesz;		/*! Segment size in file */
 	ELF64_XWORD	p_memsz;		/*! Segment size in memory */
 	ELF64_XWORD	p_align;		/*! Segment alignment */
-}ELF64_PROGRAM_HEADER;
+}ELF64_PROGRAM_HEADER, *ELF64_PROGRAM_HEADER_PTR;
 
 /*! Legal values for p_type (segment type).  */
 
@@ -487,7 +490,7 @@ typedef struct
 		ELF32_WORD d_val;		/*! Integer value */
 		ELF32_ADDRESS d_ptr;	/*! Address value */
 	} d_un;
-}ELF32_DYNAMIC_SECTION;
+}ELF32_DYNAMIC_SECTION, *ELF32_DYNAMIC_SECTION_PTR;
 
 typedef struct
 {
@@ -497,7 +500,7 @@ typedef struct
 		ELF64_XWORD d_val;		/*! Integer value */
 		ELF64_ADDRESS d_ptr;	/*! Address value */
 	} d_un;
-}ELF64_DYNAMIC_SECTION;
+}ELF64_DYNAMIC_SECTION, *ELF64_DYNAMIC_SECTION_PTR;
 
 /*! Legal values for d_tag (dynamic entry type).  */
 
@@ -588,7 +591,7 @@ typedef struct
 	ELF32_WORD	vd_hash;		/*! Version name hash value */
 	ELF32_WORD	vd_aux;			/*! Offset in bytes to verdaux array */
 	ELF32_WORD	vd_next;		/*! Offset in bytes to next verdef entry */
-}ELF32_VERSION_DEF;
+}ELF32_VERSION_DEF, *ELF32_VERSION_DEF_PTR;
 
 typedef struct
 {
@@ -599,8 +602,7 @@ typedef struct
 	ELF64_WORD	vd_hash;		/*! Version name hash value */
 	ELF64_WORD	vd_aux;			/*! Offset in bytes to verdaux array */
 	ELF64_WORD	vd_next;		/*! Offset in bytes to next verdef entry */
-}ELF64_VERSION_DEF;
-
+}ELF64_VERSION_DEF, *ELF64_VERSION_DEF_PTR;
 
 /*! Legal values for vd_version (version revision).  */
 #define VER_DEF_NONE	0		/*! No version */
@@ -617,14 +619,13 @@ typedef struct
 {
 	ELF32_WORD	vda_name;		/*! Version or dependency names */
 	ELF32_WORD	vda_next;		/*! Offset in bytes to next verdaux entry */
-} ELF32_VERSION_AUX;
+}ELF32_VERSION_AUX, *ELF32_VERSION_AUX_PTR;
 
 typedef struct
 {
 	ELF64_WORD	vda_name;		/*! Version or dependency names */
 	ELF64_WORD	vda_next;		/*! Offset in bytes to next verdaux entry */
-} ELF64_VERSION_AUX;
-
+}ELF64_VERSION_AUX, *ELF64_VERSION_AUX_PTR;
 
 /*! Version dependency section.  */
 
@@ -635,7 +636,7 @@ typedef struct
 	ELF32_WORD	vn_file;		/*! Offset of filename for this dependency */
 	ELF32_WORD	vn_aux;			/*! Offset in bytes to vernaux array */
 	ELF32_WORD	vn_next;		/*! Offset in bytes to next verneed entry */
-}ELF32_VERSION_NEED;
+}ELF32_VERSION_NEED, *ELF32_VERSION_NEED_PTR;
 
 typedef struct
 {
@@ -644,7 +645,7 @@ typedef struct
   ELF64_WORD	vn_file;		/*! Offset of filename for this dependency */
   ELF64_WORD	vn_aux;			/*! Offset in bytes to vernaux array */
   ELF64_WORD	vn_next;		/*! Offset in bytes to next verneed entry */
-}ELF64_VERSION_NEED;
+}ELF64_VERSION_NEED, *ELF64_VERSION_NEED_PTR;
 
 
 /*! Legal values for vn_version (version revision).  */
@@ -661,7 +662,7 @@ typedef struct
 	ELF32_HALF	vna_other;		/*! Unused */
 	ELF32_WORD	vna_name;		/*! Dependency name string offset */
 	ELF32_WORD	vna_next;		/*! Offset in bytes to next vernaux entry */
-} ELF32_VERSION_AUX_NEEDED;
+}ELF32_VERSION_AUX_NEEDED, *ELF32_VERSION_AUX_NEEDED_PTR;
 
 typedef struct
 {
@@ -670,8 +671,7 @@ typedef struct
   ELF64_HALF	vna_other;		/*! Unused */
   ELF64_WORD	vna_name;		/*! Dependency name string offset */
   ELF64_WORD	vna_next;		/*! Offset in bytes to next vernaux entry */
-} ELF64_VERSION_AUX_NEEDED;
-
+}ELF64_VERSION_AUX_NEEDED, *ELF64_VERSION_AUX_NEEDED_PTR;
 
 /*! Legal values for vna_flags.  */
 #define VER_FLG_WEAK	0x2		/*! Weak version identifier */
@@ -692,7 +692,7 @@ typedef struct
 		void *a_ptr;			/*! Pointer value */
 		void (*a_fcn) (void);	/*! Function pointer value */
 	} a_un;
-}ELF32_AUX_VECTOR;
+}ELF32_AUX_VECTOR, *ELF32_AUX_VECTOR_PTR;
 
 typedef struct
 {
@@ -703,7 +703,7 @@ typedef struct
 		void *a_ptr;			/*! Pointer value */
 		void (*a_fcn) (void);	/*! Function pointer value */
 	} a_un;
-} ELF64_AUX_VECTOR;
+}ELF64_AUX_VECTOR, *ELF64_AUX_VECTOR_PTR;
 
 /*! Legal values for a_type (entry type).  */
 
@@ -737,14 +737,14 @@ typedef struct
 	ELF32_WORD n_namesz;			/*! Length of the note's name.  */
 	ELF32_WORD n_descsz;			/*! Length of the note's descriptor.  */
 	ELF32_WORD n_type;				/*! Type of the note.  */
-}ELF32_NOTE_HEADER;
+}ELF32_NOTE_HEADER, *ELF32_NOTE_HEADER_PTR;
 
 typedef struct
 {
 	ELF64_WORD n_namesz;			/*! Length of the note's name.  */
 	ELF64_WORD n_descsz;			/*! Length of the note's descriptor.  */
 	ELF64_WORD n_type;				/*! Type of the note.  */
-}ELF64_NOTE_HEADER;
+}ELF64_NOTE_HEADER, *ELF64_NOTE_HEADER_PTR;
 
 /*! Known names of notes.  */
 
@@ -1031,7 +1031,7 @@ typedef union
 		ELF32_WORD gt_g_value;			/*! If this value were used for -G */
 		ELF32_WORD gt_bytes;			/*! This many bytes would be used */
 	} gt_entry;							/*! Subsequent entries in section */
-} ELF32_GPTAB;
+}ELF32_GPTAB, *ELF32_GPTAB_PTR;
 
 /*! Entry found in sections of type SHT_MIPS_REGINFO.  */
 
@@ -1040,7 +1040,7 @@ typedef struct
 	ELF32_WORD	ri_gprmask;				/*! General registers used */
 	ELF32_WORD	ri_cprmask[4];			/*! Coprocessor registers used */
 	ELF32_SWORD	ri_gp_value;			/*! $gp register value */
-} ELF32_REG_INFO;
+}ELF32_REG_INFO, *ELF32_REG_INFO_PTR;
 
 /*! Entries found in sections of type SHT_MIPS_OPTIONS.  */
 
@@ -1050,7 +1050,7 @@ typedef struct
 	unsigned char size;		/*! Size of descriptor, including header.  */
 	ELF32_SECTION section;	/*! Section header index of section affected, 0 for global options.  */
 	ELF32_WORD info;		/*! Kind-specific information.  */
-}ELF_OPTIONS;
+}ELF_OPTIONS, *ELF_OPTIONS_PTR;
 
 /*! Values for `kind' field in ELF_OPTIONS.  */
 
@@ -1097,7 +1097,7 @@ typedef struct
 {
 	ELF32_WORD hwp_flags1;	/*! Extra flags.  */
 	ELF32_WORD hwp_flags2;	/*! Extra flags.  */
-} ELF_OPTIONS_HW;
+}ELF_OPTIONS_HW, *ELF_OPTIONS_HW_PTR;
 
 /*! Masks for `info' in ElfOptions for ODK_HWAND and ODK_HWOR entries.  */
 
@@ -1230,7 +1230,7 @@ typedef struct
 	ELF32_WORD l_checksum;		/*! Checksum */
 	ELF32_WORD l_version;		/*! Interface version */
 	ELF32_WORD l_flags;			/*! Flags */
-} ELF32_LIB;
+}ELF32_LIB, *ELF32_LIB_PTR;
 
 typedef struct
 {
@@ -1239,7 +1239,7 @@ typedef struct
 	ELF64_WORD l_checksum;		/*! Checksum */
 	ELF64_WORD l_version;		/*! Interface version */
 	ELF64_WORD l_flags;			/*! Flags */
-} ELF64_LIB;
+}ELF64_LIB, *ELF64_LIB_PTR;
 
 
 /*! Legal values for l_flags.  */
@@ -1509,6 +1509,57 @@ typedef ELF32_ADDRESS ELF32_CONFLICT;
 #define R_ARM_RBASE			255
 /*! Keep this the last entry.  */
 #define R_ARM_NUM			256
+
+/* Arch independent typedef name for arch specific datastructures
+	Ace does not support loading 32bit binary on 64bit machine and vice versa
+*/
+#if BITS_PER_LONG == 32
+	typedef ELF32_HEADER ELF_HEADER, * ELF_HEADER_PTR;
+	typedef ELF32_SECTION_HEADER ELF_SECTION_HEADER, * ELF_SECTION_HEADER_PTR;
+	typedef ELF32_SYMBOL ELF_SYMBOL, * ELF_SYMBOL_PTR;
+	typedef ELF32_SYMBOL_INFO ELF_SYMBOL_INFO, * ELF_SYMBOL_INFO_PTR;
+	typedef ELF32_RELOCATION ELF_RELOCATION, * ELF_RELOCATION_PTR;
+	typedef ELF32_RELOCATION_ADDEND ELF_RELOCATION_ADDEND, * ELF_RELOCATION_ADDEND_PTR;
+	typedef ELF32_PROGRAM_HEADER ELF_PROGRAM_HEADER, * ELF_PROGRAM_HEADER_PTR;
+	typedef ELF32_DYNAMIC_SECTION ELF_DYNAMIC_SECTION, * ELF_DYNAMIC_SECTION_PTR;
+	typedef ELF32_VERSION_DEF ELF_VERSION_DEF, * ELF_VERSION_DEF_PTR;
+	typedef ELF32_VERSION_AUX ELF_VERSION_AUX, * ELF_VERSION_AUX_PTR;
+	typedef ELF32_VERSION_NEED ELF_VERSION_NEED, * ELF_VERSION_NEED_PTR;
+	typedef ELF32_VERSION_AUX_NEEDED ELF_VERSION_AUX_NEEDED, * ELF_VERSION_AUX_NEEDED_PTR;
+	typedef ELF32_AUX_VECTOR ELF_AUX_VECTOR, * ELF_AUX_VECTOR_PTR;
+	typedef ELF32_NOTE_HEADER ELF_NOTE_HEADER, * ELF_NOTE_HEADER_PTR;
+	#define ELF_R_SYM	ELF32_R_SYM
+	#define ELF_R_INFO	ELF32_R_INFO
+	#define ELF_R_TYPE	ELF32_R_TYPE
+#elif BITS_PER_LONG == 64
+	typedef ELF64_HEADER ELF_HEADER, * ELF_HEADER_PTR;
+	typedef ELF64_SECTION_HEADER ELF_SECTION_HEADER, * ELF_SECTION_HEADER_PTR;
+	typedef ELF64_SYMBOL ELF_SYMBOL, * ELF_SYMBOL_PTR;
+	typedef ELF64_SYMBOL_INFO ELF_SYMBOL_INFO, * ELF_SYMBOL_INFO_PTR;
+	typedef ELF64_RELOCATION ELF_RELOCATION, * ELF_RELOCATION_PTR;
+	typedef ELF64_RELOCATION_ADDEND ELF_RELOCATION_ADDEND, * ELF_RELOCATION_ADDEND_PTR;
+	typedef ELF64_PROGRAM_HEADER ELF_PROGRAM_HEADER, * ELF_PROGRAM_HEADER_PTR;
+	typedef ELF64_DYNAMIC_SECTION ELF_DYNAMIC_SECTION, * ELF_DYNAMIC_SECTION_PTR;
+	typedef ELF64_VERSION_DEF ELF_VERSION_DEF, * ELF_VERSION_DEF_PTR;
+	typedef ELF64_VERSION_AUX ELF_VERSION_AUX, * ELF_VERSION_AUX_PTR;
+	typedef ELF64_VERSION_NEED ELF_VERSION_NEED, * ELF_VERSION_NEED_PTR;
+	typedef ELF64_VERSION_AUX_NEEDED ELF_VERSION_AUX_NEEDED, * ELF_VERSION_AUX_NEEDED_PTR;
+	typedef ELF64_AUX_VECTOR ELF_AUX_VECTOR, * ELF_AUX_VECTOR_PTR;
+	typedef ELF64_NOTE_HEADER ELF_NOTE_HEADER, * ELF_NOTE_HEADER_PTR;
+	#define ELF_R_SYM	ELF64_R_SYM
+	#define ELF_R_INFO	ELF64_R_INFO
+	#define ELF_R_TYPE	ELF64_R_TYPE
+#else
+	#error "Unsupported Architecture "ARCH
+#endif
+
+extern ELF_SYMBOL_PTR kernel_symbol_table;
+extern UINT32 kernel_symbol_table_size;
+
+extern char * kernel_string_table;
+extern UINT32 kernel_string_table_size;
+
+ERROR_CODE LoadElfImage(ELF_HEADER_PTR file_header, VIRTUAL_MAP_PTR virtual_map, char * start_symbol_name, VADDR * start_entry);
 
 #endif	/*! elf.h */
 

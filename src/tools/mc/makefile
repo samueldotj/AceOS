@@ -1,15 +1,16 @@
-#	File			:	src/tools/mc/makefile
-#	Brief			:	commands supported are: clean mkmc
+#src/tools/mc/makefile
 
 include $(ACE_ROOT)/make.conf
 
 #since we might use different cross compiler for Ace, for testing use the host's default compiler.
 CC = /usr/bin/gcc
-
 CFLAGS =   -Wall -Wno-multichar -funsigned-char -fno-leading-underscore -I $(INCLUDE)
 
+TARGET =	$(OBJ)/mkmc
+OBJS = $(patsubst %.c,%.o,$(wildcard *.c))
+
 #phony - all - make target
-all:    $(ACE_ROOT)/obj/mkmc
+all:    $(TARGET)
 
 #phony - clean - clean all object files
 clean:
@@ -17,8 +18,8 @@ clean:
 	@rm -f *.exe
 
 #how to make target
-$(ACE_ROOT)/obj/mkmc:	mkmc.c
-	$(CC) $(CFLAGS) -o $(ACE_ROOT)/obj/mkmc mkmc.c
+$(TARGET):	$(OBJS)
+	$(CC) $(CFLAGS) -o $(TARGET) mkmc.c
 
 #create .d files
 -include $(OBJS:.o=.d)

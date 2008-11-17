@@ -1,16 +1,11 @@
-#	File			:	lib/strig makefile
-#   Author			:	Samuel Jacob
-#  	Version			:	3.0
-#  	Created 		:	20-Sep-2007 18:23
-#	Last modified	:
-#	Brief			:	commands supported are: all clean 
+#lib/string/makefile
 
 include $(ACE_ROOT)/make.conf
 
 #CC = /usr/bin/gcc
 
 #objects for this library
-OBJS = $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.asm,%.o,$(wildcard *.asm))
+OBJS = $(patsubst %.c,%.o,$(wildcard *.c))
 
 #target path
 TARGET= $(OBJ)/libstring.a

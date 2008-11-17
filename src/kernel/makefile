@@ -1,35 +1,38 @@
-#	File			:	src/kernel makefile
-#	Brief			:	commands supported are: all generic clean 
+#src/kernel/makefile
 
 include $(ACE_ROOT)/make.conf
 
 #clean dirs 
-CLEAN_DIRS=	generic rtc pit acpi pic $(ARCH) $(ARCH)/debug $(ARCH)/mm $
+CLEAN_DIRS=	rtc pit acpi pic $(ARCH)
 
 #path for the output kernel
 TARGET= $(OBJ)/kernel.sys
 
-#libiraries needed to included in kernel linking
-LIBS= $(ACE_ROOT)/obj/libheap.a $(ACE_ROOT)/obj/libds.a $(ACE_ROOT)/obj/libstring.a $(ACE_ROOT)/obj/libsync.a
+#libiraries used bykernel
+LIBS= $(OBJ)/libheap.a $(OBJ)/libds.a $(OBJ)/libstring.a $(OBJ)/libsync.a
 
-#kernel object files
-DEBUG_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/debug/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/debug/*.asm))
+#static kernel modules
+STATIC_MODS= $(OBJ)/arch.a $(OBJ)/rtc.a $(OBJ)/pit.a $(OBJ)/pic.a $(OBJ)/acpi.a 
+
+#generica kernel object files
 KERNEL_OBJ = $(patsubst %.c,%.o,$(wildcard *.c))  $(patsubst %.c,%.o,$(wildcard mm/*.c)) $(patsubst %.c,%.o,$(wildcard pm/*.c))
-RTC_OBJ = $(patsubst %.c,%.o,$(wildcard rtc/*.c))
-PIT_OBJ = $(patsubst %.c,%.o,$(wildcard pit/*.c))
-PIC_OBJ = $(patsubst %.c,%.o,$(wildcard pic/*.c))
-ARCH_OBJ = $(patsubst %.c,%.o,$(wildcard $(ARCH)/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/*.asm)) $(patsubst %.c,%.o,$(wildcard $(ARCH)/mm/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/mm/*.asm)) $(patsubst %.c,%.o,$(wildcard $(ARCH)/pm/*.c)) $(patsubst %.asm,%.o,$(wildcard $(ARCH)/pm/*.asm))
-#kernel objects
-OBJS= $(KERNEL_OBJ) $(ARCH_OBJ) $(DEBUG_OBJ) $(RTC_OBJ) $(PIT_OBJ) $(PIC_OBJ) $(GENERIC_OBJ)
 
 #phony command - all - makes all object
-all:    generic $(TARGET)
+all:    $(TARGET)
 
-#phony command - generic
-generic:	always
-	@make -C generic
-	
-$(OBJ)/acpi.sys:
+$(OBJ)/arch.a:	always
+	@make -C $(ARCH)
+
+$(OBJ)/rtc.a:	always
+	@make -C rtc
+
+$(OBJ)/pit.a:	always
+	@make -C pit
+
+$(OBJ)/pic.a:	always
+	@make -C pic
+
+$(OBJ)/acpi.a:
 	echo -n "Compiling ACPI ..."
 	@make -C acpi
 
@@ -38,18 +41,19 @@ kernel_build_number:	always
 	
 #phony commmand - clean - remove all .o, .d in all directories
 clean:	always
-	@rm -f $(OBJS) $(OBJS:.o=.d)
-	@rm	-f *.o *.d  
+	@rm -f $(KERNEL_OBJ) $(KERNEL_OBJ:.o=.d)
 	@for dir in $(CLEAN_DIRS); do make -C $$dir clean; done
+	@rm -f $(STATIC_MODS)
 	@rm	-f $(TARGET)
+	
 
 #increment the build number, link the kernel and copy the kernel to image file
-$(TARGET):  kernel_build_number $(OBJS) $(OBJ)/acpi.sys
-	@$(LD) -T kernel.ld $(LDFLAGS) -o $(TARGET) $(OBJS) $(OBJ)/acpi.sys $(LIBS) -Map kernel.map
+$(TARGET):  kernel_build_number $(KERNEL_OBJ) $(STATIC_MODS)
+	@$(LD) -T kernel.ld $(LDFLAGS) -Map kernel.map -o $(TARGET) $(KERNEL_OBJ) $(STATIC_MODS)  $(LIBS)
 	@echo "New kernel is at $(TARGET)"
 	$(ACE_ROOT)/img/create_bootcd.sh
 
 #include dependency files
--include $(OBJS:.o=.d)
+-include $(KERNEL_OBJ:.o=.d)
 
 always:

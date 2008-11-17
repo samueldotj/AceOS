@@ -20,12 +20,14 @@ UINT32 limit_physical_memory=0;
 /*virtual page - avl tree*/
 #define VP_AVL_TREE(vp)	(&(vp)->free_tree.avltree)
 
-static int inline AddVirtualPageToVmFreeTree(VIRTUAL_PAGE_PTR vp, BOOLEAN check_sibling);
 static void InitVirtualPage(VIRTUAL_PAGE_PTR vp, UINT32 physical_address);
 static VIRTUAL_PAGE_PTR FindFreeVirtualPageRange(AVL_TREE_PTR free_tree, UINT32 total_pages_required);
 static inline AVL_TREE_PTR * GetVirtualPageFreeTreeFromType(enum VIRTUAL_PAGE_RANGE_TYPE vp_range_type);
 static inline AVL_TREE_PTR * GetVirtualPageFreeTreeFromPage(VIRTUAL_PAGE_PTR vp);
 static int inline DownGradePhysicalRange(enum VIRTUAL_PAGE_RANGE_TYPE vp_requested_range_type, enum VIRTUAL_PAGE_RANGE_TYPE * current_vp_range_type);
+
+static int inline AddVirtualPageToVmFreeTree(VIRTUAL_PAGE_PTR vp, BOOLEAN check_sibling);
+static void inline RemoveVirtualPageFromVmFreeTree(VIRTUAL_PAGE_PTR vp);
 
 static void AddVirtualPageToActiveLRUList(VIRTUAL_PAGE_PTR vp);
 static void AddVirtualPageToInactiveLRUList(VIRTUAL_PAGE_PTR vp);
@@ -87,10 +89,6 @@ inline VIRTUAL_PAGE_PTR GetFirstVirtualPage(VIRTUAL_PAGE_PTR vp)
 {
 	assert ( vp->free == 1 );
 	
-	/*if this page is not free then return null*/
-	if ( vp->free == 0 )
-		return NULL;
-		
 	/*if this page is not the first page*/
 	if ( vp->free_first_page )
 	{
@@ -179,7 +177,45 @@ static int inline AddVirtualPageToVmFreeTree(VIRTUAL_PAGE_PTR vp, BOOLEAN check_
 	InsertNodeIntoAvlTree( free_tree, VP_AVL_TREE(vp), 1, free_range_compare_fn );
 	return 0;
 }
-
+/*! Removes the given virtual page from the free tree.
+	\param vp - virtual page to remove the free tree
+	1) Remove the first page from vm free tree
+	2) Split the grouped pages into two - left free and right free. (vp is in center)
+	3) Add the left free(starting from first page, so just change free page count) to free tree
+	4) Create another first page which is next to vp and add it to free tree.
+		a) set all the subsequent page's first page.
+*/
+static void inline RemoveVirtualPageFromVmFreeTree(VIRTUAL_PAGE_PTR vp)
+{
+	AVL_TREE_PTR * free_tree;
+	VIRTUAL_PAGE_PTR first_vp;
+	int total_free_size, left_free_size, right_free_size;
+	
+	first_vp = GetFirstVirtualPage( vp );
+	free_tree = GetVirtualPageFreeTreeFromPage( first_vp );
+	total_free_size = first_vp->free_size;
+	left_free_size = (vp-first_vp)/sizeof(VIRTUAL_PAGE);
+	right_free_size = total_free_size - left_free_size - 1;
+	
+	RemoveNodeFromAvlTree( free_tree, VP_AVL_TREE(first_vp), 1, free_range_compare_fn );
+	if ( left_free_size > 0 )
+	{
+		first_vp->free_size = left_free_size;
+		InsertNodeIntoAvlTree( free_tree, VP_AVL_TREE(first_vp), 1, free_range_compare_fn );
+	}
+	if ( right_free_size > 0 )
+	{
+		first_vp = vp+1;
+		first_vp->free_size = right_free_size;
+		vp = first_vp + right_free_size;
+		while ( vp > first_vp )
+		{
+			vp->free_first_page = first_vp;
+			vp--;
+		}
+		InsertNodeIntoAvlTree( free_tree, VP_AVL_TREE(first_vp), 1, free_range_compare_fn );
+	}
+}
 /*! returns virtual page free tree root for a given vp_range_type
 	\param vp_range_type - virtual page range type
 	\return pointer to the root of the free tree
@@ -358,6 +394,50 @@ UINT32 FreeVirtualPages(VIRTUAL_PAGE_PTR first_vp, int pages)
 	return 0;
 }
 
+/*! Locks one or more virtual pages by removing them from the paging activity
+	\param first_vp - starting virtual pagee
+	\param pages - total pages 
+*/
+UINT32 LockVirtualPages(VIRTUAL_PAGE_PTR first_vp, int pages)
+{
+	int i;
+	
+	SpinLock( &vm_data.lock );
+	for(i=0; i< pages; i++)
+	{
+		SpinLock( &first_vp[i].lock );
+		if ( first_vp[i].free ) 
+			panic("LockVirtualPages() page is in free tree");
+		RemoveVirtualPageFromLRUList( &first_vp[i] );
+		SpinUnlock( &first_vp[i].lock );
+	}
+	SpinUnlock( &vm_data.lock );
+	
+	return 0;
+}
+/*! Reserves one or more virtual pages by removing them from the paging activity
+	This is variant of LockVirtualPages() and should be called only during Initialization of VM/kernel
+	\param first_vp - starting virtual pagee
+	\param pages - total pages 
+*/
+UINT32 ReserveVirtualPages(VIRTUAL_PAGE_PTR first_vp, int pages)
+{
+	int i;
+	SpinLock( &vm_data.lock );
+	for(i=0; i< pages; i++)
+	{
+		SpinLock( &first_vp[i].lock );
+		if ( first_vp[i].free ) 
+			RemoveVirtualPageFromVmFreeTree( &first_vp[i]  );
+		else
+			RemoveVirtualPageFromLRUList( &first_vp[i] );
+		SpinUnlock( &first_vp[i].lock );
+	}
+	SpinUnlock( &vm_data.lock );
+	
+	return 0;
+}
+
 /*! Finds the Virtual Page for a given physical address
 	\param physical_address - physical address for which virtual page to find
 	
@@ -376,7 +456,7 @@ retry:
 		for(j=0;j<memory_areas[i].physical_memory_regions_count;j++)
 		{
 			pmr = &memory_areas[i].physical_memory_regions[j];
-			if ( x)
+			if ( x )
 				kprintf("%p - %p : %p\n", pmr->start_physical_address, pmr->end_physical_address, physical_address);
 			if ( physical_address >= pmr->start_physical_address && physical_address < pmr->end_physical_address )
 			{

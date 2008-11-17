@@ -40,6 +40,7 @@
 
 #define PROT_READ					1
 #define PROT_WRITE					2
+#define PROT_EXECUTE				4
 
 /*! structure to contain VM data for a NUMA node*/
 struct vm_data
@@ -92,6 +93,8 @@ struct vm_descriptor
 	VADDR				start;				/*! start virtual address*/
 	VADDR				end;				/*! end virtual address*/
 	
+	VADDR				offset_in_unit;		/*! starting offset in the vm unit*/
+	
 	VM_PROTECTION		protection;			/*! protection for this range*/
 	
 	VM_UNIT_PTR			unit;				/*! pointer to the vm_unit*/
@@ -110,7 +113,7 @@ struct vm_unit
 	
 	SPIN_LOCK			vtop_lock;			/*! lock to protect array and page_count*/
 	VM_VTOP_PTR			vtop_array;			/*! pointer to the virtual page array*/
-	int					page_count;			/*! to pages in memory*/
+	int					page_count;			/*! total pages in memory*/
 };
 
 struct vm_vtop 
@@ -153,8 +156,10 @@ void * FindFreeVmRange(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 size, UINT32 op
 
 VM_UNIT_PTR CreateVmUnit(UINT32 type, UINT32 size);
 
-ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR preferred_start, UINT32 size, UINT32 protection, UINT32 flags);
+ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR preferred_start, UINT32 size, UINT32 protection, UINT32 flags, VM_UNIT_PTR unit);
 ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32 flags);
+
+ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, VIRTUAL_MAP_PTR dest_vmap, VADDR *dest_preferred_va, UINT32 dest_size, UINT32 protection);
 
 VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size);
 

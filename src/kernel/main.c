@@ -16,12 +16,9 @@
 #include <kernel/mm/vm.h>
 #include <kernel/apic.h>
 #include <kernel/pm/task.h>
+#include <kernel/pm/elf.h>
 
 extern int InitACPI();
-
-THREAD_CONTAINER_PTR kthread1, kthread2;
-void TestThread1();
-void TestThread2();
 
 /*! first C function which gets control from assembly */
 void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
@@ -36,7 +33,9 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	ParaseBootParameters();
 
 	kprintf( ACE_NAME"%d.%d %s\n", ACE_MAJOR, ACE_MINOR, ACE_BUILD);
-
+	if( kernel_symbol_table == NULL )
+		kprintf("Warning : Kernel symbols not found - loading of kernel modules not possible\n");
+	
 	/* Initialize virtual memory manager*/
 	InitVm();
 
@@ -51,8 +50,10 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	if ( sys_gdb_port )
 		InitGdb();
 	
+	InitBootModuleContainer();
+	
 	GetBootTime( &boot_time );
-	kprintf("Boot time: %d-%d-%d %d:%d\n", boot_time.day, boot_time.month, boot_time.year, boot_time.hour, boot_time.minute);
+	kprintf("Boot time: %02d-%02d-%02d %02d:%02d\n", boot_time.day, boot_time.month, boot_time.year, boot_time.hour, boot_time.minute);
 
 	/* Initialize architecture independent portion of processor structure*/
 	InitProcessors();
@@ -65,32 +66,8 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	
 	CompletePhysicalMemoryManagerInit();
 	
-	kthread1 = CreateThread(TestThread1, 0);
-	kthread2 = CreateThread(TestThread2, 0);
-	
 	/* Start the architecture depended timer for master processor - to enable scheduler */
-	StartTimer(SCHEDULER_DEFAULT_QUANTUM, TRUE);
+	//StartTimer(SCHEDULER_DEFAULT_QUANTUM, TRUE);
 
 	kprintf("Kernel initialization complete\n");
-}
-
-void TestThread1()
-{
-	int i=0;
-	kprintf("TestThread1 is started\n");
-	while(1)
-	{
-		kprintf("####(%d) ", i);
-		i++;
-	}
-}
-void TestThread2()
-{
-	int i=0;
-	kprintf("TestThread2 is started\n");
-	while(1)
-	{
-		kprintf("***-[%d] ", i);
-		i++;
-	}
 }

@@ -1,5 +1,4 @@
-#	File			:	src/tools/makefile
-#	Brief			:	commands supported are: ds string all clean 
+#rc/tools/makefile
 
 include $(ACE_ROOT)/make.conf
 ALL_DIRS=	mc

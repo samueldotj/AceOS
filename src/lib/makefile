@@ -1,7 +1,7 @@
-#	File			:	src makefile
-#	Brief			:	commands supported are: ds string all clean 
+#src/lib/makefile
 
 include $(ACE_ROOT)/make.conf
+
 ALL_DIRS=	string ds sync heap
 
 all:	always

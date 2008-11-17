@@ -10,7 +10,7 @@ GLOBAL trampoline_data
 GLOBAL trampoline_end
 
 [BITS 16]
-[SECTION .boot]
+[SECTION .text]
 trampoline_data:
 
 	wbinvd															; Needed for NUMA-Q should be harmless for others

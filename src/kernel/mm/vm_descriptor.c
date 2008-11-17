@@ -27,6 +27,7 @@ void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, VADDR 
 	
 	descriptor->start = start;
 	descriptor->end = end;
+	descriptor->offset_in_unit = 0;
 	
 	memmove( &descriptor->protection, protection, sizeof(VM_PROTECTION) );
 		
@@ -39,6 +40,10 @@ VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR start, VADDR en
 {
 	VM_DESCRIPTOR_PTR vd = (VM_DESCRIPTOR_PTR)kmalloc(sizeof(VM_DESCRIPTOR), KMEM_NO_FAIL);
 	InitVmDescriptor( vd, vmap, start, end, vm_unit, protection);
+	SpinLock(&vm_unit->lock);
+	vm_unit->reference_count++;
+	SpinUnlock(&vm_unit->lock);
+	vd->reference_count++;
 	return vd;
 }
 

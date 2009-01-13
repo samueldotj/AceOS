@@ -1,4 +1,4 @@
-/*! \file	kernel/i386/vga_text.h
+/*! \file	include/kernel/i386/serial.h
 	\brief	serial port read and write function declarations
 */
 #ifndef SERIAL__H

@@ -15,22 +15,11 @@
 #define __KERNEL_TRACE__
 
 #ifdef __KERNEL_TRACE__
-    #define KTRACE(msg) \
-		ktrace("%s:%d:%s(): %s\n", __FILE__ , __LINE__,__PRETTY_FUNCTION__, msg );
-
-    #define KTRACE1(format, para1) \
-		ktrace("%s:%d:%s(): "format"\n", __FILE__ , __LINE__,__PRETTY_FUNCTION__, para1);
-
-    #define KTRACE2(format, para1, para2) \
-		ktrace("%s:%d:%s(): "format"\n", __FILE__ , __LINE__,__PRETTY_FUNCTION__, para1, para2);
-
-    #define KTRACE3(format, para1, para2, para3) \
-		ktrace("%s:%d:%s(): "format"\n", __FILE__ , __LINE__,__PRETTY_FUNCTION__, para1, para2, para3);
+	#define KTRACE( ... )	\
+			ktrace("%s:%d:%s(): ", __FILE__ , __LINE__,__PRETTY_FUNCTION__ ); \
+			ktrace( __VA_ARGS__ );
 #else
     #define KTRACE(msg) 
-    #define KTRACE1(format, para1) 
-    #define KTRACE2(format, para1, para2) 
-    #define KTRACE3(format, para1, para2, para3)
 #endif
 
 

@@ -41,6 +41,9 @@ void InitArchPhase1(MULTIBOOT_INFO_PTR mbi)
 	/*redirect kprintf to vga console*/
 	kprintf_putc = VgaPrintCharacter;
 	VgaClearScreen();
+	
+	/*Initialize ktrace*/
+	InitKtrace();
 }
 
 /*! ReaD Time Stamp Counter

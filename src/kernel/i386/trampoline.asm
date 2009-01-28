@@ -14,14 +14,15 @@ GLOBAL trampoline_end
 trampoline_data:
 
 	wbinvd															; Needed for NUMA-Q should be harmless for others
+	
 	mov	ax, cs														; Code and data in the same place
 	mov	ds, ax
 	
 	shl eax, 4														;left shift the segment to get physical address
 	add eax, (KERNEL_VIRTUAL_ADDRESS - KERNEL_PHYSICAL_ADDRESS)		;convert the physical address to virtual address
-	mov esp, eax													;this code area is used as stack later
 	add eax, KSTACK_SIZE											;stack starts from bottom
-
+	mov esp, eax													;this code area is used as stack later
+	
 	cli																; We should be safe anyway
 
 	mov dword [0], 0xA5A5A5A5 										; write marker for master knows we're running

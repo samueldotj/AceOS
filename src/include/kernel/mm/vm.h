@@ -125,6 +125,27 @@ struct vm_vtop
 	};
 };
 
+/*! kernel_reserve_range - Virtual and physical address ranges reserved by kernel
+		Arch depended pmem_init routines updates the pa
+		Vm init routines uses the pa and updates the va and creates va to pa mapping
+*/
+struct kernel_reserve_range
+{
+	VADDR code_pa_start,	code_pa_end;		/* kernel text*/
+	VADDR data_pa_start,	data_pa_end;		/* kernel data*/
+	VADDR module_pa_start,	module_pa_end;		/* kernel module*/
+	VADDR symbol_pa_start,	symbol_pa_end;		/* kernel symbol table*/
+	VADDR string_pa_start,	string_pa_end;		/* kernel string table*/
+	
+	VADDR code_va_start,	code_va_end;		/* kernel text*/
+	VADDR data_va_start,	data_va_end;		/* kernel data*/
+	VADDR module_va_start, 	module_va_end;		/* kernel module*/
+	VADDR symbol_va_start, 	symbol_va_end;		/* kernel symbol table*/
+	VADDR string_va_start, 	string_va_end;		/* kernel string table*/
+	
+	VADDR kmem_va_start, 	kmem_va_end;		/* kernel malloc space*/
+};
+
 typedef enum mm_fault_type
 {
 	MM_FAULT_TYPE_NONE=0,
@@ -136,7 +157,7 @@ typedef enum mm_fault_type
 extern VM_DATA vm_data;
 extern VIRTUAL_MAP kernel_map;
 
-extern VADDR kernel_free_virtual_address;
+extern KERNEL_RESERVE_RANGE kernel_reserve_range;
 
 extern VM_PROTECTION protection_kernel_write;
 extern VM_PROTECTION protection_kernel_read;

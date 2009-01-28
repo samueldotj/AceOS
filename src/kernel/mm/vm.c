@@ -15,17 +15,15 @@ VM_DATA vm_data;
 VM_DESCRIPTOR kernel_static_code_descriptor;
 VM_DESCRIPTOR kernel_static_data_descriptor;
 
-VADDR kernel_free_virtual_address = NULL;
-
 VM_PROTECTION protection_kernel_write = {0,0,1,1};
 VM_PROTECTION protection_kernel_read = {0,0,0,1};
 VM_PROTECTION protection_user_write = {1,1,0,0};
 VM_PROTECTION protection_user_read = {0,1,0,0};
 
+KERNEL_RESERVE_RANGE kernel_reserve_range;
+
 /*from kernel.ld*/
 extern VADDR kernel_virtual_address, kernel_code_end, kernel_data_start, ebss;
-/*from arch dependent pmem*/
-extern VADDR kernel_physical_address_start;
 
 static ERROR_CODE MapKernel();
 static void InitKernelDescriptorVtoP(VM_DESCRIPTOR_PTR vd, VADDR va_start, VADDR va_end, VADDR pa_start);
@@ -34,19 +32,14 @@ static void InitKernelDescriptorVtoP(VM_DESCRIPTOR_PTR vd, VADDR va_start, VADDR
 */
 void InitVm()
 {
-	VADDR kernel_code_start_va, kernel_code_end_va, kernel_code_start_pa;
-	VADDR kernel_data_start_va, kernel_data_end_va, kernel_data_start_pa;
-	VADDR kmem_start_va, kmem_end_va;
 	VIRTUAL_PAGE_PTR vp;
-	VADDR kernel_code_size;
+	VM_UNIT_PTR vm_unit;
 	
 	/*initialize the vm_data structure*/
 	InitSpinLock(&vm_data.lock);
 	vm_data.free_tree = NULL;
-	
 	vm_data.active_list = NULL;
 	vm_data.inactive_list = NULL;
-	
 	vm_data.total_memory_pages = 0;
 	vm_data.total_free_pages = 0;
 
@@ -54,36 +47,36 @@ void InitVm()
 	InitPhysicalMemoryManagerPhaseII();
 	kprintf("Total memory: %d KB (PAGE_SIZE %d)\n", (vm_data.total_memory_pages * PAGE_SIZE) / (1024), PAGE_SIZE );
 	
-	kernel_code_start_va = (VADDR)&kernel_virtual_address;
-	kernel_code_end_va = (VADDR)&kernel_code_end;
-	kernel_code_size = PAGE_ALIGN_UP( kernel_code_end_va - kernel_code_start_va );
-	kernel_code_start_pa = kernel_physical_address_start;
+	kernel_reserve_range.code_va_start = (VADDR)&kernel_virtual_address;
+	kernel_reserve_range.code_va_end  = (VADDR)&kernel_code_end;
+	/*\todo - get this from kernel symbol table*/
+	kernel_reserve_range.code_pa_end =  kernel_reserve_range.code_pa_start + PAGE_ALIGN_UP( kernel_reserve_range.code_va_end - kernel_reserve_range.code_va_start );
 	
-	kernel_data_end_va = (VADDR)&ebss;
-	kernel_data_start_va = (VADDR)&kernel_data_start;
-	kernel_data_start_pa = kernel_code_start_pa + kernel_code_size;
+	kernel_reserve_range.data_va_start = (VADDR)&kernel_data_start;
+	kernel_reserve_range.data_va_end = (VADDR)&ebss;
+	/*\todo - get this from kernel symbol table*/
+	kernel_reserve_range.data_pa_start =  kernel_reserve_range.code_pa_end;
 
-
-	/*lock the pages used by kernel code and data - this needs to be done before initializing kmem because kmem might allocate virtual pages*/
-	vp = PhysicalToVirtualPage( kernel_code_start_pa );
+	/*lock the pages used by kernel code, 
+	this needs to be done before initializing kmem because kmem might allocate virtual pages
+	*/
+	vp = PhysicalToVirtualPage( kernel_reserve_range.code_pa_start );
 	assert( vp != NULL );
-	ReserveVirtualPages( vp, (kernel_code_end_va-kernel_code_start_va)/PAGE_SIZE ); 
-	
-	vp = PhysicalToVirtualPage( kernel_data_start_pa );
+	ReserveVirtualPages( vp, (kernel_reserve_range.code_va_end-kernel_reserve_range.code_va_start)/PAGE_SIZE ); 
+	/*lock the pages used by kernel data*/ 
+	vp = PhysicalToVirtualPage( kernel_reserve_range.data_pa_start );
 	assert( vp != NULL );
-	ReserveVirtualPages( vp, (kernel_data_end_va-kernel_data_start_va)/PAGE_SIZE ); 
-
-	/*Initialize the kernel memory allocator*/
-	kmem_start_va = kernel_free_virtual_address;
-	InitKmem(kernel_free_virtual_address);
-	kmem_end_va = kernel_free_virtual_address;
+	ReserveVirtualPages( vp, (kernel_reserve_range.data_va_end-kernel_reserve_range.data_va_start)/PAGE_SIZE ); 
 	
-	/*map the kernel text, data*/
-	MapKernel(kernel_code_start_va, kernel_code_end_va, kernel_code_start_pa, kernel_code_size, kernel_data_start_va, kernel_data_end_va, kernel_data_start_pa, kmem_start_va, kmem_end_va);
+	/*Initialize the kernel memory allocator */
+	InitKmem();
+	
+	/*map the kernel text, data - uses kmalloc() so do it after InitKmem()*/
+	MapKernel();
 
 	/*map kmem*/
-	VM_UNIT_PTR vm_unit = CreateVmUnit( 0, kmem_end_va-kmem_start_va);
-	CreateVmDescriptor(&kernel_map, kmem_start_va, kmem_end_va, vm_unit, &protection_kernel_write);
+	vm_unit = CreateVmUnit( 0, kernel_reserve_range.kmem_va_end - kernel_reserve_range.kmem_va_start);
+	CreateVmDescriptor(&kernel_map, kernel_reserve_range.kmem_va_start, kernel_reserve_range.kmem_va_end, vm_unit, &protection_kernel_write);
 }
 
 /*! Updates the kernel virtual map data structures.
@@ -91,29 +84,45 @@ void InitVm()
 		2) Maps static kernel data 
 		3) Maps kmem
 */
-static ERROR_CODE MapKernel(VADDR kernel_code_start_va, VADDR kernel_code_end_va, VADDR kernel_code_start_pa, VADDR kernel_code_size,
-						VADDR kernel_data_start_va, VADDR kernel_data_end_va, VADDR kernel_data_start_pa,
-						VADDR kmem_start_va, VADDR kmem_end_va)
+static ERROR_CODE MapKernel()
 {
 	VM_UNIT_PTR vm_unit;
 	VM_DESCRIPTOR_PTR vd;
 	
 	kernel_map.physical_map = &kernel_physical_map;
-	kernel_map.start = kernel_code_start_va;
-	kernel_map.end = kmem_end_va;
+	kernel_map.start = kernel_reserve_range.code_va_start;
+	kernel_map.end = kernel_reserve_range.kmem_va_end;
 	
-	/*map code and data*/
-	vm_unit = CreateVmUnit( 0, kernel_code_size);
-	InitVmDescriptor( &kernel_static_code_descriptor, &kernel_map, kernel_code_start_va, kernel_code_end_va, vm_unit, &protection_kernel_read);
-	InitKernelDescriptorVtoP(&kernel_static_code_descriptor, kernel_code_start_va, kernel_code_end_va, kernel_code_start_pa);
-	vm_unit = CreateVmUnit( 0, kernel_data_end_va-kernel_data_start_va);
-	InitVmDescriptor( &kernel_static_data_descriptor, &kernel_map, kernel_data_start_va, kernel_data_end_va, vm_unit, &protection_kernel_write);
-	InitKernelDescriptorVtoP(&kernel_static_data_descriptor, kernel_data_start_va, kernel_data_end_va, kernel_data_start_pa);
+	/*map kernel code*/
+	vm_unit = CreateVmUnit( 0, kernel_reserve_range.code_va_end - kernel_reserve_range.code_va_start);
+	InitVmDescriptor( &kernel_static_code_descriptor, &kernel_map, kernel_reserve_range.code_va_start, kernel_reserve_range.code_va_end, vm_unit, &protection_kernel_read);
+	InitKernelDescriptorVtoP(&kernel_static_code_descriptor, kernel_reserve_range.code_va_start, kernel_reserve_range.code_va_end, kernel_reserve_range.code_pa_start);
+	
+	/*map kernel data*/
+	vm_unit = CreateVmUnit( 0, kernel_reserve_range.data_va_end - kernel_reserve_range.data_va_start);
+	InitVmDescriptor( &kernel_static_data_descriptor, &kernel_map, kernel_reserve_range.data_va_start, kernel_reserve_range.data_va_end, vm_unit, &protection_kernel_write);
+	InitKernelDescriptorVtoP(&kernel_static_data_descriptor, kernel_reserve_range.data_va_start, kernel_reserve_range.data_va_end, kernel_reserve_range.data_pa_start);
 	
 	/*map modules*/
-	vm_unit = CreateVmUnit( 0, multiboot_module_va_end-multiboot_module_va_start);
-	vd = CreateVmDescriptor(&kernel_map, multiboot_module_va_start, multiboot_module_va_end, vm_unit, &protection_kernel_write);
-	InitKernelDescriptorVtoP(vd, multiboot_module_va_start, multiboot_module_va_end, multiboot_module_pa_start );
+	vm_unit = CreateVmUnit( 0, kernel_reserve_range.module_va_end - kernel_reserve_range.module_va_start );
+	vd = CreateVmDescriptor(&kernel_map, kernel_reserve_range.module_va_start, kernel_reserve_range.module_va_end, vm_unit, &protection_kernel_write);
+	InitKernelDescriptorVtoP(vd, kernel_reserve_range.module_va_start, kernel_reserve_range.module_va_end, kernel_reserve_range.module_pa_start );
+
+	/*map symbol table*/
+	if ( kernel_reserve_range.symbol_pa_start )
+	{
+		vm_unit = CreateVmUnit( 0, kernel_reserve_range.symbol_va_end - kernel_reserve_range.symbol_va_start );
+		vd = CreateVmDescriptor(&kernel_map, kernel_reserve_range.symbol_va_start, kernel_reserve_range.symbol_va_end, vm_unit, &protection_kernel_write);
+		InitKernelDescriptorVtoP(vd, kernel_reserve_range.symbol_va_start, kernel_reserve_range.symbol_va_end, kernel_reserve_range.symbol_pa_start );
+	}
+	
+	/*map string table*/
+	if ( kernel_reserve_range.string_pa_start )
+	{
+		vm_unit = CreateVmUnit( 0, kernel_reserve_range.string_va_end - kernel_reserve_range.string_va_start );
+		vd = CreateVmDescriptor(&kernel_map, kernel_reserve_range.string_va_start, kernel_reserve_range.string_va_end, vm_unit, &protection_kernel_write);
+		InitKernelDescriptorVtoP(vd, kernel_reserve_range.string_va_start, kernel_reserve_range.string_va_end, kernel_reserve_range.string_pa_start );	
+	}
 
 	/*todo update all the pages in the vtoparray*/
 	

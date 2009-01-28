@@ -17,12 +17,9 @@ extern UINT32 ebss, kernel_code_start;
 
 #define BOOT_ADDRESS(addr)	(((UINT32)addr - KERNEL_VIRTUAL_ADDRESS_TEXT_START)+KERNEL_PHYSICAL_ADDRESS_LOAD )
 
-static UINT32 InitMemoryArea(UINT32 kernel_start, UINT32 kernel_end, UINT32 mb_module_start, UINT32 mb_module_end, 
-							UINT32 kernel_symbol_table_start, UINT32 kernel_symbol_table_end, UINT32 kernel_string_table_start, UINT32 kernel_string_table_end,
-							MEMORY_AREA_PTR ma_pa, MULTIBOOT_MEMORY_MAP_PTR memory_map_array, int memory_map_count);
+static UINT32 InitMemoryArea(MEMORY_AREA_PTR ma_pa, MULTIBOOT_MEMORY_MAP_PTR memory_map_array, int memory_map_count);
 static void * GetFreePhysicalPage();
-static void InitKernelPageDirectory(UINT32 k_map_end, UINT32 mb_module_start, UINT32 mb_module_end,
-									UINT32 kernel_symbol_table_start, UINT32 kernel_symbol_table_end, UINT32 kernel_string_table_start, UINT32 kernel_string_table_end);
+static void InitKernelPageDirectory();
 static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa);
 
 /*the following contains where kernel code/data physical address start and end*/
@@ -34,23 +31,23 @@ VADDR kernel_physical_address_start=KERNEL_PHYSICAL_ADDRESS_LOAD, kernel_physica
  */
 void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 {
-	UINT32 vpa_size;
-	UINT32 kernel_start = PAGE_ALIGN (  BOOT_ADDRESS(&kernel_code_start) ), kernel_end = PAGE_ALIGN_UP (  BOOT_ADDRESS(&ebss) );
-	UINT32 mb_module_start =0, mb_module_end = 0;
 	ELF32_SECTION_HEADER_PTR symbol_table_header, string_table_header;
-		
+	
 	if ( magic != MULTIBOOT_BOOTLOADER_MAGIC )
 		return;/*we will panic in main()*/
 		
 	/* get physical address of the memory area - currently no NUMA support for i386*/
-	* ((int *)BOOT_ADDRESS ( &memory_area_count ) )  = 1;
+	*((int *)BOOT_ADDRESS ( &memory_area_count ) ) = 1;
+	
+	*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.code_pa_start ) ) = PAGE_ALIGN (  BOOT_ADDRESS(&kernel_code_start) );
+	*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.code_pa_end ) ) = PAGE_ALIGN_UP (  BOOT_ADDRESS(&ebss) );
 	
 	/* calculate the address range occupied by kernel modules */
 	if ( mbi->flags & MB_FLAG_MODS )
 	{
 		MULTIBOOT_MODULE_PTR mod = (MULTIBOOT_MODULE_PTR)mbi->mods_addr;
-		mb_module_start = mod->mod_start;
-		mb_module_end = PAGE_ALIGN_UP( mod->mod_end );
+		* ((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_start ) ) = mod->mod_start;
+		* ((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_end ) ) = PAGE_ALIGN_UP( mod->mod_end );
 	}
 	/* calculate the address range occupied by kernel symbol table*/
 	if ( mbi->flags & MB_FLAG_ELF )
@@ -70,23 +67,97 @@ void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi
 					if ( string_table_header->sh_type != SHT_STRTAB )
 						string_table_header = NULL;
 				}
-				else /*use the section header supplied string table*/
+				/*if we couldnt find a string table, use the section header supplied string table*/
+				if ( string_table_header == NULL )
 					string_table_header = &sh[mbi->elf_sec.shndx];
 				
 				/*done so break the loop*/
 				break;
 			}
 		}
+		/*if symbol table found update it in the global data structure*/
+		if( symbol_table_header )
+		{
+			* ((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.symbol_pa_start ) ) = symbol_table_header->sh_addr;
+			* ((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.symbol_pa_end ) ) = ((UINT32)symbol_table_header->sh_addr)+symbol_table_header->sh_size;	
+		}
+		/*if string table found update it in the global data structure*/
+		if( string_table_header )
+		{
+			* ((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_start ) ) = string_table_header->sh_addr;
+			* ((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_end ) ) = ((UINT32)string_table_header->sh_addr)+string_table_header->sh_size;
+		}
 	}
-	vpa_size = InitMemoryArea(kernel_start, kernel_end, mb_module_start, mb_module_end, 
-								(UINT32)symbol_table_header->sh_addr, ((UINT32)symbol_table_header->sh_addr)+symbol_table_header->sh_size, (UINT32)string_table_header->sh_addr, ((UINT32)string_table_header->sh_addr)+string_table_header->sh_size, 
-								(MEMORY_AREA_PTR) BOOT_ADDRESS(memory_areas), (MULTIBOOT_MEMORY_MAP_PTR)mbi->mmap_addr,  mbi->mmap_length / sizeof(MULTIBOOT_MEMORY_MAP) );
+	/*Initialize the memory area - calculate virtual page array*/
+	InitMemoryArea((MEMORY_AREA_PTR) BOOT_ADDRESS(memory_areas), (MULTIBOOT_MEMORY_MAP_PTR)mbi->mmap_addr,  mbi->mmap_length / sizeof(MULTIBOOT_MEMORY_MAP) );
 	
-	InitKernelPageDirectory( PAGE_ALIGN_UP(&ebss), mb_module_start, mb_module_end, (UINT32)symbol_table_header->sh_addr, ((UINT32)symbol_table_header->sh_addr)+symbol_table_header->sh_size, (UINT32)string_table_header->sh_addr, ((UINT32)string_table_header->sh_addr)+string_table_header->sh_size );
+	/*Initialize kernel page directory and start paging*/
+	InitKernelPageDirectory();
 }
 
-#define CALCULATE_USEABLE_PA_START(pa, pmr, min) if ( pa >= pmr->start_physical_address && pa <= pmr->end_physical_address && pa < min ) min = pa;
-#define CALCULATE_USEABLE_END(pa, pmr, max) if ( pa >= pmr->start_physical_address && pa <= pmr->end_physical_address && pa > max ) max = pa;
+/*! Finds limit for virtual page array from both start and end
+	VPA can be placed in either starting of a PMR or at end of a PMR
+	
+	VPA placement is based on the already used memory (used by bios/kernel symbols..) inside the pmr.
+	
+	Eg:
+	In the following diagram 
+		"#" denotes virtual pages
+		"x" denotes physical pages managed by virtual pages
+	
+	1) VPA Placed at the beginning of a PMR:
+	|PMR Start														PMR End |
+	-------------------------------------------------------------------------
+	|###############|xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx		
+	VPA Start		VPA End
+	
+	2) VPA Placed at the end of a PMR:
+	|PMR Start														PMR End |
+	-------------------------------------------------------------------------
+	xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx|###############|		
+															VPA Start		VPA End
+
+	\param pmr - physical memory region
+	\param used_start - Starting address of a already used range
+	\param used_end - Ending address of a already used range
+	\param vpa_end_from_start - in/out param - Updated with the maximum possible unused address from start of pmr
+	\param vpa_start_from_end - in/out param - Updated with the maximum possible unused address from end of pmr
+*/
+static void FindLimitForVpa(PHYSICAL_MEMORY_REGION_PTR pmr, UINT32 used_start, UINT32 used_end, UINT32 * vpa_end_from_start, UINT32 * vpa_start_from_end)
+{
+	/*case 1 - entire range used - we dont have any unused memory*/
+	if ( used_start <= pmr->start_physical_address && used_end >= pmr->end_physical_address )
+	{
+		* vpa_end_from_start = pmr->start_physical_address;
+		* vpa_start_from_end = pmr->end_physical_address;
+	}
+	/*case 2 - used range starts below the unused range and ends before pmr end - we have some unused memory in the end*/
+	else if ( used_start <= pmr->start_physical_address && ( used_end > pmr->start_physical_address && used_end < pmr->end_physical_address ) )
+	{
+		* vpa_end_from_start = pmr->start_physical_address;
+		if ( *vpa_start_from_end < used_end )
+			*vpa_start_from_end = used_end;
+	}
+	/*case 3 - used range is somewhere in the pmr -	we have unused memory in either side
+	*/
+	else if ( used_start > pmr->start_physical_address && used_end < pmr->end_physical_address  )
+	{
+		/*find max space useable at the start*/
+		if ( *vpa_end_from_start > used_start )
+			*vpa_end_from_start = used_start;
+		
+		/*find max space useable at the end*/
+		if ( *vpa_start_from_end < used_end )
+			*vpa_start_from_end = used_end;
+	}
+	/*case 4 - used range starts some where inside the pmr range and spans beyond the pmr end - we have unused memory in the beginning*/
+	else if ( (used_start > pmr->start_physical_address && used_start < pmr->end_physical_address)  && used_end > pmr->end_physical_address )
+	{
+		* vpa_start_from_end = pmr->end_physical_address;
+		if ( *vpa_end_from_start > used_start )
+			*vpa_end_from_start = used_start;
+	}
+}
 
 /*! Intializes the memory area information - Helper function for InitPhysicalMemoryManagerPhaseI
  * \param ma_pa - pointer to memory area to initialize
@@ -94,12 +165,9 @@ void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi
  * \param memory_map_count - total memory maps in the system
  * \return size of all virtual page array in bytes
  */
-static UINT32 InitMemoryArea(UINT32 kernel_start, UINT32 kernel_end, UINT32 mb_module_start, UINT32 mb_module_end, 
-							UINT32 kernel_symbol_table_start, UINT32 kernel_symbol_table_end, UINT32 kernel_string_table_start, UINT32 kernel_string_table_end,
-							MEMORY_AREA_PTR ma_pa, MULTIBOOT_MEMORY_MAP_PTR memory_map_array, int memory_map_count)
+static UINT32 InitMemoryArea(MEMORY_AREA_PTR ma_pa, MULTIBOOT_MEMORY_MAP_PTR memory_map_array, int memory_map_count)
 {
 	UINT32 total_size = 0;	/*total bytes occupied by virtual page array*/
-	UINT32 virtual_page_array_start, virtual_page_array_end;
 	int i;
 	
 	ma_pa->physical_memory_regions_count = 0;
@@ -139,38 +207,40 @@ static UINT32 InitMemoryArea(UINT32 kernel_start, UINT32 kernel_end, UINT32 mb_m
 				/*adjust total_virtual_pages*/
 				total_virtual_pages = (region_size - virtual_page_array_size) / PAGE_SIZE;
 				
-				/*this physical address will be converted into virtual address by InitKernelPagediretory()*/
-				pmr_pa->virtual_page_array = (VIRTUAL_PAGE_PTR)pmr_pa->start_physical_address; 
-				virtual_page_array_start = pmr_pa->start_physical_address;
-				virtual_page_array_end = pmr_pa->start_physical_address + virtual_page_array_size;
+				usable_pa_start = pmr_pa->end_physical_address;
+				usable_pa_end = pmr_pa->start_physical_address;
+				
+				FindLimitForVpa( pmr_pa, *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.code_pa_start )), *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.code_pa_end )), &usable_pa_start, &usable_pa_end);
+				FindLimitForVpa( pmr_pa, *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_start )), *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_end )), &usable_pa_start, &usable_pa_end);
+				FindLimitForVpa( pmr_pa, *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.symbol_pa_start )), *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.symbol_pa_end )), &usable_pa_start, &usable_pa_end);
+				FindLimitForVpa( pmr_pa, *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_start )), *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_end )), &usable_pa_start, &usable_pa_end);
 				
 				/*assume virutal page array will be placed at the beginning of the memory area and calculate its(vpa's) end address*/
 				vpa_end_from_start = pmr_pa->start_physical_address + virtual_page_array_size;
 				/*assume virutal page array will be placed at the end of the memory area and calculate its(vpa's) start address*/
 				vpa_start_from_end = pmr_pa->end_physical_address - virtual_page_array_size;
-				
-				usable_pa_start = pmr_pa->start_physical_address;
-				CALCULATE_USEABLE_PA_START( kernel_start, pmr_pa, usable_pa_start );
-				CALCULATE_USEABLE_PA_START( mb_module_start, pmr_pa, usable_pa_start );
-				CALCULATE_USEABLE_PA_START( kernel_symbol_table_start, pmr_pa, usable_pa_start );
-				CALCULATE_USEABLE_PA_START( kernel_string_table_start, pmr_pa, usable_pa_start );
-				
-				usable_pa_end = pmr_pa->start_physical_address;
-				CALCULATE_USEABLE_END( kernel_end, pmr_pa, usable_pa_end );
-				CALCULATE_USEABLE_END( mb_module_end, pmr_pa, usable_pa_end );
-				CALCULATE_USEABLE_END( kernel_symbol_table_end, pmr_pa, usable_pa_end );
-				CALCULATE_USEABLE_END( kernel_string_table_end, pmr_pa, usable_pa_end );
-					
-				if( vpa_end_from_start < usable_pa_start ) /*virtual page array is at the beginning of the region*/
-					pmr_pa->start_physical_address = ((UINT32)pmr_pa->virtual_page_array) + virtual_page_array_size;
-				else if ( vpa_start_from_end > usable_pa_end ) /*virtual page array is at the end of the region*/
+
+				/*Assign starting physical address of virtual page array.
+				  This physical address will be converted into virtual address by InitKernelPagediretory()
+				*/
+				if( vpa_end_from_start < usable_pa_start ) 
 				{
+					/*virtual page array is at the beginning of the region*/
+					pmr_pa->virtual_page_array = (VIRTUAL_PAGE_PTR)pmr_pa->start_physical_address; 
+					pmr_pa->start_physical_address = pmr_pa->start_physical_address + virtual_page_array_size;
+				}
+					
+				else if ( vpa_start_from_end > usable_pa_end ) 
+				{
+					/*virtual page array is at the end of the region*/
 					pmr_pa->virtual_page_array = (VIRTUAL_PAGE_PTR)vpa_start_from_end;
 					pmr_pa->end_physical_address = pmr_pa->start_physical_address + (total_virtual_pages * PAGE_SIZE);
 				}
-				else /*not enough space for virtual page array*/
+				else 
+				{
+					/*not enough space for virtual page array*/
 					pmr_pa->type = PMEM_TYPE_RESERVED;
-					
+				}
 				pmr_pa->virtual_page_count = total_virtual_pages;
 				
 				total_size += virtual_page_array_size;
@@ -187,7 +257,7 @@ static void * GetFreePhysicalPage()
 {
 	int i;
 	MEMORY_AREA_PTR ma_pa;
-	ma_pa = (MEMORY_AREA_PTR)BOOT_ADDRESS ( &memory_areas[0] );
+	ma_pa = (MEMORY_AREA_PTR)BOOT_ADDRESS( memory_areas );
 	
 	for(i=ma_pa->physical_memory_regions_count-1; i >= 0 ; i--)
 	{
@@ -235,57 +305,57 @@ static void * GetFreePhysicalPage()
 	2) Set the control registers( CR3 and CR4) 
 	3) Returns the correct value of CR0 in EAX register.
 */
-static void InitKernelPageDirectory(UINT32 k_map_end, UINT32 mb_module_start, UINT32 mb_module_end,
-									UINT32 kernel_symbol_table_start, UINT32 kernel_symbol_table_end, UINT32 kernel_string_table_start, UINT32 kernel_string_table_end)
+static void InitKernelPageDirectory()
 {
 	int i;
 	UINT32 * k_page_dir = (UINT32 *)BOOT_ADDRESS( kernel_page_directory );
-	UINT32 va, physical_address, end_physical_address;
+	UINT32 va, physical_address, end_physical_address, module_start, kernel_symbol_table_start, kernel_string_table_start;
 	MEMORY_AREA_PTR ma_pa;
 	
 	/*initialize all kernel pages as invalid*/
 	for(i=0; i<PAGE_DIRECTORY_ENTRIES; i++)
 		k_page_dir[i]=0;
 
-	/*	Enter mapping indentity mapping 0 - kernel end 
-		and also enter mapping for VA 3GB to physical 0-kernel end
+	/*	Enter mapping indentity mapping 0 - kernel end (code/data)
+		and also enter mapping for VA 3GB to physical 0-kernel end(code/data)
 	*/
 	va = KERNEL_VIRTUAL_ADDRESS_START;
 	physical_address = 0;
-	end_physical_address = BOOT_ADDRESS( k_map_end );
+	end_physical_address = *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.code_pa_end ));
 	do
 	{
-		//identity map
+		/*identity map*/
 		EnterKernelPageTableEntry(physical_address, physical_address);
-		//kernel code/data and also below 0 MB mapping
+		/*kernel code/data and also below 0 MB mapping*/
 		EnterKernelPageTableEntry(va, physical_address);
 		physical_address += PAGE_SIZE;
 		va += PAGE_SIZE;
 	}while( physical_address < end_physical_address );
 		
 	/* Enter mapping for kernel modules*/
-	if ( mb_module_start )
+	module_start = *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_start));
+	if ( module_start )
 	{
-		physical_address = mb_module_start;
-		end_physical_address = mb_module_end;
-		*((VADDR *)BOOT_ADDRESS( &multiboot_module_va_start ) ) = va;
-		*((VADDR *)BOOT_ADDRESS( &multiboot_module_pa_start ) ) = physical_address;
+		physical_address = module_start;
+		end_physical_address = *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_end));;
+		*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_va_start ) ) = va;
 		do
 		{
 			EnterKernelPageTableEntry(va, physical_address);
 			physical_address += PAGE_SIZE;
 			va += PAGE_SIZE;
 		}while( physical_address < end_physical_address );
-		*((VADDR *)BOOT_ADDRESS( &multiboot_module_va_end ) ) = va;
+		*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_va_end ) ) = va;
 	}
 	/* Enter mapping for kernel symbol table*/
+	kernel_symbol_table_start = *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.symbol_pa_start));
 	if ( kernel_symbol_table_start )
 	{
 		/*kernel symbol table may not page aligned address, so correct va*/
-		* ((VADDR *)BOOT_ADDRESS ( &kernel_symbol_table ) ) = va + (kernel_symbol_table_start-PAGE_ALIGN(kernel_symbol_table_start));
-		* ((UINT32 *)BOOT_ADDRESS ( &kernel_symbol_table_size ) ) = kernel_symbol_table_end - kernel_symbol_table_start;
+		* ((VADDR *)BOOT_ADDRESS ( &kernel_reserve_range.symbol_va_start ) ) = va + (kernel_symbol_table_start-PAGE_ALIGN(kernel_symbol_table_start));
+		* ((UINT32 *)BOOT_ADDRESS ( &kernel_reserve_range.symbol_va_end ) ) += va;
 		physical_address = kernel_symbol_table_start;
-		end_physical_address = kernel_symbol_table_end;
+		end_physical_address = * ((UINT32 *)BOOT_ADDRESS ( &kernel_reserve_range.symbol_pa_end ) );
 		do
 		{
 			EnterKernelPageTableEntry(va, physical_address);
@@ -294,13 +364,14 @@ static void InitKernelPageDirectory(UINT32 k_map_end, UINT32 mb_module_start, UI
 		}while( physical_address < end_physical_address );
 	}
 	/* Enter mapping for kernel string table*/
-	if ( kernel_symbol_table_start )
+	kernel_string_table_start = *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_start));
+	if ( kernel_string_table_start )
 	{
 		/*kernel symbol table may not page aligned address, so correct va*/
-		* ((VADDR *)BOOT_ADDRESS ( &kernel_string_table ) ) = va + (kernel_string_table_start-PAGE_ALIGN(kernel_string_table_start));
-		* ((UINT32 *)BOOT_ADDRESS ( &kernel_string_table_size ) ) = kernel_string_table_end - kernel_string_table_start;
+		*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_va_start)) = va + (kernel_string_table_start-PAGE_ALIGN(kernel_string_table_start));
+		*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_va_end)) += va;
 		physical_address = kernel_string_table_start;
-		end_physical_address = kernel_string_table_end;
+		end_physical_address = *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_end));;
 		do
 		{
 			EnterKernelPageTableEntry(va, physical_address);
@@ -331,7 +402,8 @@ static void InitKernelPageDirectory(UINT32 k_map_end, UINT32 mb_module_start, UI
 		}
 	}
 	
-	*((UINT32 *)BOOT_ADDRESS( &kernel_free_virtual_address ) ) = va;
+	/*Update the kernel free VA start address*/
+	*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.kmem_va_start ) ) = va;
 	
 	/*self mapping*/
 	k_page_dir[PT_SELF_MAP_INDEX] = ((UINT32)k_page_dir) | KERNEL_PTE_FLAG;
@@ -357,7 +429,7 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 	pd_index = PAGE_DIRECTORY_ENTRY_INDEX(va);
 	pt_index = PAGE_TABLE_ENTRY_INDEX(va);
 	
-	//if we dont have a page table, create it
+	/*if we dont have a page table, create it*/
 	if ( !k_page_dir[ pd_index ].present )
 	{
 		UINT32 pa = (UINT32)GetFreePhysicalPage();
@@ -369,11 +441,11 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 	}
 	else
 	{
-		//get the page table address
+		/*get the page table address*/
 		page_table = (PAGE_TABLE_ENTRY_PTR) ( PFN_TO_PA(k_page_dir[ pd_index ].page_table_pfn) ) ;
 	}
 	
-	//enter pte in the page table.
+	/*enter pte in the page table.*/
 	if ( !page_table[ pt_index ].present )
 	{
 		page_table[pt_index].all = KERNEL_PTE_FLAG;

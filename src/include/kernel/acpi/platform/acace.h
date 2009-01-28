@@ -146,7 +146,7 @@
 #define ACPI_SPINLOCK               SPIN_LOCK_PTR
 
 typedef UINT32 FILE;
-#define vfprintf(file, fmt, args)	_doprint( fmt, kprintf_putc, args)
+#define vfprintf(file, fmt, args)	_doprint( fmt, kprintf_putc, file, args)
 #define ACPI_FLUSH_CPU_CACHE()		FlushCpuCache(TRUE);
 
 #else /* !__KERNELBUILT__ */

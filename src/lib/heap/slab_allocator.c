@@ -43,7 +43,7 @@ static SLAB_ALLOCATOR_METADATA slab_alloactor_metadata;
 /*! get the start of slab from slab metadata addresss */
 #define SLAB_START(slab_metadata_ptr, cache_ptr)	( ((UINT32)slab_metadata_ptr) - cache_ptr->slab_metadata_offset )
 
-static void InitSlab(SLAB_PTR s, UINT32 buffer_count);
+static void InitSlab(SLAB_PTR slab_ptr, CACHE_PTR cache_ptr);
 static int AllocateSlabToCache(CACHE_PTR cache_ptr, int immediate_use);
 static VADDR GetFreeBufferFromCache(CACHE_PTR cache_ptr);
 static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr );
@@ -246,23 +246,29 @@ static SLAB_PTR SearchBufferInTree( VADDR buffer, CACHE_PTR cache_ptr )
 /*!
  *	\brief					Initializes the contents of a slab.
  *	\param	slab_ptr		Pointer to slab that has to be initialized.
- *	\param	buffer_count	Count of buffers in this slab. 
+ *	\param	cache_ptr		Pointer to cache
  *	\retval void 			No return value.
  */
-static void InitSlab(SLAB_PTR slab_ptr, UINT32 buffer_count)
+static void InitSlab(SLAB_PTR slab_ptr, CACHE_PTR cache_ptr)
 {
 	int nbytes;
+	char * buffer;
+	int i;
 	/*! Iinitialize the tree and list */
 	InitList( &(slab_ptr->partially_free_list) );
 	InitAvlTreeNode( &(slab_ptr->in_use_tree), 0);
 	InitList( &(slab_ptr->completely_free_list) );
 	
-	/*!	\todo	Call the constructor on each buffer */
-	
+	/*!	Call the constructor on each buffer */
+	buffer = (char *)SLAB_START(slab_ptr, cache_ptr);
+	for(i=0; i<cache_ptr->slab_buffer_count; i++, buffer += cache_ptr->buffer_size)
+		if ( cache_ptr->constructor )
+			cache_ptr->constructor( buffer );
+		
 	/*!	All buffers are free */
 	slab_ptr->used_buffer_count = 0;
-	nbytes = buffer_count / BITS_PER_BYTE;
-	if ( buffer_count % BITS_PER_BYTE )
+	nbytes = cache_ptr->slab_buffer_count / BITS_PER_BYTE;
+	if ( cache_ptr->slab_buffer_count % BITS_PER_BYTE )
 	{
 		nbytes++;
 	}
@@ -386,7 +392,6 @@ int InitSlabAllocator(UINT32 page_size, void * (*v_alloc)(int size),
 	VM_PROTECT = v_protect;
 	return 0;
 }
-
 
 /*!
  *	\brief							Initializes an empty cache of specified buffer size.
@@ -524,7 +529,7 @@ int AddSlabToCache(CACHE_PTR cache_ptr, VADDR slab_start)
 	
 	/*!	Calculate the correct slab meta data and initialize it */
 	slab_ptr = (SLAB_PTR) (slab_start + cache_ptr->slab_metadata_offset);
-	InitSlab(slab_ptr, cache_ptr->slab_buffer_count);
+	InitSlab(slab_ptr, cache_ptr);
 	
 	ManageSlabStateTransition( cache_ptr, slab_ptr, SLAB_STATE_NEW, SLAB_STATE_FREE );
 	

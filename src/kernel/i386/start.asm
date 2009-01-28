@@ -9,6 +9,9 @@ GLOBAL SecondaryCPUEntry
 EXTERN SetupExceptionStubs
 EXTERN SetupInterruptStubs
 
+EXTERN idtp
+EXTERN gp
+
 [SECTION .boot]
 [BITS 32]
 ;multiboot header
@@ -105,6 +108,12 @@ SecondaryCPUEntry:
 	mov eax, .2
 	jmp eax
 .2:
+	
+	;load the Global Descriptor Table into GDTR
+	lidt [ds:idtp]
+	;load the Interrupt descriptor table into IDTR
+	lgdt [ds:gp]				
+	
 	call SecondaryCpuStart
 	
 	;endless loop should not be reached.

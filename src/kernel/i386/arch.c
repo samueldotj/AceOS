@@ -4,6 +4,7 @@
 */
 #include <ace.h>
 #include <kernel/arch.h>
+#include <kernel/parameter.h>
 #include <kernel/module.h>
 #include <kernel/i386/vga_text.h>
 #include <kernel/i386/gdt.h>
@@ -29,6 +30,11 @@ UINT16 master_processor_id = 0;
 */
 UINT32 cpu_frequency = 0;
 
+void kprint_vga(void * arg, char ch)
+{
+	VgaPrintCharacter(ch);
+}
+
 /*! Initializes printf and corrects kenrel command line during early boot
 	\param mbi - multiboot information passed by multiboot loader(grub)
 */
@@ -39,7 +45,7 @@ void InitArchPhase1(MULTIBOOT_INFO_PTR mbi)
 		sys_kernel_cmd_line = (char *)BOOT_TO_KERNEL_ADDRESS(mbi->cmdline);
 		
 	/*redirect kprintf to vga console*/
-	kprintf_putc = VgaPrintCharacter;
+	kprintf_putc = kprint_vga;
 	VgaClearScreen();
 	
 	/*Initialize ktrace*/
@@ -152,8 +158,11 @@ void SecondaryCpuStart()
 	/*! enable interrupts*/
 	asm volatile("sti");
 	
-	/* Start the architecture depended timer for master processor - to enable scheduler */
-	StartTimer(SCHEDULER_DEFAULT_QUANTUM, TRUE);
+	/* Install interrupt handler for the LAPIC timer*/
+	InstallInterruptHandler( LOCAL_TIMER_VECTOR_NUMBER-32, LapicTimerHandler, 0);
+		
+	/* Start the architecture depended timer for secondary processor - to enable scheduler */
+	//StartTimer(SCHEDULER_DEFAULT_QUANTUM, TRUE);
 	
 	kprintf("Secondary CPU %d is started\n", processor_id);
 }

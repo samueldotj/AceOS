@@ -32,21 +32,28 @@ static void idle_thread_function();
  */
 static void SwapPriorityQueues(PRIORITY_QUEUE_PTR pqueue_low , PRIORITY_QUEUE_PTR pqueue_high)
 {
-	UINT8 *plow, *phigh;
-
 	assert( pqueue_low != NULL && pqueue_high != NULL );
 
-	plow = &pqueue_low->priority;
-	phigh = &pqueue_high->priority;
-
-	pqueue_low->ready_queue->priority_queue[*plow] = pqueue_high;
-	pqueue_high->ready_queue->priority_queue[*phigh] = pqueue_low;
+	/*! update the ready queue pointers */
+	pqueue_low->ready_queue->priority_queue[pqueue_low->priority] = pqueue_high;
+	pqueue_high->ready_queue->priority_queue[pqueue_high->priority] = pqueue_low;
 
 	/*! Swap priority */
-	SWAP( *plow, *phigh, UINT8 );
+	SWAP( pqueue_low->priority, pqueue_high->priority, UINT8 );
 	
 	/* Swap time_slice */
 	SWAP( pqueue_low->time_slice, pqueue_high->time_slice, UINT8 );
+	
+	/*update the bit masks */
+	if ( pqueue_low->thread_head )
+		SetBitInBitArray(&pqueue_low->ready_queue->mask, pqueue_low->priority);
+	else
+		ClearBitInBitArray(&pqueue_low->ready_queue->mask, pqueue_low->priority);
+	
+	if ( pqueue_high->thread_head )
+		SetBitInBitArray(&pqueue_high->ready_queue->mask, pqueue_high->priority);
+	else
+		ClearBitInBitArray(&pqueue_high->ready_queue->mask, pqueue_high->priority);
 }
 
 /*!
@@ -81,9 +88,8 @@ static void DecrementSchedulerBonus(PRIORITY_QUEUE_PTR pqueue)
 {
 	PRIORITY_QUEUE_PTR adj_low_priority_queue;
 
-	if( pqueue->bonus != MIN_SCHED_BONUS)
-		pqueue->bonus-- ;
-	else
+	if( pqueue->bonus == MIN_SCHED_BONUS)
+	{
 		if( (pqueue->priority % SCHEDULER_PRIORITY_LEVELS_PER_CLASS) < SCHED_PRI_VERY_LOW)
 		{
 			pqueue->bonus = 0;
@@ -92,19 +98,32 @@ static void DecrementSchedulerBonus(PRIORITY_QUEUE_PTR pqueue)
 
 			SwapPriorityQueues(pqueue, adj_low_priority_queue);
 		}
+	}
+	else
+		pqueue->bonus-- ;
+		
 }
 
 /*!
  *	\brief	This should replace the kernel stack and call ContextSwitch.
- *			Assumption: Before entering, hold lock on new_thread.
- *	\param	@new_thread:	Pointer to new thread which is to be run. 
+  *	\param	@new_thread:	Pointer to new thread which is to be run. 
 */
 static void PreemptThread(THREAD_PTR new_thread)
 {
-	THREAD_PTR running_thread = GetCurrentThread();
+	THREAD_PTR current_thread = GetCurrentThread();
 
-	AddThreadToSchedulerQueue(running_thread);
-	new_thread->current_processor = running_thread->current_processor;
+	new_thread->current_processor = current_thread->current_processor;
+	/*if current thread is terminating then it is now to free resources assoicated with it,
+	  because scheduler has done with it and it wont access any datastructure associated with it after this line*/
+	if ( current_thread->state == THREAD_STATE_TERMINATE )
+	{
+		FreeThread( current_thread );
+	}
+	else
+	{
+		AddThreadToSchedulerQueue(current_thread);
+	}
+	
 	SwitchContext( STRUCT_ADDRESS_FROM_MEMBER( new_thread, THREAD_CONTAINER, thread ) );
 }
 
@@ -207,6 +226,9 @@ SCHEDULER_CLASS_LEVELS GetThreadPriorityInfo(THREAD_PTR my_thread)
 	return (SCHEDULER_CLASS_LEVELS)( (THREAD_PRIORITY(my_thread) ) / SCHEDULER_PRIORITY_LEVELS_PER_CLASS );
 }
 
+#define SIZE_OF_MASK					(sizeof(UINT32)*BITS_PER_BYTE)
+#define GET_MASK_AFTER_HINT(mask, hint)	( ((mask)<<(SIZE_OF_MASK-(hint-1)))>>(SIZE_OF_MASK-(hint-1)) )
+
 /*!
  *	\brief	Selects a new thread to run from the processor's ready queue's.
  *	\param	@hint	Current priority of the priority_queue on which
@@ -218,30 +240,31 @@ static THREAD_PTR SelectThreadToRun(int hint)
 	UINT32				mask;
 	UINT32 				result;
 	THREAD_PTR			run_thread;
-	PRIORITY_QUEUE_PTR	pqueue;
+	PRIORITY_QUEUE_PTR	pqueue = NULL;
 
 	this_processor = GET_CURRENT_PROCESSOR;
 
-	mask = this_processor->active_ready_queue->mask;
-	//mask = (this_processor->active_ready_queue->mask >> hint)<<hint;
-	if( (result = FindFirstSetBitInBitArray(&mask, sizeof(mask)*BITS_PER_BYTE)) != -1)
+retry:
+	mask = GET_MASK_AFTER_HINT(this_processor->active_ready_queue->mask, hint);
+	/*try to get a thread from ready queue*/
+	if( (result = FindFirstSetBitInLong(mask)) != -1 )
 	{
 		pqueue = this_processor->active_ready_queue->priority_queue[result];
 	}
 	else 
 	{
-		/*! if not found, use dormant queue. */
+		/*! if no threads in ready queue, swap dormant queue and use it.*/
 		mask = this_processor->dormant_ready_queue->mask;
-		//mask = (this_processor->dormant_ready_queue->mask >> hint)<<hint;
-		if( (result=FindFirstSetBitInBitArray(&mask, sizeof(mask)*BITS_PER_BYTE)) != -1)
+		if ( mask != 0 )
 		{
-			pqueue = this_processor->dormant_ready_queue->priority_queue[result];
+			SpinLock( &this_processor->lock );
+			SWAP( this_processor->active_ready_queue, this_processor->dormant_ready_queue, READY_QUEUE_PTR);
+			SpinUnlock( &this_processor->lock );
 		}
-		else
-		{
-			/*! No threads available for running so select idle thread*/
-			return GetCurrentThread()->current_processor->idle_thread;
-		}
+		
+		/*retry from highest priority*/
+		hint = SIZE_OF_MASK;
+		goto retry;
 	}
 
 	/*! get a thread from this queue to run */
@@ -284,6 +307,38 @@ static PROCESSOR_PTR SelectProcessorToRun(THREAD_PTR in_thread)
 	return &processor[hint];
 }
 
+/*! Binds the given thread to a processor run queue
+	\param thread - Thread to add to the processor run queue
+	\param cpu_no - Target processor
+*/
+ERROR_CODE BindThreadToProcessor(THREAD_PTR thread, int cpu_no)
+{
+	PROCESSOR_PTR new_processor;
+	
+	assert( thread != NULL );
+	assert( cpu_no >= 0 && cpu_no < MAX_PROCESSORS );
+	
+	/*if already bound to the same cpu, then do nothing*/
+	if ( thread->bind_cpu  == cpu_no)
+		return ERROR_SUCCESS;
+	
+	/*Remove from existing run queue*/
+	RemoveThreadFromSchedulerQueue( thread );
+	
+	/*update thread structures*/
+	SpinLock( &thread->lock );
+	new_processor = &processor[cpu_no];
+	thread->bind_cpu = cpu_no;
+	/*Add to the new run queue*/
+	thread->priority_queue = new_processor->dormant_ready_queue->priority_queue[thread->priority];
+	SpinUnlock( &thread->lock );
+	
+	assert( thread->priority_queue != NULL );
+	
+	AddThreadToSchedulerQueue(thread);
+	
+	return ERROR_SUCCESS;
+}
 /*!
  *	\brief	This function is called when the running thread finishes it's quota or at interrupt context when a thread wants to move from BLOCKING state to READY state or when a new thread is created.
  *			If this is a new thread, scheduler class has to be assigned before calling this function.
@@ -294,9 +349,8 @@ void ScheduleThread(THREAD_PTR in_thread)
 	THREAD_PTR new_thread, current_thread;
 	PROCESSOR_PTR target_processor = NULL;
 	UINT8 new_thread_priority;
-
+	
 	current_thread = GetCurrentThread();
-
 	if(in_thread->state == THREAD_STATE_NEW)
 	{
 		/*  If the priority is higher than the current running thread, prempt it.
@@ -320,20 +374,28 @@ void ScheduleThread(THREAD_PTR in_thread)
 		in_thread->priority_queue = target_processor->dormant_ready_queue->priority_queue[new_thread_priority];
 		AddThreadToSchedulerQueue(in_thread);
 	}
+	else if(in_thread->state == THREAD_STATE_TERMINATE ) /*! remove the associated scheduler structures*/
+	{
+		if ( in_thread == current_thread ) /**Current thread is terminating - find another thread to run*/
+		{
+			new_thread = SelectThreadToRun(current_thread->priority_queue->priority);
+			assert( new_thread != in_thread);
+			PreemptThread(new_thread);
+			/*not reached*/
+		}
+		else
+		{
+			RemoveThreadFromSchedulerQueue( in_thread );
+			FreeThread( in_thread );
+		}
+	}
 	else if(in_thread == current_thread) /*! Current thread's time quantum has expired. So select a suitable replacement */
 	{
 		new_thread = SelectThreadToRun(current_thread->priority_queue->priority);
-		if(new_thread == NULL) /*! No other threads available for running. So continue running the current thread */
-		{
-			//kprintf("[Idle Thread] %p ", current_thread->current_processor );
-			
-			return;
-		}
-		
 		/*! Since the current priority queue got full quota to run, we should DEPROMOTE it. */
 		DecrementSchedulerBonus(current_thread->priority_queue); /*! This will try to decrement the bonus. But if we are the lowest, then decrease the priority of the thread. */
-
 		PreemptThread(new_thread);
+		/*not reached*/
 	}
 	else
 	{
@@ -345,8 +407,8 @@ void ScheduleThread(THREAD_PTR in_thread)
 		{
 			/*! Since the current priority queue didn't get full quota to run, we should PROMOTE it. */
 			IncrementSchedulerBonus(current_thread->priority_queue);
-			PreemptThread(in_thread);	/* This should replace the kernel stack and call ContextSwitch */
-			return;
+			PreemptThread(in_thread);
+			/*not reached*/
 		}
 		AddThreadToSchedulerQueue(in_thread);
 	}
@@ -355,18 +417,20 @@ void ScheduleThread(THREAD_PTR in_thread)
 /*! Creates ready queue, initializes and returns it*/
 static READY_QUEUE_PTR CreateReadyQueue()
 {
-	int loop;
+	int i;
 	READY_QUEUE_PTR ready_queue = kmalloc(sizeof(READY_QUEUE), KMEM_NO_FAIL);
-	for (loop=0; loop<MAX_SCHEDULER_PRIORITY_LEVELS ; loop++)
+	for (i=0; i<MAX_SCHEDULER_PRIORITY_LEVELS ; i++)
 	{
 		InitSpinLock( &ready_queue->lock );
 		ready_queue->mask = 0;
-		ready_queue->priority_queue[loop] = kmalloc(sizeof(PRIORITY_QUEUE), KMEM_NO_FAIL);
-				
-		InitSpinLock(&ready_queue->priority_queue[loop]->lock);
-		ready_queue->priority_queue[loop]->ready_queue = ready_queue;
-		ready_queue->priority_queue[loop]->thread_head = NULL;
-		ready_queue->priority_queue[loop]->priority = loop;
+		ready_queue->priority_queue[i] = kmalloc(sizeof(PRIORITY_QUEUE), KMEM_NO_FAIL);
+		
+		assert(ready_queue->priority_queue[i] != NULL);
+		
+		InitSpinLock(&ready_queue->priority_queue[i]->lock);
+		ready_queue->priority_queue[i]->ready_queue = ready_queue;
+		ready_queue->priority_queue[i]->thread_head = NULL;
+		ready_queue->priority_queue[i]->priority = i;
 	}
 	return ready_queue;
 }
@@ -394,7 +458,9 @@ void InitScheduler()
 		/*create idle thread for this processor*/
 		if ( (tc = CreateThread(idle_thread_function, SCHED_CLASS_LOW) ) == NULL )
 			panic("Idle thread creation failed");
+		
 		processor[i].idle_thread = &tc->thread;
+		BindThreadToProcessor(&tc->thread, i);
 	}
 }
 
@@ -403,6 +469,6 @@ static void idle_thread_function()
 {
 	while(1)
 	{
-		
+		//kprintf("::Idle Thread::");
 	}
 }

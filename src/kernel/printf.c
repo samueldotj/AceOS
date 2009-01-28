@@ -41,8 +41,6 @@ int nan = 0;
 #define	HEXPREFIX	0x40		/* add 0x or 0X prefix */
 
 
-int _doprint(const char *fmt0, void (*putc)(char ch), va_list argp);
-
 /*kernel doesnt support 64 bit division*/
 int __udivdi3()
 {
@@ -57,7 +55,7 @@ int __umoddi3()
 
 static char NULL_REP[] = "(null)";
 
-int _doprint(const char *fmt0, void (*putc)(char ch), va_list argp)
+int _doprint(const char *fmt0, void (*putc)(void * arg, char ch), void * putc_arg, va_list argp)
 {	
 	const char *fmt;		/* format string */
 	int ch,mch;					/* character from fmt */
@@ -84,7 +82,7 @@ int _doprint(const char *fmt0, void (*putc)(char ch), va_list argp)
 	{
     	while ((ch = *fmt) && ch != '%')
    		{
-			putc (ch);
+			putc (putc_arg, ch);
 	      	fmt++;
       		cnt++;
       	}
@@ -354,33 +352,33 @@ pforw:
 			/* right-adjusting blank padding */
 			if ((flags & (LADJUST|ZEROPAD)) == 0 && width)
 				for (n = realsz; n < width; n++)
-					putc(' ');
+					putc(putc_arg, ' ');
 			/* prefix */
 			if (sign)
-				putc(sign);
+				putc(putc_arg, sign);
 			if (flags & HEXPREFIX)
 			{
-				putc('0');
-				putc((char)*fmt);
+				putc(putc_arg, '0');
+				putc(putc_arg, (char)*fmt);
 			}
 			/* right-adjusting zero padding */
 			if ((flags & (LADJUST|ZEROPAD)) == ZEROPAD)
 				for (n = realsz; n < width; n++)
-					putc('0');
+					putc(putc_arg, '0');
 			/* leading zeroes from decimal precision */
 			for (n = fieldsz; n < dprec; n++)
-				putc('0');
+				putc(putc_arg, '0');
 
 			/* the string or number proper */
 			for (n = size; n > 0; n--)
-				putc(*t++);
+				putc(putc_arg, *t++);
 			/* trailing f.p. zeroes */
 			while (--fpprec >= 0)
-				putc('0');
+				putc(putc_arg, '0');
 			/* left-adjusting padding (always blank) */
 			if (flags & LADJUST)
 				for (n = realsz; n < width; n++)
-					putc(' ');
+					putc(putc_arg, ' ');
 			/* finally, adjust cnt */
 			cnt += width > realsz ? width : realsz;
         }
@@ -388,7 +386,7 @@ pforw:
 			return cnt;
 		else
 		{
-			putc((char)*fmt);
+			putc(putc_arg, (char)*fmt);
 			cnt++;
 		}
 			

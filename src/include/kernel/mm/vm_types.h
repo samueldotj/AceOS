@@ -19,4 +19,6 @@ typedef struct physical_map 	PHYSICAL_MAP, 	* PHYSICAL_MAP_PTR;
 typedef struct virtual_page 	VIRTUAL_PAGE, 	* VIRTUAL_PAGE_PTR;
 typedef struct va_map			VA_MAP, 		* VA_MAP_PTR;
 
+typedef struct kernel_reserve_range	KERNEL_RESERVE_RANGE, * KERNEL_RESERVE_RANGE_PTR;
+
 #endif

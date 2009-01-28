@@ -35,16 +35,40 @@ THREAD_CONTAINER_PTR CreateThread(void * start_address, SCHEDULER_PRIORITY_LEVEL
 		KTRACE("AllocateBuffer failed");
 		return NULL;
 	}
-
+	/*architecture depended things*/
 	FillThreadContext(thread_container, start_address);
 	
 	thread_container->thread.priority = priority_class;
-	InitSpinLock( &thread_container->thread.lock );
-	thread_container->thread.current_processor = NULL;
-	thread_container->thread.state = THREAD_STATE_NEW;
 	ScheduleThread( &thread_container->thread );
 	
 	return thread_container;
+}
+
+/*! Terminates the current thread
+	This function should be called by a thread to exit.
+*/
+void ExitThread()
+{
+	THREAD_PTR cur_thread = GetCurrentThread();
+	
+	SpinLock( &cur_thread->lock );
+	cur_thread->state = THREAD_STATE_TERMINATE;
+	SpinUnlock( &cur_thread->lock );
+	
+	ScheduleThread(cur_thread);
+}
+/*! Frees the datastructures used by the thread
+	\param thread - thread to be freed
+*/
+void FreeThread(THREAD_PTR thread )
+{
+	thread->reference_count--;
+	assert(thread->reference_count>=0);
+	
+	if ( thread->reference_count == 0 )
+	{
+		//FreeBuffer( STRUCT_ADDRESS_FROM_MEMBER( thread, THREAD_CONTAINER, thread ), &thread_cache );
+	}
 }
 
 /*! Initializes the booting kernel thread on a processor*/
@@ -69,7 +93,13 @@ void InitBootThread(int boot_processor_id)
 /*! Internal function used to initialize the thread structure*/
 int ThreadCacheConstructor( void *buffer)
 {
+	THREAD_CONTAINER_PTR thread_container = (THREAD_CONTAINER_PTR) buffer;
 	memset(buffer, 0, sizeof(THREAD_CONTAINER) );
+	
+	InitSpinLock( &thread_container->thread.lock );
+	thread_container->thread.current_processor = NULL;
+	thread_container->thread.state = THREAD_STATE_NEW;
+	thread_container->thread.reference_count = 1;
 	
 	return 0;
 }

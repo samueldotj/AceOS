@@ -20,7 +20,7 @@
 	type tmp;				\
 	tmp = x;				\
 	x = y;					\
-	y = x;					\
+	y = tmp;				\
 }
 inline int FindFirstSetBitInLong(register unsigned long value);
 

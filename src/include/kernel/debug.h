@@ -10,6 +10,7 @@
 #include <ace.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <kernel/printf.h>
 
 /*define this macro to enable kernel tracing*/
 #define __KERNEL_TRACE__
@@ -19,7 +20,7 @@
 			ktrace("%s:%d:%s(): ", __FILE__ , __LINE__,__PRETTY_FUNCTION__ ); \
 			ktrace( __VA_ARGS__ );
 #else
-    #define KTRACE(msg) 
+    #define KTRACE( ... ) 
 #endif
 
 
@@ -27,18 +28,14 @@
 	extern "C" {
 #endif
 
-extern void (*kprintf_putc)(BYTE ch);
-extern void (*ktrace_putc)(BYTE ch);
+extern void (*ktrace_putc)(void * arg, char ch);
 
-int _doprint(const char *fmt0, void (*putc)(BYTE ch), va_list argp);
-
-int kprintf(const char *fmt, ...);
 int ktrace(const char *fmt, ...);
 
 void panic(char * message);
 
 /*architecture depended function declarations*/
-void KtracePrint(BYTE ch);
+void KtracePrint(void * arg, char ch);
 void InitKtrace();
 
 #ifdef __cplusplus

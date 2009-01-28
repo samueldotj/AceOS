@@ -9,23 +9,19 @@
 #include <kernel/module.h>
 #include <kernel/debug.h>
 #include <kernel/error.h>
+#include <kernel/mm/vm.h>
 
 #define BOOT_MODULE_LIST_FILE	"boot_modules_list"
 
 static MODULE_HEADER_PTR boot_module_header_start = NULL;
 static int total_modules = 0;
 
-/*! arch independed boot module variables - updated by arch depended boot functions*/
-VADDR multiboot_module_va_start = 0;
-VADDR multiboot_module_va_end = 0;
-VADDR multiboot_module_pa_start = 0;
-
 /*! load and initalize the boot module container
 	\param file_header - starting virtual address of the module container
 */
 ERROR_CODE InitBootModuleContainer()
 {
-	MODULE_FILE_HEADER_PTR file_header = (MODULE_FILE_HEADER_PTR) multiboot_module_va_start;
+	MODULE_FILE_HEADER_PTR file_header = (MODULE_FILE_HEADER_PTR) kernel_reserve_range.module_va_start;
 	if ( file_header == NULL || file_header->MagicNumber != MODULE_MAGIC_NUMBER )
 		return ERROR_INVALID_FORMAT;
 	
@@ -45,6 +41,9 @@ ERROR_CODE LoadBootModule(char * module_name, void ** start_address, UINT32 * si
 	MODULE_HEADER_PTR module_header = boot_module_header_start;
 	VADDR module_content_start = (VADDR) ((char *)boot_module_header_start) + ( sizeof(MODULE_HEADER) * total_modules );
 	int i = 0;
+	
+	assert( start_address != NULL );
+	
 	while (i<total_modules)
 	{
 		/*! check the module name*/
@@ -52,7 +51,8 @@ ERROR_CODE LoadBootModule(char * module_name, void ** start_address, UINT32 * si
 		{
 			/*! update the result and return success*/
 			*start_address = (void *)module_content_start;
-			*size = module_header->Size;
+			if ( size )
+				*size = module_header->Size;
 			return ERROR_SUCCESS;
 		}
 		i++;

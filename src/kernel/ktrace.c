@@ -6,28 +6,17 @@
 #include <stdlib.h>
 #include <kernel/debug.h>
 #include <kernel/arch.h>
+#include <kernel/printf.h>
 
 /*! function pointer is used by the ktrace() to write characters 
 */
-void (*ktrace_putc)(BYTE ch) = NULL;
-
-/*! function pointer used by kprintf() to write character*/
-void (*kprintf_putc)(BYTE ch);
+void (*ktrace_putc)(void * arg, char ch) = NULL;
 
 /*! prints the given message in configured debug ports see ktrace.c in arch dir
 */
 int ktrace(const char *fmt, ...)
 {
-	_doprint( fmt, ktrace_putc, (va_list) ((&fmt)+1));
-	return 1;
-}
-
-/*! print given string and arguments in console
-*/
-int kprintf(const char *fmt, ...)
-{
-	_doprint( fmt, kprintf_putc, (va_list) ((&fmt)+1));
-	return 1;
+	return _doprint( fmt, ktrace_putc, NULL, (va_list) ((&fmt)+1));
 }
 
 /*! assert function

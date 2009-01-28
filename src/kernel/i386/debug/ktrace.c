@@ -28,7 +28,7 @@ This function is pointed by ktrace_putc function pointer.
 ktrace_putc function pointer used by ktrace() function defined in printf.c
 ktrace function is used by KTRACE() macro.
 */
-void KtracePrint(BYTE ch)
+void KtracePrint(void * arg, char ch)
 {
 	#ifdef KTRACE_PRINT_VGA
 		VgaPrintCharacter(ch);

@@ -3,7 +3,7 @@
 include $(ACE_ROOT)/make.conf
 
 #clean dirs 
-CLEAN_DIRS=	rtc pit acpi pic $(ARCH)
+CLEAN_DIRS=	$(ARCH) iom rtc pit acpi pic
 
 #path for the output kernel
 TARGET= $(OBJ)/kernel.sys
@@ -12,7 +12,7 @@ TARGET= $(OBJ)/kernel.sys
 LIBS= $(OBJ)/libheap.a $(OBJ)/libds.a $(OBJ)/libstring.a $(OBJ)/libsync.a
 
 #static kernel modules
-STATIC_MODS= $(OBJ)/arch.a $(OBJ)/rtc.a $(OBJ)/pit.a $(OBJ)/pic.a $(OBJ)/acpi.a 
+STATIC_MODS= $(OBJ)/arch.a $(OBJ)/iom.a $(OBJ)/rtc.a $(OBJ)/pit.a $(OBJ)/pic.a $(OBJ)/acpi.a 
 
 #generica kernel object files
 KERNEL_OBJ = $(patsubst %.c,%.o,$(wildcard *.c))  $(patsubst %.c,%.o,$(wildcard mm/*.c)) $(patsubst %.c,%.o,$(wildcard pm/*.c))
@@ -23,6 +23,9 @@ all:    $(TARGET)
 $(OBJ)/arch.a:	always
 	@make -C $(ARCH)
 
+$(OBJ)/iom.a:	always
+	@make -C iom
+	
 $(OBJ)/rtc.a:	always
 	@make -C rtc
 

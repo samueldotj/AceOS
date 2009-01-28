@@ -5,15 +5,6 @@
 #include <kernel/pm/task.h>
 #include <kernel/pm/elf.h>
 
-/*! kerenl symbol table starting virtual address*/
-ELF_SYMBOL_PTR kernel_symbol_table=0;
-/*! size of the kernel symbol table in bytes*/
-UINT32 kernel_symbol_table_size=0;
-/*! kerenl string table starting virtual address*/
-char * kernel_string_table=0;
-/*! size of the kernel string table in bytes*/
-UINT32 kernel_string_table_size=0;
-
 static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_table, VIRTUAL_MAP_PTR virtual_map, char * start_symbol_name, VADDR * start_entry);
 static ERROR_CODE LoadElfSectionIntoMap(ELF_SECTION_HEADER_PTR section_header, VADDR section_data_offset, VIRTUAL_MAP_PTR virtual_map, VADDR * section_loaded_va);
 static ERROR_CODE RelocateSection(ELF_SECTION_HEADER_PTR section_header, ELF_SYMBOL_PTR symbol_table, int relocation_section_index, char * string_table, VADDR relocation_entries, VADDR * section_loaded_va);
@@ -83,7 +74,7 @@ static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_tabl
 	{
 		assert( start_entry != NULL );
 		*start_entry = NULL;
-	}			
+	}	
 	
 	/*section_loaded_va holds address of where the section is loaded into the virtual map*/
 	section_loaded_va  = (VADDR *) kmalloc( sizeof(VADDR) * file_header->e_shnum, 0 );
@@ -215,7 +206,8 @@ static ERROR_CODE RelocateSection(ELF_SECTION_HEADER_PTR section_header, ELF_SYM
 				/*\todo - load the symbol value from the dynamic library*/
 				
 				/*search kernel symbols and update the symbol value.*/
-				symbol = FindElfSymbolByName( kernel_symbol_table, kernel_symbol_table_size, kernel_string_table, &string_table[ symbol_table[sym_index].st_name ]  );
+				symbol = FindElfSymbolByName( (ELF_SYMBOL_PTR)kernel_reserve_range.symbol_va_start, kernel_reserve_range.symbol_va_end-kernel_reserve_range.symbol_va_start, 
+												(char *)kernel_reserve_range.string_va_start, &string_table[ symbol_table[sym_index].st_name ]  );
 				if ( symbol  )
 					symbol_value = symbol->st_value;
 				else
@@ -249,7 +241,7 @@ static ELF_SYMBOL_PTR FindElfSymbolByName(ELF_SYMBOL_PTR symbol_table, UINT32 sy
 		if ( strcmp( string_table+symbol_table[i].st_name, symbol_name ) == 0 )
 				return &symbol_table[i];
 	}
-	kprintf("Symbol not found %s\n", symbol_name);
+	kprintf("ELF: Symbol not found %s(%p:%d)\n", symbol_name, symbol_table, symbol_table_size/sizeof(ELF_SYMBOL));
 	return NULL;
 }
 
@@ -293,7 +285,6 @@ static void RelocateI386Field(ELF32_RELOCATION_PTR rp, VADDR symbol_value, VADDR
 			break;
 		default:
 			panic("ELF - Unknown relocation entry type");
-
 	}
 }
 #endif

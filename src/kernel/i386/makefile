@@ -14,6 +14,7 @@ OBJS= 	$(ARCH_OBJ) $(MM_OBJ) $(PM_OBJ) $(DEBUG_OBJ)
 all:    $(TARGET)
 
 clean: always
+	@rm -f *.d
 	@rm -f $(OBJS)
 
 $(TARGET):  $(OBJS)

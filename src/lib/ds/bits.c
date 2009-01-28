@@ -19,6 +19,9 @@ inline int FindFirstSetBitInLong(register unsigned long value)
 {
 	register unsigned int result=0;
 	register unsigned int shift;
+	
+	if ( value == 0 )
+		return -1;
 
 #if ARCH == x86_64 
 	shift = (value > 0xFFFFFFFF) << 5; value >>= shift; result |= shift;
@@ -29,7 +32,7 @@ inline int FindFirstSetBitInLong(register unsigned long value)
 	shift = (value > 0x3   ) << 1; value >>= shift; result |= shift;
 	
 	result |= (value >> 1);
-	
+
 	return result;
 }
 /*!	finds the first set bit in the array

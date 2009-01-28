@@ -13,7 +13,7 @@ CC = /usr/bin/gcc
 CFLAGS =   -Wall -Wno-multichar -funsigned-char -fno-leading-underscore -I $(INCLUDE) -g
 
 #phony - all - make target
-all:    testtree testlist testavl testsort
+all:    testtree testlist testavl testsort	testbits
 
 #phony - clean - clean all object files
 clean:
@@ -35,6 +35,10 @@ testavl:	testcommon.o testavl.c $(OBJ)/libds.a
 	
 testsort:	testsort.c $(OBJ)/libds.a
 	$(CC) $(CFLAGS) -L $(OBJ) -o testsort testsort.c -lds
+
+testbits:	testbits.c $(OBJ)/libds.a
+	$(CC) $(CFLAGS) -L $(OBJ) -o testbits testbits.c -lds
+
 	
 #create .d files
 -include $(OBJS:.o=.d)

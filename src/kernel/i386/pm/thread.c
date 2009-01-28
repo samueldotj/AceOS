@@ -29,13 +29,19 @@ inline BYTE * GetKernelStackPointer()
 */
 void FillThreadContext(THREAD_CONTAINER_PTR thread_container, void * start_address)
 {
+	UINT32 * stack_frame;
+	REGS_PTR regs;
+	
 	assert( thread_container != NULL );
 	
-	REGS_PTR regs = (REGS_PTR)( thread_container->kernel_stack + sizeof(thread_container->kernel_stack) - sizeof(REGS));
+	/*build last stackframe and point it to ExitThread*/
+	stack_frame = (UINT32 *) (thread_container->kernel_stack + sizeof(thread_container->kernel_stack));
+	stack_frame[-2] = (UINT32)ExitThread;
 	
+	/*build exception frame*/
+	regs = (REGS_PTR)( ((BYTE*)stack_frame) - sizeof(REGS) );
 	regs->cs = KERNEL_CODE_SELECTOR;
 	regs->eip = (UINT32)start_address;
-
 	regs->ds = regs->es = regs->gs = regs->fs = regs->ss = KERNEL_DATA_SELECTOR;
 	regs->eflags = EFLAG_VALUE;
 	

@@ -12,29 +12,25 @@ static int kmem_page_free(void * va, int size);
 static int kmem_page_protect(void * va, int size, int protection);
 UINT32 kmem_reserved_mem_size=0;
 
-/*!
- * \brief Initializes kernel memory allocator
- * \param kmem_start_va - starting virtual address available for kmem
+/*! Initializes kernel memory allocator
  */
-void InitKmem(VADDR kmem_start_va)
+void InitKmem()
 {
 	if ( kmem_reserved_mem_size==0 )
 		kmem_reserved_mem_size = (KMEM_RESERVED_MEM_PERCENTAGE * vm_data.total_memory_pages) /100;
 		
 	kmem_reserved_mem_size = PAGE_ALIGN_UP(kmem_reserved_mem_size*PAGE_SIZE);
-	
-	kprintf("kmem: preallocating memory from 0x%p to 0x%p (%d KB)\n", kmem_start_va, ((char*)kmem_start_va)+kmem_reserved_mem_size, kmem_reserved_mem_size/1024 );
-	if ( MapVirtualAddressRange( &kernel_physical_map, kmem_start_va, kmem_reserved_mem_size, PROT_WRITE) != ERROR_SUCCESS )
+	kernel_reserve_range.kmem_va_end = (VADDR)((char*)kernel_reserve_range.kmem_va_start)+kmem_reserved_mem_size;
+	kprintf("kmem: preallocating memory from 0x%p to 0x%p (%d KB)\n", kernel_reserve_range.kmem_va_start, kernel_reserve_range.kmem_va_end, kmem_reserved_mem_size/1024 );
+	if ( MapVirtualAddressRange( &kernel_physical_map, kernel_reserve_range.kmem_va_start, kmem_reserved_mem_size, PROT_WRITE) != ERROR_SUCCESS )
 		panic("InitKmem() - MapVirtualAddressRange() failed.");
 
 	if ( InitHeap(PAGE_SIZE, kmem_page_alloc, kmem_page_free, kmem_page_protect) )
 		panic("InitKmem() - InitHeap() failed.");
 	
-	if ( AddMemoryToHeap((char *)kmem_start_va, ((char*)kmem_start_va)+kmem_reserved_mem_size ) != 0 )
+	if ( AddMemoryToHeap((char *)kernel_reserve_range.kmem_va_start, (char*)kernel_reserve_range.kmem_va_end ) != 0 )
 		panic("InitKmem() -  AddMemoryToHeap() failed.");
 		
-	kernel_free_virtual_address = ((VADDR)kmem_start_va)+kmem_reserved_mem_size;
-	
 	if ( InitCache(&thread_cache, sizeof(THREAD_CONTAINER), THREAD_CACHE_FREE_SLABS_THRESHOLD, THREAD_CACHE_MIN_SLABS, THREAD_CACHE_MAX_SLABS, &ThreadCacheConstructor, &ThreadCacheDestructor) == -1 )
 		panic("InitKmem() - InitCache() failed");
 }

@@ -6,20 +6,22 @@
 #include <version.h>
 #include <kernel/arch.h>
 #include <kernel/parameter.h>
+#include <kernel/printf.h>
 #include <kernel/debug.h>
 #include <kernel/gdb.h>
 #include <kernel/multiboot.h>
 #include <kernel/module.h>
+#include <kernel/time.h>
+#include <kernel/apic.h>
 #include <kernel/mm/pmem.h>
 #include <kernel/mm/kmem.h>
-#include <kernel/time.h>
 #include <kernel/mm/vm.h>
-#include <kernel/apic.h>
 #include <kernel/pm/task.h>
 #include <kernel/pm/elf.h>
+#include <kernel/pm/scheduler.h>
+#include <kernel/iom/iom.h>
 
 extern int InitACPI();
-
 /*! first C function which gets control from assembly */
 void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 {
@@ -33,7 +35,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	ParaseBootParameters();
 
 	kprintf( ACE_NAME"%d.%d %s\n", ACE_MAJOR, ACE_MINOR, ACE_BUILD);
-	if( kernel_symbol_table == NULL )
+	if( kernel_reserve_range.symbol_va_start == NULL )
 		kprintf("Warning : Kernel symbols not found - loading of kernel modules not possible\n");
 	
 	/* Initialize virtual memory manager*/
@@ -67,7 +69,11 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	CompletePhysicalMemoryManagerInit();
 	
 	/* Start the architecture depended timer for master processor - to enable scheduler */
-	//StartTimer(SCHEDULER_DEFAULT_QUANTUM, TRUE);
+	StartTimer(SCHEDULER_DEFAULT_QUANTUM, TRUE);
+	
+	/* Initialize IO manager and start drivers*/
+	InitIoManager();
 
 	kprintf("Kernel initialization complete\n");
+	
 }

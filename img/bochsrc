@@ -2,24 +2,31 @@ romimage: file=$BXSHARE/BIOS-bochs-latest
 vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 #optromimage1: file=$BXSHARE/gpxe-0.9.3-pci_fefe_efef.rom, address=0xd0000
 
+#no of processors:cores per processor:threads per core
 cpu: count=2:1:1, ips=10000000, reset_on_triple_fault=1
 
 megs: 64
-vga: extension=vbe
+vga: extension=none
+#vga: extension=vbe
 
 ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
 ata1: enabled=1, ioaddr1=0x170, ioaddr2=0x370, irq=15
 ata2: enabled=0, ioaddr1=0x1e8, ioaddr2=0x3e0, irq=11
 ata3: enabled=0, ioaddr1=0x168, ioaddr2=0x360, irq=9
 
-panic: action=ask
+#panic: action=ask
+panic: action=fatal
+
 error: action=report
+
 info: action=report
+
 debug: action=ignore
 #pass: action=fatal
 
 #debugger_log: debugger.out
-debugger_log: -
+debugger_log: deb_log.txt
+log: log.txt
 
 vga_update_interval: 300000
 keyboard_serial_delay: 250

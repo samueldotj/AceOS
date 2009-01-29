@@ -20,6 +20,7 @@
 #include <kernel/pm/elf.h>
 #include <kernel/pm/scheduler.h>
 #include <kernel/iom/iom.h>
+#include <kernel/system_call_handler.h>
 
 extern int InitACPI();
 /*! first C function which gets control from assembly */
@@ -76,4 +77,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 
 	kprintf("Kernel initialization complete\n");
 	
+	/* now lets set up system call handler */
+	SetupSystemCallHandler();
+	kprintf("system call handler set up successfully\n");
 }

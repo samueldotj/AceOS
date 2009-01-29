@@ -6,7 +6,7 @@ then
 fi
 
 #create kernel boot module container
-$ACE_ROOT/obj/mkmc -o $ACE_ROOT/obj/boot_modules.mod $ACE_ROOT/src/kernel/test.o
+$ACE_ROOT/obj/mkmc -o $ACE_ROOT/obj/boot_modules.mod $ACE_ROOT/obj/pci_bus.sys
 
 mkdir -p $ACE_ROOT/img/iso/boot/grub
 cp $ACE_ROOT/img/boot/grub/stage2_eltorito $ACE_ROOT/img/iso/boot/grub

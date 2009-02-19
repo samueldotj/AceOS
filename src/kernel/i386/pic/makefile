@@ -1,4 +1,4 @@
-#kernel/pic/makefile
+#kernel/i386/pic/makefile
 
 include $(ACE_ROOT)/make.conf
 

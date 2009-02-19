@@ -1,5 +1,5 @@
 /*!
-	\file	kernel/pic/ioapic.c
+	\file	kernel/i386/pic/ioapic.c
 	\brief	Contains IOAPIC and PIC(8259) related routines.
 	\todo	Based on _PRT table initiailize the IOAPIC - read http://people.freebsd.org/~jhb/papers/bsdcan/2007/article/node5.html
 */
@@ -8,8 +8,8 @@
 #include <kernel/error.h>
 #include <kernel/debug.h>
 #include <kernel/io.h>
-#include <kernel/ioapic.h>
-#include <kernel/apic.h>
+#include <kernel/i386/ioapic.h>
+#include <kernel/i386/apic.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/pmem.h>
 #include <kernel/mm/virtual_page.h>

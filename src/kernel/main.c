@@ -12,7 +12,7 @@
 #include <kernel/multiboot.h>
 #include <kernel/module.h>
 #include <kernel/time.h>
-#include <kernel/apic.h>
+#include <kernel/i386/apic.h>
 #include <kernel/mm/pmem.h>
 #include <kernel/mm/kmem.h>
 #include <kernel/mm/vm.h>

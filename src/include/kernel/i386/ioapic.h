@@ -1,5 +1,5 @@
 /*!
-  \file		kernel/ioapic.h
+  \file		kernel/i386/ioapic.h
   \brief	Contains IO-APIC stuff.
 */
 

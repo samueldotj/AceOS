@@ -7,7 +7,7 @@
 #include <ace.h>
 #include <kernel/time.h>
 #include <kernel/pit.h>
-#include <kernel/ioapic.h>
+#include <kernel/i386/ioapic.h>
 #include <kernel/interrupt.h>
 #include <kernel/pm/task.h>
 

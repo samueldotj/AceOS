@@ -14,9 +14,9 @@
 #include <kernel/multiboot.h>
 #include <kernel/parameter.h>
 #include <kernel/processor.h>
-#include <kernel/ioapic.h>
+#include <kernel/i386/ioapic.h>
 #include <kernel/interrupt.h>
-#include <kernel/apic.h>
+#include <kernel/i386/apic.h>
 #include <kernel/pit.h>
 #include <kernel/acpi/acpi.h>
 #include <kernel/mm/vm.h>

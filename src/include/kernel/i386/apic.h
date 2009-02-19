@@ -1,5 +1,5 @@
 /*!
-  \file		kernel/apic.h
+  \file		kernel/i386/apic.h
   \brief	Advanced Programmable Interrupt Controller
 */
 
@@ -341,5 +341,8 @@ void StopTimer();
 
 void IssueInterprocessorInterrupt(BYTE vector, UINT32 apic_id, ICR_DELIVERY_MODE delivery_mode, ICR_DESTINATION_SHORTHAND destination_shorthand);
 int StartProcessor(UINT32 apic_id, UINT32 physical_address);
+
+UINT32 SetInterruptPriorityLevel(UINT32 ipl);
+UINT32 GetInterruptPriorityLevel(void);
 
 #endif

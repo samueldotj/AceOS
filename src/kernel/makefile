@@ -3,7 +3,7 @@
 include $(ACE_ROOT)/make.conf
 
 #clean dirs 
-CLEAN_DIRS=	$(ARCH) iom rtc pit acpi pic
+CLEAN_DIRS=	$(ARCH) iom rtc pit acpi $(ARCH)/pic
 
 #path for the output kernel
 TARGET= $(OBJ)/kernel.sys
@@ -33,7 +33,7 @@ $(OBJ)/pit.a:	always
 	@make -C pit
 
 $(OBJ)/pic.a:	always
-	@make -C pic
+	@make -C $(ARCH)/pic
 
 $(OBJ)/acpi.a:
 	echo -n "Compiling ACPI ..."

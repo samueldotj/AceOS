@@ -10,7 +10,7 @@
 #define _PROCESSOR_I386_H_
 
 #include <ace.h>
-#include <kernel/apic.h>
+#include <kernel/i386/apic.h>
 #include <kernel/processor.h>
 #include <kernel/i386/processor.h>
 

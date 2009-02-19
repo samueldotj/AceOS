@@ -1,5 +1,5 @@
 /*!
-  \file		kernel/pic/apic.c
+  \file		kernel/i386/pic/apic.c
   \brief	Provides support for Advanced programmable interrupt controller on P4 machine.
 */
 
@@ -7,9 +7,9 @@
 #include <string.h>
 #include <kernel/io.h>
 #include <kernel/arch.h>
-#include <kernel/apic.h>
+#include <kernel/i386/apic.h>
 #include <kernel/debug.h>
-#include <kernel/ioapic.h>
+#include <kernel/i386/ioapic.h>
 #include <kernel/processor.h>
 #include <kernel/pit.h>
 #include <kernel/mm/vm.h>
@@ -295,4 +295,34 @@ void IssueInterprocessorInterrupt(BYTE vector, UINT32 apic_id, ICR_DELIVERY_MODE
 	/*! Now copy these register contents to actual location of interrupt command register */
 	INTERRUPT_COMMAND_REGISTER_ADDRESS_HIGH( lapic_base_address )->dword = cmd_high.dword;
 	INTERRUPT_COMMAND_REGISTER_ADDRESS_LOW( lapic_base_address )->dword = cmd_low.dword;
+}
+
+/*! \brief Gets the current Interrupt priority level in this processor using LAPIC.
+ *  Returns the current interrupt priority level.
+ *  Note that lapic is local to each processor.
+ */
+UINT32 GetInterruptPriorityLevel(void)
+{
+	TASK_PRIORITY_REG tpr;
+
+	tpr.dword = TASK_PRIORITY_REGISTER_ADDRESS(lapic_base_address)->dword;
+	return (UINT32)(tpr.task_priority);
+}
+
+/*! \brief Sets the current Interrupt priority level in this processor using LAPIC.
+ *  Returns the current interrupt priority level, before changignt o the new value.
+ *  Note that lapic is local to each processor.
+ */
+UINT32 SetInterruptPriorityLevel(UINT32 ipl)
+{
+	TASK_PRIORITY_REG tpr;
+	UINT32 old_ipl;
+
+	tpr.dword = TASK_PRIORITY_REGISTER_ADDRESS(lapic_base_address)->dword;
+	old_ipl = (UINT32)(tpr.task_priority);
+
+	tpr.task_priority =  ipl;
+	TASK_PRIORITY_REGISTER_ADDRESS(lapic_base_address)->dword = tpr.dword;
+
+	return old_ipl;
 }

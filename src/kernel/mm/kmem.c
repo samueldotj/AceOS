@@ -112,6 +112,3 @@ int kfree(void * buffer)
 {
 	return FreeToHeap(buffer);
 }
-
-
-

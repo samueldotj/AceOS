@@ -8,7 +8,12 @@ OBJS= 	$(patsubst %.c,%.o,$(wildcard *.c))
 all:    $(TARGET)
 
 clean: always
-	@rm -f *.o *.d
+	@rm -f $(OBJS)
+
+#phony - clean - clean including .d files
+all_clean:	clean
+	@rm -f $(OBJS:.o=.d)
+
 
 $(TARGET):  $(OBJS)
 	@$(AR) ru $(TARGET) $(OBJS)

@@ -124,4 +124,3 @@ align PAGE_SIZE
 	kthread		times PAGE_SIZE dd 0
 	guard_page 	times PAGE_SIZE dd 0
 	kstack 		times KSTACK_SIZE dd 0
-

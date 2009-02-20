@@ -51,4 +51,7 @@ void UninstallInterruptHandler(int interrupt_number, ISR_HANDLER isr_handler);
 
 void SendEndOfInterrupt(int int_no);
 
+UINT32 SetInterruptPriorityLevel(UINT32 ipl);
+UINT32 GetInterruptPriorityLevel(void);
+
 #endif

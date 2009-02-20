@@ -12,7 +12,10 @@ all:    $(TARGET)
 
 clean: always
 	@rm -f $(TARGET)
-	@rm -f *.o *.d
+	@rm -f $(OBJS)
+
+all_clean: clean
+	@rm -f $(OBJS:.o=.d)
 
 $(TARGET):  $(OBJS)
 	@$(LD) $(LD_FLAGS) $(OBJS) -o $(TARGET)

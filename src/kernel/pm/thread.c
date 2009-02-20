@@ -108,4 +108,3 @@ int ThreadCacheDestructor( void *buffer)
 {
 	return 0;
 }
-

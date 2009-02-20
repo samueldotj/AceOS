@@ -7,7 +7,6 @@
 #include <kernel/interrupt.h>
 #include <kernel/debug.h>
 #include <kernel/mm/kmem.h>
-#include <kernel/i386/apic.h>
 
 /*define this to print debug problems*/
 #define DEBUG_INTERRUPT

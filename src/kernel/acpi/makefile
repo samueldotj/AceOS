@@ -27,8 +27,11 @@ OBJS= 	$(patsubst %.c,%.o,$(wildcard *.c)) \
 all:    $(TARGET)
 
 clean:	always
+	rm -f $(TARGET)
 	rm -f $(OBJS)
-	@for dir in $(ALL_DIRS); do rm -rf $$dir/*.o $$dir/*.d; done
+
+all_clean:	clean
+	rm -f $(OBJS:.o=.d)
 
 always:	
 

@@ -20,9 +20,13 @@ all:    $(TARGET)
 
 #phony - clean - clean all object files
 clean:
-	@rm	-f *.o *.d  
+	@rm	-f *.o 
 	@for dir in $(CLEAN_DIRS); do make -C $$dir clean; done
 	@rm	-f $(TARGET)
+
+#phony - clean - clean including .d files
+all_clean: clean
+	@rm	-f *.d
 
 #how to make target
 $(TARGET):  $(OBJS)

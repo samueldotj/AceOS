@@ -336,13 +336,7 @@ extern IA32_APIC_BASE_MSR_PTR lapic_base_address;
 void InitLAPIC(void);
 void SendEndOfInterruptToLapic(int int_no);
 
-void StartTimer(UINT32 frequency, BYTE periodic);
-void StopTimer();
-
 void IssueInterprocessorInterrupt(BYTE vector, UINT32 apic_id, ICR_DELIVERY_MODE delivery_mode, ICR_DESTINATION_SHORTHAND destination_shorthand);
 int StartProcessor(UINT32 apic_id, UINT32 physical_address);
-
-UINT32 SetInterruptPriorityLevel(UINT32 ipl);
-UINT32 GetInterruptPriorityLevel(void);
 
 #endif

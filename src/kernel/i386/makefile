@@ -8,14 +8,18 @@ ARCH_OBJ= $(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.asm,%.o,$(wildcard *.
 MM_OBJ= $(patsubst %.c,%.o,$(wildcard mm/*.c)) $(patsubst %.asm,%.o,$(wildcard mm/*.asm)) 
 PM_OBJ= $(patsubst %.c,%.o,$(wildcard pm/*.c)) $(patsubst %.asm,%.o,$(wildcard pm/*.asm))
 DEBUG_OBJ= $(patsubst %.c,%.o,$(wildcard debug/*.c)) $(patsubst %.asm,%.o,$(wildcard debug/*.asm))
+PIC_OBJ= $(patsubst %.c,%.o,$(wildcard pic/*.c)) $(patsubst %.asm,%.o,$(wildcard pic/*.asm))
 
-OBJS= 	$(ARCH_OBJ) $(MM_OBJ) $(PM_OBJ) $(DEBUG_OBJ) 
+OBJS= 	$(ARCH_OBJ) $(MM_OBJ) $(PM_OBJ) $(DEBUG_OBJ) $(PIC_OBJ) 
 
 all:    $(TARGET)
 
 clean: always
-	@rm -f *.d
 	@rm -f $(OBJS)
+	
+#phony - clean - clean including .d files
+all_clean:	clean
+	@rm -f $(OBJS:.o=.d)
 
 $(TARGET):  $(OBJS)
 	@$(AR) ru $(TARGET) $(OBJS)

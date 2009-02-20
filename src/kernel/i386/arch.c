@@ -12,6 +12,8 @@
 #include <kernel/i386/exception.h>
 #include <kernel/i386/pmem.h>
 #include <kernel/i386/cpuid.h>
+#include <kernel/i386/apic.h>
+#include <kernel/i386/ioapic.h>
 #include <kernel/i386/processor.h>
 
 static int use_pic_8259 = 0;

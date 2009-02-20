@@ -16,8 +16,12 @@ all:    $(TARGET)
 
 #phony - clean - clean all object files
 clean:
-	@rm -f *.d *.o
+	@rm -f *.o
 	@rm -f $(TARGET)
+
+#phony - clean - clean including .d files
+all_clean:	clean
+	@rm -f *.d 
 
 #how to make target
 $(TARGET):  $(OBJS)

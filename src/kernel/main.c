@@ -12,7 +12,7 @@
 #include <kernel/multiboot.h>
 #include <kernel/module.h>
 #include <kernel/time.h>
-#include <kernel/i386/apic.h>
+#include <kernel/interrupt.h>
 #include <kernel/mm/pmem.h>
 #include <kernel/mm/kmem.h>
 #include <kernel/mm/vm.h>
@@ -75,9 +75,8 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	/* Initialize IO manager and start drivers*/
 	InitIoManager();
 
-	kprintf("Kernel initialization complete\n");
-	
 	/* now lets set up system call handler */
 	SetupSystemCallHandler();
-	kprintf("system call handler set up successfully\n");
+	
+	kprintf("Kernel initialization complete\n");
 }

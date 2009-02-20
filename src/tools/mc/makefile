@@ -14,8 +14,10 @@ all:    $(TARGET)
 
 #phony - clean - clean all object files
 clean:
-	@rm -f *.d *.o
-	@rm -f *.exe
+	@rm -f $(OBJS) *.exe
+
+all_clean: clean
+	@rm -f $(OBJS:.o=.d)
 
 #how to make target
 $(TARGET):	$(OBJS)

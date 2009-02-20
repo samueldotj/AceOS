@@ -14,9 +14,7 @@
 #include <kernel/multiboot.h>
 #include <kernel/parameter.h>
 #include <kernel/processor.h>
-#include <kernel/i386/ioapic.h>
 #include <kernel/interrupt.h>
-#include <kernel/i386/apic.h>
 #include <kernel/pit.h>
 #include <kernel/acpi/acpi.h>
 #include <kernel/mm/vm.h>
@@ -42,13 +40,10 @@ void ArchHalt();
 void MaskInterrupt(BYTE interrupt_number);
 
 void StartTimer(UINT32 frequency, BYTE periodic);
+void StopTimer();
 
 extern UINT16 master_processor_id;
 extern UINT32 cpu_frequency;
-
-extern VADDR multiboot_module_va_start;
-extern VADDR multiboot_module_va_end;
-extern VADDR multiboot_module_pa_start;
 
 #ifdef __cplusplus
 	}

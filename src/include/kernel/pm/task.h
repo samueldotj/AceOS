@@ -94,6 +94,8 @@ THREAD_PTR GetCurrentThread();
 THREAD_CONTAINER_PTR CreateThread(void * start_address, SCHEDULER_PRIORITY_LEVELS priority_class);
 void ExitThread();
 void FreeThread(THREAD_PTR thread );
+void PauseThread();
+void ResumeThread(THREAD_PTR thread);
 
 void InitBootThread(int boot_processor_id);
 

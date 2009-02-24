@@ -61,6 +61,7 @@ typedef struct ready_queue
 INT8 ModifyThreadPriorityInfo(THREAD_PTR thread, SCHEDULER_CLASS_LEVELS sched_class);
 SCHEDULER_CLASS_LEVELS GetThreadPriorityInfo(THREAD_PTR my_thread);
 void ScheduleThread(THREAD_PTR in_thread);
+void InvokeScheduler();
 void InitScheduler();
 ERROR_CODE BindThreadToProcessor(THREAD_PTR thread, int cpu_no);
 

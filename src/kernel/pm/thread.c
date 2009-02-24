@@ -60,17 +60,44 @@ void ExitThread()
 /*! Frees the datastructures used by the thread
 	\param thread - thread to be freed
 */
-void FreeThread(THREAD_PTR thread )
+void FreeThread(THREAD_PTR thread)
 {
 	thread->reference_count--;
 	assert(thread->reference_count>=0);
 	
 	if ( thread->reference_count == 0 )
 	{
-		//FreeBuffer( STRUCT_ADDRESS_FROM_MEMBER( thread, THREAD_CONTAINER, thread ), &thread_cache );
+		FreeBuffer( STRUCT_ADDRESS_FROM_MEMBER( thread, THREAD_CONTAINER, thread ), &thread_cache );
 	}
 }
-
+/*! Suspends the current thread's execution
+*/
+void PauseThread()
+{
+	THREAD_PTR cur_thread = GetCurrentThread();
+	
+	SpinLock( &cur_thread->lock );
+	cur_thread->state = THREAD_STATE_WAITING;
+	SpinUnlock( &cur_thread->lock );
+	
+	/*Invoke scheduler in arch depended way*/
+	InvokeScheduler();
+}
+/*! Resumes a thread's execution
+	\param thread - thread to be resumed
+*/
+void ResumeThread(THREAD_PTR thread)
+{
+	assert( thread != NULL );
+	/*resume the thread only if it is blocked*/
+	if (thread->state != THREAD_STATE_WAITING)
+		return;
+	SpinLock( &thread->lock );
+	thread->state = THREAD_STATE_READY;
+	SpinUnlock( &thread->lock );
+	
+	ScheduleThread(thread);
+}
 /*! Initializes the booting kernel thread on a processor*/
 void InitBootThread(int boot_processor_id)
 {

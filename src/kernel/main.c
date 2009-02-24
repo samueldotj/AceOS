@@ -23,6 +23,7 @@
 #include <kernel/system_call_handler.h>
 
 extern int InitACPI();
+
 /*! first C function which gets control from assembly */
 void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 {
@@ -70,7 +71,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	CompletePhysicalMemoryManagerInit();
 	
 	/* Start the architecture depended timer for master processor - to enable scheduler */
-	StartTimer(SCHEDULER_DEFAULT_QUANTUM, TRUE);
+	StartTimer(SCHEDULER_DEFAULT_QUANTUM, FALSE);
 	
 	/* Initialize IO manager and start drivers*/
 	InitIoManager();
@@ -79,4 +80,5 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	SetupSystemCallHandler();
 	
 	kprintf("Kernel initialization complete\n");
+	
 }

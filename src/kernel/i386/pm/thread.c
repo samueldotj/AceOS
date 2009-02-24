@@ -7,6 +7,7 @@
 #include <kernel/pm/task.h>
 #include <kernel/i386/exception.h>
 #include <kernel/i386/gdt.h>
+#include <kernel/i386/ioapic.h>
 
 #define EFLAG_VALUE			0x202
 
@@ -58,4 +59,10 @@ void SwitchContext(THREAD_CONTAINER_PTR thread_container)
 				:"a"( thread_container->kernel_stack_pointer ),
 				 "b"( ReturnFromInterruptContext )
 				);
+}
+
+/*! Invoke scheduler by generating timer interrupt*/
+void InvokeScheduler()
+{
+	asm volatile("int $238"::);
 }

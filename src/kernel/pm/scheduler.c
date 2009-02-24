@@ -6,6 +6,7 @@
 #include <ds/bits.h>
 #include <sync/spinlock.h>
 #include <kernel/processor.h>
+#include <kernel/arch.h>
 #include <kernel/debug.h>
 #include <kernel/pm/scheduler.h>
 #include <kernel/pm/task.h>
@@ -119,11 +120,11 @@ static void PreemptThread(THREAD_PTR new_thread)
 	{
 		FreeThread( current_thread );
 	}
-	else
+	else if ( current_thread->state != THREAD_STATE_WAITING )
 	{
 		AddThreadToSchedulerQueue(current_thread);
 	}
-	
+	StartTimer(SCHEDULER_DEFAULT_QUANTUM, FALSE);
 	SwitchContext( STRUCT_ADDRESS_FROM_MEMBER( new_thread, THREAD_CONTAINER, thread ) );
 }
 
@@ -351,6 +352,7 @@ void ScheduleThread(THREAD_PTR in_thread)
 	UINT8 new_thread_priority;
 	
 	current_thread = GetCurrentThread();
+	/*new thread coming in*/
 	if(in_thread->state == THREAD_STATE_NEW)
 	{
 		/*  If the priority is higher than the current running thread, prempt it.
@@ -374,9 +376,10 @@ void ScheduleThread(THREAD_PTR in_thread)
 		in_thread->priority_queue = target_processor->dormant_ready_queue->priority_queue[new_thread_priority];
 		AddThreadToSchedulerQueue(in_thread);
 	}
-	else if(in_thread->state == THREAD_STATE_TERMINATE ) /*! remove the associated scheduler structures*/
+	/*thread is going to terminate or suspend*/
+	else if(in_thread->state == THREAD_STATE_TERMINATE || in_thread->state == THREAD_STATE_WAITING ) 
 	{
-		if ( in_thread == current_thread ) /**Current thread is terminating - find another thread to run*/
+		if ( in_thread == current_thread ) /**Current thread is terminating/suspending - find another thread to run*/
 		{
 			new_thread = SelectThreadToRun(current_thread->priority_queue->priority);
 			assert( new_thread != in_thread);
@@ -386,10 +389,12 @@ void ScheduleThread(THREAD_PTR in_thread)
 		else
 		{
 			RemoveThreadFromSchedulerQueue( in_thread );
-			FreeThread( in_thread );
+			if( in_thread->state == THREAD_STATE_TERMINATE )
+				FreeThread( in_thread );
 		}
 	}
-	else if(in_thread == current_thread) /*! Current thread's time quantum has expired. So select a suitable replacement */
+	/*! Current thread's time quantum has expired. So select a suitable replacement */
+	else if(in_thread == current_thread) 
 	{
 		new_thread = SelectThreadToRun(current_thread->priority_queue->priority);
 		/*! Since the current priority queue got full quota to run, we should DEPROMOTE it. */

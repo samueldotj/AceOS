@@ -44,12 +44,31 @@ typedef struct interrupt_handler
 	LIST			next_isr;		//next isr sharing the same interrupt line
 }INTERRUPT_HANDLER, *INTERRUPT_HANDLER_PTR;
 
+
+/*! A list of Interrupt priority levels maintained by ACE.
+ *  Higher the priority number, lower the value,level.
+ *  Ex: Panic is the highest level(0).
+ */
+typedef enum irq_priority_levels
+{
+	IRQ_PRIORITY_LEVELS_PANIC, /* panic */
+	IRQ_PRIORITY_LEVELS_MACHINE_CHECK, /* Machine check */
+	IRQ_PRIORITY_LEVELS_TIMER,  /* timer */
+	IRQ_PRIORITY_LEVELS_SCHEDULER, /* scheduler */
+	IRQ_PRIORITY_LEVELS_IO, /* I/0 , device drivers top half */
+	IRQ_PRIORITY_LEVELS_GENERIC /* generic code */
+}IRQ_PRIORITY_LEVELS;
+
+
 extern INTERRUPT_HANDLER interrupt_handlers[MAX_INTERRUPTS];
 
 void InstallInterruptHandler(int interrupt_number, ISR_HANDLER isr_handler, void * custom_argument);
 void UninstallInterruptHandler(int interrupt_number, ISR_HANDLER isr_handler);
 
 void SendEndOfInterrupt(int int_no);
+
+IRQ_PRIORITY_LEVELS RaiseInterruptPriorityLevel(IRQ_PRIORITY_LEVELS ipl);
+void RestoreInterruptPriorityLevel(IRQ_PRIORITY_LEVELS level);
 
 UINT32 SetInterruptPriorityLevel(UINT32 ipl);
 UINT32 GetInterruptPriorityLevel(void);

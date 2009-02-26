@@ -15,6 +15,7 @@ typedef struct thread THREAD, * THREAD_PTR;
 
 #include <kernel/processor.h>
 #include <kernel/pm/scheduler.h>
+#include <kernel/pm/timeout_queue.h>
 
 #define KERNEL_STACK_SIZE	(PAGE_SIZE)
 
@@ -35,7 +36,8 @@ typedef enum
 	THREAD_STATE_TERMINATE		= 3,		/*! thread is terminating */
 	THREAD_STATE_WAITING		= 4,		/*! thread is waiting */
 	THREAD_STATE_TRANSITION		= 5,		/*! thread is in transition phase from one state to another */
-	THREAD_STATE_NEW			= 6
+	THREAD_STATE_EVENT_FIRED	= 6,
+	THREAD_STATE_NEW			= 7
 }THREAD_STATE;
 
 
@@ -57,6 +59,12 @@ struct thread
 	UINT8					time_slice;				/*! Time quantum for which the thread can be run */
 	PRIORITY_QUEUE_PTR		priority_queue;			/*! Pointer to priority queue in either of active or dormant ready queue */
 	SCHEDULER_CLASS_LEVELS	priority;				/*! External priority assigned by the user. This is used to select one of the scheduler classes */
+
+	/* Timeout queue */
+	TIMEOUT_QUEUE			timeout_queue;
+
+	/* Wait event queue lock */
+	SPIN_LOCK				wait_event_queue_lock;	/*! Anybody accessing any wait events belonging to this structure or count_wait_event_queue variable should take this lock */
 };
 
 /*

@@ -91,15 +91,7 @@
 
 #include <string.h>
 #include <kernel/debug.h>
-
-/************************************************************************
- *
- * external low-level support routines
- */
-
-extern void putDebugChar();	/* write a single character      */
-extern int getDebugChar();	/* read and return a single char */
-extern void exceptionHandler();	/* assign an exception handler   */
+#include <kernel/gdb.h>
 
 /************************************************************************/
 /* BUFMAX defines the maximum number of characters in inbound/outbound buffers*/

@@ -1,4 +1,4 @@
-/*! \file 	gdb.h
+/*! \file 	include/kernel/gdb.h
     \brief 	GDB function declartions
 */
 #ifndef __GDB_H

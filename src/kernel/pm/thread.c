@@ -77,11 +77,19 @@ void PauseThread()
 	THREAD_PTR cur_thread = GetCurrentThread();
 	
 	SpinLock( &cur_thread->lock );
-	cur_thread->state = THREAD_STATE_WAITING;
-	SpinUnlock( &cur_thread->lock );
-	
-	/*Invoke scheduler in arch depended way*/
-	InvokeScheduler();
+	if(cur_thread->state == THREAD_STATE_EVENT_FIRED)
+	{
+		cur_thread->state = THREAD_STATE_RUN;
+		SpinUnlock( &cur_thread->lock );
+	}
+	else
+	{
+		cur_thread->state = THREAD_STATE_WAITING;
+		SpinUnlock( &cur_thread->lock );
+		
+		/*Invoke scheduler in arch depended way*/
+		InvokeScheduler();
+	}
 }
 /*! Resumes a thread's execution
 	\param thread - thread to be resumed

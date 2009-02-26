@@ -339,4 +339,7 @@ void SendEndOfInterruptToLapic(int int_no);
 void IssueInterprocessorInterrupt(BYTE vector, UINT32 apic_id, ICR_DELIVERY_MODE delivery_mode, ICR_DESTINATION_SHORTHAND destination_shorthand);
 int StartProcessor(UINT32 apic_id, UINT32 physical_address);
 
+UINT32 GetInterruptPriorityLevel(void);
+UINT32 SetInterruptPriorityLevel(UINT32 ipl);
+
 #endif

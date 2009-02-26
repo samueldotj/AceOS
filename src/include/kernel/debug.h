@@ -1,4 +1,4 @@
-/*!	\file	debug.h
+/*!	\file	include/kernel/debug.h
 	\brief	Debug function declartions
 
 	Contains declarations of kernel trace, debug, assert functions/macros

@@ -11,28 +11,16 @@
 /*define this to print debug problems*/
 #define DEBUG_INTERRUPT
 
-/*! A list of Interrupt priority levels maintained by ACE.
- *  Higher the priority number, lower the value,level.
- *  Ex: Panic is the highest level(0).
- */
-enum IRQ_PRIORITY_LEVELS
-{
-	IRQ_PRIORITY_LEVELS_PANIC, /* panic */
-	IRQ_PRIORITY_LEVELS_MACHINE_CHECK, /* Machine check */
-	IRQ_PRIORITY_LEVELS_SCHEDULER, /* scheduler, timer */
-	IRQ_PRIORITY_LEVELS_IO, /* I/0 , device drivers top half */
-	IRQ_PRIORITY_LEVELS_GENERIC /* generic code */
-};
-
-int RaiseInterruptPriorityLevel(int level);
-void RestoreInterruptPriorityLevel(int level);
+/* External functions present in i386/pic/apic.c */
+extern UINT32 GetInterruptPriorityLevel(void);
+extern UINT32 SetInterruptPriorityLevel(UINT32 ipl);
 
 /*! \brief Raise the interrupt level to block any interrupts equal to or below this level.
  *  \param level - Level to which the current ipl should be raised.
  */
-int RaiseInterruptPriorityLevel(int level)
+IRQ_PRIORITY_LEVELS RaiseInterruptPriorityLevel(IRQ_PRIORITY_LEVELS level)
 {
-	int ipl;
+	IRQ_PRIORITY_LEVELS ipl;
 
 	ipl = GetInterruptPriorityLevel();
 	if( level > ipl )
@@ -46,7 +34,7 @@ int RaiseInterruptPriorityLevel(int level)
 /*! \brief Restore the interrupt level after performing the required task.
  *  \param level - Level to which the current ipl should be restored.
  */
-void RestoreInterruptPriorityLevel(int level)
+void RestoreInterruptPriorityLevel(IRQ_PRIORITY_LEVELS level)
 {
 	int ipl = GetInterruptPriorityLevel();
 	if( level < ipl )

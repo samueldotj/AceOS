@@ -24,8 +24,6 @@ typedef enum
 	MAX_SCHEDULER_CLASS_LEVELS /* This should be the last element of this enum */
 }SCHEDULER_CLASS_LEVELS;
 
-#include <kernel/pm/task.h>
-
 typedef enum
 {
 	SCHED_PRI_VERY_HIGH,
@@ -36,6 +34,8 @@ typedef enum
 
 	SCHEDULER_PRIORITY_LEVELS_PER_CLASS /* This should always be the last element in this anon. */
 }SCHEDULER_PRIORITY_LEVELS;
+
+#include <kernel/pm/task.h>
 
 #define MAX_SCHEDULER_PRIORITY_LEVELS	( MAX_SCHEDULER_CLASS_LEVELS * SCHEDULER_PRIORITY_LEVELS_PER_CLASS )
 #define DEFAULT_SCHEDULER_PRIORITY		( MAX_SCHEDULER_PRIORITY_LEVELS / 2 )
@@ -57,6 +57,7 @@ typedef struct ready_queue
 	UINT32 				mask;	/*! used for quick calculation on which priority queue has threads ready for running. 1 bit for every queue */
 	PRIORITY_QUEUE_PTR 	priority_queue[MAX_SCHEDULER_PRIORITY_LEVELS];
 }READY_QUEUE;
+
 
 INT8 ModifyThreadPriorityInfo(THREAD_PTR thread, SCHEDULER_CLASS_LEVELS sched_class);
 SCHEDULER_CLASS_LEVELS GetThreadPriorityInfo(THREAD_PTR my_thread);

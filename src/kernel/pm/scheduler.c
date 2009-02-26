@@ -125,6 +125,7 @@ static void PreemptThread(THREAD_PTR new_thread)
 		AddThreadToSchedulerQueue(current_thread);
 	}
 	StartTimer(SCHEDULER_DEFAULT_QUANTUM, FALSE);
+	new_thread->state = THREAD_STATE_RUN;
 	SwitchContext( STRUCT_ADDRESS_FROM_MEMBER( new_thread, THREAD_CONTAINER, thread ) );
 }
 
@@ -412,7 +413,7 @@ void ScheduleThread(THREAD_PTR in_thread)
 		{
 			/*! Since the current priority queue didn't get full quota to run, we should PROMOTE it. */
 			IncrementSchedulerBonus(current_thread->priority_queue);
-			PreemptThread(in_thread);
+			//PreemptThread(in_thread);
 			/*not reached*/
 		}
 		AddThreadToSchedulerQueue(in_thread);

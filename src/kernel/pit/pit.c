@@ -9,11 +9,12 @@
 #include <kernel/pit.h>
 #include <kernel/interrupt.h>
 #include <kernel/pm/task.h>
+#include <kernel/pm/scheduler.h>
 
 extern THREAD_CONTAINER_PTR kthread1, kthread2;
 
 /*! Timer tick - relative to the last tick - used for tickless system*/
-static volatile UINT32 timer_ticks;
+volatile UINT32 timer_ticks;
 
 /* Elapsed seconds since boot - used for time keeping*/
 volatile UINT32 ElapsedSeconds = 0;
@@ -23,6 +24,7 @@ volatile UINT32 ElapsedSeconds = 0;
 ISR_RETURN_CODE _8254Handler(INTERRUPT_INFO_PTR interrupt_info, void * arg)
 {
 	timer_ticks++;
+	ValuateTimeoutQueue();
 	return ISR_END_PROCESSING;
 }
 
@@ -53,6 +55,6 @@ ISR_RETURN_CODE LapicTimerHandler(INTERRUPT_INFO_PTR interrupt_info, void * arg)
  */
 void Delay(UINT32 ms)
 {
-	UINT32 ticks_to_go = timer_ticks + (ms / (1000/TIMER_FREQUENCY));
+	UINT32 ticks_to_go = timer_ticks + MILLISECONDS_TO_TICKS(ms);
 	while(timer_ticks < ticks_to_go);
 }

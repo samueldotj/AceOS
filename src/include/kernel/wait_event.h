@@ -26,8 +26,7 @@ struct wait_event
 	LIST			thread_events;	/* List of events which belong to same thread */
 };
 
-WAIT_EVENT_PTR CreateWaitEvent(void);
-WAIT_EVENT_PTR WaitInEventQueue(WAIT_EVENT_PTR *wait_queue);
+WAIT_EVENT_PTR AddToEventQueue(WAIT_EVENT_PTR *wait_queue);
 int WaitForEvent(WAIT_EVENT_PTR event, int timeout);
 void WakeUpEvent(WAIT_EVENT_PTR *event, int flag);
 

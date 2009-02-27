@@ -17,7 +17,7 @@ static void ClearRelatedWaitEvents(WAIT_EVENT_PTR event);
 \brief	Creates and adds an event to the wait queue.
 \param	wait_queue	Wait queue inside which the thread has to wait.
 */
-WAIT_EVENT_PTR WaitInEventQueue(WAIT_EVENT_PTR *wait_queue)
+WAIT_EVENT_PTR AddToEventQueue(WAIT_EVENT_PTR *wait_queue)
 {
 	WAIT_EVENT_PTR wait_event = kmalloc(sizeof(WAIT_EVENT), KMEM_NO_FAIL);
 	wait_event->thread = GetCurrentThread();

@@ -34,11 +34,11 @@ ISR_RETURN_CODE SystemCallHandler(INTERRUPT_INFO_PTR interrupt_info, void * arg)
 
 	sys_call_args = AllocateBuffer(&system_call_cache, 0); /* can sleep while memory is being allocated */
 
-	sys_call_args->arg1 = interrupt_info->regs->ebx;
-	sys_call_args->arg2 = interrupt_info->regs->ecx;
-	sys_call_args->arg3 = interrupt_info->regs->edx;
-	sys_call_args->arg4 = interrupt_info->regs->esi;
-	sys_call_args->arg5 = interrupt_info->regs->edi;
+	sys_call_args->args[0] = interrupt_info->regs->ebx;
+	sys_call_args->args[1] = interrupt_info->regs->ecx;
+	sys_call_args->args[2] = interrupt_info->regs->edx;
+	sys_call_args->args[3] = interrupt_info->regs->esi;
+	sys_call_args->args[4] = interrupt_info->regs->edi;
 	/*now call the required system call*/
 	sys_ret_val = &(interrupt_info->regs->eax);
 	interrupt_info->regs->ebx = (system_calls[sys_call_no])(sys_call_args, sys_ret_val); /* ebx will tell if system call succeeded(0) or not */

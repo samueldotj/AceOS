@@ -12,11 +12,10 @@ TARGET= $(OBJ)/kernel.sys
 LIBS= $(OBJ)/libheap.a $(OBJ)/libds.a $(OBJ)/libstring.a $(OBJ)/libsync.a
 
 #static kernel modules
-STATIC_MODS= $(OBJ)/arch.a $(OBJ)/iom.a $(OBJ)/rtc.a $(OBJ)/pit.a $(OBJ)/acpi.a 
+STATIC_MODS= $(OBJ)/arch.a $(OBJ)/iom.a $(OBJ)/rtc.a $(OBJ)/pit.a  $(OBJ)/acpi.a
 
 #generica kernel object files
-KERNEL_OBJ = $(patsubst %.c,%.o,$(wildcard *.c))  $(patsubst %.c,%.o,$(wildcard mm/*.c)) $(patsubst %.c,%.o,$(wildcard pm/*.c))
-
+KERNEL_OBJ = $(patsubst %.c,%.o,$(wildcard *.c))  $(patsubst %.c,%.o,$(wildcard mm/*.c)) $(patsubst %.c,%.o,$(wildcard pm/*.c)) $(patsubst %.c,%.o,$(wildcard ipc/*.c))
 #phony command - all - makes all object
 all:    $(TARGET)
 

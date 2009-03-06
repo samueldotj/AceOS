@@ -13,8 +13,10 @@
 #define SYSTEM_CALL_CACHE_MIN_BUFFERS			50
 #define SYSTEM_CALL_CACHE_MAX_SLABS				50
 
+#define TOTAL_SYSTEM_CALL_ARGS 5
+
 typedef struct system_call_args {
-    UINT32 arg1, arg2, arg3, arg4, arg5;
+    UINT32 args[TOTAL_SYSTEM_CALL_ARGS];
 }SYSTEM_CALL_ARGS, *SYSTEM_CALL_ARGS_PTR;
 
 void SetupSystemCallHandler(void);

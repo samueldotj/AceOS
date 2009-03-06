@@ -6,6 +6,7 @@
 #include <ace.h>
 #include <kernel/wait_event.h>
 #include <kernel/pm/scheduler.h>
+#include <kernel/pm/timeout_queue.h>
 #include <kernel/interrupt.h>
 #include <kernel/mm/kmem.h>
 #include <kernel/debug.h>
@@ -29,7 +30,7 @@ WAIT_EVENT_PTR AddToEventQueue(WAIT_EVENT_PTR *wait_queue)
 		*wait_queue = wait_event;
 	else
 	{
-		AddToList( &((*wait_queue)->in_queue), &(wait_event->in_queue) );
+		AddToListTail( &((*wait_queue)->in_queue), &(wait_event->in_queue) );
 	}
 
 	return wait_event;
@@ -40,21 +41,26 @@ WAIT_EVENT_PTR AddToEventQueue(WAIT_EVENT_PTR *wait_queue)
 \brief	Waits for a particular event to fire until specified timeout.
 \param	event		Event on which we have to wait
 \param	timeout		Units in milli secobds; If =0, no timeout, block until the event happens; >0, block until either event fires up or the timeout happens.
-Returns 0 on success(event happened before timeout.) or -1 on failure(timeout happenned and no event showed up)
+Returns >0(remaining time) if event happened before timeout or 0 on failure(timeout happenned and no event showed up)
 */
-int WaitForEvent(WAIT_EVENT_PTR event, int timeout)
+UINT32 WaitForEvent(WAIT_EVENT_PTR event, UINT32 timeout)
 {
 	int ret_timeout;
 	THREAD_PTR my_thread;
 
 	assert( event->thread == GetCurrentThread() );	/* This is necessary to avoid rogue threads inducing sleep to innocent threads */
-
+	
 	if(timeout > 0) /* Wait until the event fires up or the timeout expires */
 	{
 		ret_timeout = Sleep(timeout); /* This will block for the specified time */
 
 		if(ret_timeout > 0) /* We woke up because, some other event finished */
-			return 0;
+		{
+			/* Removes the registered timeout event from timout queue */
+			if (RemoveFromTimeoutQueue() == -1)
+				panic("timeout queue corrupted\n");
+			return ret_timeout;
+		}
 		else /* Timeout happenned and no event fired up. */
 		{
 			my_thread = (THREAD_PTR)(event->thread);
@@ -65,9 +71,8 @@ int WaitForEvent(WAIT_EVENT_PTR event, int timeout)
 				event->thread = NULL;
 				SpinUnlock( &(my_thread->wait_event_queue_lock) );
 			}
-			return -1;
+			return 0;
 		}
-
 	}
 	else /* Wait until the event fires up */
 	{
@@ -106,20 +111,22 @@ void WakeUpEvent(WAIT_EVENT_PTR *event, int flag)
 				ClearRelatedWaitEvents(temp_wait_event);
 				temp_wait_event->thread = NULL;
 				SpinUnlock( &(thread->wait_event_queue_lock) );
+				temp_wait_event->fired = 1;
 
 				SpinLock( &(thread->lock) );
 				if(thread->state == THREAD_STATE_RUN)
 				{
 					thread->state = THREAD_STATE_EVENT_FIRED;	/* An intermediate state to instruct the thread not to sleep or block */
+					//kprintf("special case!! event fired while thread about to sleep\n");
 					SpinUnlock( &(thread->lock) );
 				}
 				else
 				{
 					SpinUnlock( &(thread->lock) );
+					//kprintf("Event %p waking thread %p\n", temp_wait_event, thread);
 					ResumeThread(thread);
 				}
 			}
-			temp_wait_event->fired = 1;
 		}
 		temp_wait_event = *event;
 		*event = NULL; /* This is the queue pointer from the structure. The wait_event is still active and should be freed after the thread is woken up*/
@@ -142,23 +149,29 @@ void WakeUpEvent(WAIT_EVENT_PTR *event, int flag)
 		ClearRelatedWaitEvents(temp_wait_event);
 		temp_wait_event->thread = NULL;
 		SpinUnlock( &(thread->wait_event_queue_lock) );
+		temp_wait_event->fired = 1;
 
 		SpinLock( &(thread->lock) );
 		if(thread->state == THREAD_STATE_RUN)
 		{
 			thread->state = THREAD_STATE_EVENT_FIRED;	/* An intermediate state to instruct the thread not to sleep or block */
+			//kprintf("special case!! event fired while thread: %p about to sleep\n", thread);
 			SpinUnlock( &(thread->lock) );
 		}
 		else
 		{
 			SpinUnlock( &(thread->lock) );
+			//kprintf("Event %p waking thread %p\n", temp_wait_event, thread);
 			ResumeThread(thread);
 		}
 	}
-	temp_wait_event->fired = 1;
 }
 
-
+/*!
+ * \brief	Clears related threade events.
+ * \param	event	Wait event for which the related thread events are to be cleared
+ * Note: Only the THREAD pointer in event is made NULL and the event is disengaged from the thread events LIST.
+ */
 static void ClearRelatedWaitEvents(WAIT_EVENT_PTR event)
 {
 	WAIT_EVENT_PTR temp_wait_event;
@@ -167,13 +180,54 @@ static void ClearRelatedWaitEvents(WAIT_EVENT_PTR event)
 	head_list = &(event->thread_events);
 	LIST_FOR_EACH_REMOVAL(temp_list1, temp_list2, head_list )
 	{
+		if(temp_list1 == head_list)
+			continue;
 		temp_wait_event = STRUCT_ADDRESS_FROM_MEMBER(temp_list1, WAIT_EVENT, thread_events);
 		RemoveFromList( &(temp_wait_event->thread_events) );
+		//kprintf("Event: %p Will not wake up thread: %p\n", temp_wait_event, temp_wait_event->thread);
 		temp_wait_event->thread = NULL;
-		head_list = temp_list2;
+		//head_list = temp_list2;
 	}
 
-	temp_wait_event = STRUCT_ADDRESS_FROM_MEMBER(head_list, WAIT_EVENT, thread_events);
-	RemoveFromList( &(temp_wait_event->thread_events) );
-	temp_wait_event->thread = NULL;
+	//temp_wait_event = STRUCT_ADDRESS_FROM_MEMBER(head_list, WAIT_EVENT, thread_events);
+	//RemoveFromList( &(temp_wait_event->thread_events) );
+	//temp_wait_event->thread = NULL;
+}
+
+
+/*!
+ * \brief Removes the event from the given queue. This call is done after an related event was fired or if an timeout happened.
+ * \param	wait_event	Event that has to be removed.
+ * \param	wait_queue	Queue from which the event is to be removed
+ * NOTE: IN queue lock in the parent structure has to be taken before entering this function.
+ */
+void RemoveEventFromQueue(WAIT_EVENT_PTR search_wait_event, WAIT_EVENT_PTR *wait_queue)
+{
+	LIST_PTR temp1;
+	WAIT_EVENT_PTR temp_event;
+//	kprintf("remove event=%p from queue=%p\n", search_wait_event, *wait_queue);
+
+	if(*wait_queue == search_wait_event)
+	{
+		if( IsListEmpty( &(search_wait_event->in_queue) ) )
+		{
+	//		kprintf("queue %p is made NULL\n");
+			*wait_queue = NULL;
+		}
+		else
+			RemoveFromList( &((*wait_queue)->in_queue) );
+
+		return;
+	}
+
+	LIST_FOR_EACH(temp1, &((*wait_queue)->in_queue) )
+	{
+		temp_event = STRUCT_ADDRESS_FROM_MEMBER(temp1, WAIT_EVENT, in_queue);
+		if(temp_event == search_wait_event)
+		{
+			assert(temp_event->thread == NULL); /* make sure that this event is dormant */
+			RemoveFromList( &(temp_event->in_queue) );
+			return;
+		}
+	}
 }

@@ -18,5 +18,6 @@ extern volatile TIMEOUT_QUEUE_PTR timeout_queue;
 
 INT32 Sleep(UINT32 timeout);
 void ValuateTimeoutQueue(void);
+int RemoveFromTimeoutQueue(void);
 
 #endif

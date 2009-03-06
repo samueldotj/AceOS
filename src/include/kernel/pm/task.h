@@ -19,15 +19,28 @@ typedef struct thread THREAD, * THREAD_PTR;
 
 #define KERNEL_STACK_SIZE	(PAGE_SIZE)
 
-typedef struct task
+typedef struct task TASK, *TASK_PTR;
+/* include ipc.h after defining TASK_PTR because ipc.h uses it */
+#include <kernel/ipc.h>
+#include <kernel/wait_event.h>
+
+#define MESSAGE_QUEUES_PER_TASK 5
+
+struct task
 {
-	SPIN_LOCK	 	lock;					/*! lock for the entire structure */
-	int				reference_count;
+	SPIN_LOCK	 		lock;					/*! lock for the entire structure */
+	int					reference_count;
 	
-	VIRTUAL_MAP_PTR	virtual_map;			/*! virtual map for this task */
+	VIRTUAL_MAP_PTR		virtual_map;			/*! virtual map for this task */
 	
-	THREAD_PTR		thread_head;			/*! threads in the same task */
-}TASK, * TASK_PTR;
+	THREAD_PTR			thread_head;			/*! threads in the same task */
+
+	SPIN_LOCK			message_queue_lock[MESSAGE_QUEUES_PER_TASK];
+	MESSAGE_BUFFER_PTR	message_queue[MESSAGE_QUEUES_PER_TASK];				/*! Pointer to head of the message buffer queue */
+	WAIT_EVENT_PTR		wait_event_message_queue[MESSAGE_QUEUES_PER_TASK];	/*! Pointer to wait event queue for message queue variable */
+	SPIN_LOCK			wait_event_lock[MESSAGE_QUEUES_PER_TASK];
+	UINT32				message_queue_length;		/*! Number of message buffers that can be present in the queue */
+};
 
 typedef enum 
 {
@@ -43,7 +56,7 @@ typedef enum
 
 struct thread
 {
-	SPIN_LOCK	 			lock;					/*! lock for the entire structure */
+	SPIN_LOCK				lock;					/*! lock for the entire structure */
 	int						reference_count;
 	
 	TASK_PTR				task;					/*! back pointer to task */
@@ -109,6 +122,10 @@ void InitBootThread(int boot_processor_id);
 
 void FillThreadContext(THREAD_CONTAINER_PTR thread_container, void * start_address);
 void SwitchContext(THREAD_CONTAINER_PTR thread_container);
+
+TASK_PTR PidToTask(UINT32 pid);
+UINT32 TaskToPid(TASK_PTR task);
+UINT32 GetCurrentPid(void);
 
 #ifdef __cplusplus
 	}

@@ -28,11 +28,11 @@ ERROR_CODE dummy_system_call(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
 {
 	kprintf("dummy system call called\n");
 	kprintf("arg1=%d arg2=%d arg3=%d arg4=%d arg5=%d\n",
-		sys_call_args->arg1,
-		sys_call_args->arg2,
-		sys_call_args->arg3,
-		sys_call_args->arg4,
-		sys_call_args->arg5 );
+		sys_call_args->args[0],
+		sys_call_args->args[1],
+		sys_call_args->args[2],
+		sys_call_args->args[3],
+		sys_call_args->args[4] );
 
 	*retval = 100;  /* This is for user program to interpret */
 	return ERROR_SUCCESS;  /* Success . This is for sys call handler*/

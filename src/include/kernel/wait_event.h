@@ -27,7 +27,8 @@ struct wait_event
 };
 
 WAIT_EVENT_PTR AddToEventQueue(WAIT_EVENT_PTR *wait_queue);
-int WaitForEvent(WAIT_EVENT_PTR event, int timeout);
+UINT32 WaitForEvent(WAIT_EVENT_PTR event, UINT32 timeout);
 void WakeUpEvent(WAIT_EVENT_PTR *event, int flag);
+void RemoveEventFromQueue(WAIT_EVENT_PTR search_wait_event, WAIT_EVENT_PTR *wait_queue);
 
 #endif

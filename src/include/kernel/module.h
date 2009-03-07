@@ -13,17 +13,21 @@
 
 #define MODULE_MAGIC_NUMBER 0xACE
 
-typedef struct module_file_header
+struct module_file_header
 {
 	UINT32 	MagicNumber; 					/*! Identifies Ace kernel module container file - should be 0xACE*/
 	int		TotalModules;					/*! Total number of modules present in this container*/
-}MODULE_FILE_HEADER, * MODULE_FILE_HEADER_PTR;
+}__attribute__ ((packed));
 
-typedef struct module_header
+typedef struct module_file_header MODULE_FILE_HEADER, * MODULE_FILE_HEADER_PTR;
+
+struct module_header
 {
 	char 	ModuleName[KERNEL_MODULE_NAME_MAX];		/*! Name of the module*/
 	UINT32	Size;									/*! Size of the module*/
-}MODULE_HEADER, * MODULE_HEADER_PTR;
+}__attribute__ ((packed));
+
+typedef struct module_header MODULE_HEADER, * MODULE_HEADER_PTR;
 
 #ifdef __cplusplus
     extern "C" {

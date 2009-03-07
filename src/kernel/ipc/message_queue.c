@@ -52,7 +52,7 @@ ERROR_CODE SendMessage(MESSAGE_BUFFER_PTR mbuf, UINT32 pid_target_task, UINT8 qu
 
 
 	kern_msg_buf = (MESSAGE_BUFFER_PTR)kmalloc(sizeof(MESSAGE_BUFFER), KMEM_NO_FAIL);
-	kern_msg_buf->from_pid = GetCurrentPid();
+	kern_msg_buf->from_pid = GET_CURRENT_PID();
 
 	InitList( &(kern_msg_buf->message_buffer_queue) );
 

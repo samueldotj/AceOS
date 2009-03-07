@@ -59,6 +59,8 @@ extern PHYSICAL_MAP kernel_physical_map;;
 extern MEMORY_AREA memory_areas[MAX_MEMORY_AREAS];
 extern int memory_area_count;
 
+PHYSICAL_MAP_PTR CreatePhysicalMap(VIRTUAL_MAP_PTR vmap);
+
 void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi);
 void InitPhysicalMemoryManagerPhaseII();
 void CompletePhysicalMemoryManagerInit();
@@ -69,5 +71,6 @@ ERROR_CODE RemovePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va);
 ERROR_CODE MapVirtualAddressRange(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 size, UINT32 protection);
 
 VA_STATUS GetVirtualRangeStatus(VADDR va, UINT32 size);
+VA_STATUS TranslatePaFromVa(VADDR va, VADDR * pa);
 
 #endif

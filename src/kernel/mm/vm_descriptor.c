@@ -3,16 +3,38 @@
 	\brief	vm descriptor related routines
 */
 #include <string.h>
+#include <ds/bits.h>
 #include <ds/avl_tree.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/pmem.h>
 #include <kernel/mm/kmem.h>
 
+/*! argument structure for enumerating vm descriptors*/
+typedef struct enumerate_descriptor_arg
+{
+	VADDR	preferred_start;					/*! IN - Preferred start address*/
+	VADDR	size;								/*! IN - Size required*/
+	
+	VADDR	result;								/*! OUT - Start of free virtual address range of required size*/
+	
+	VADDR	previous_descriptor_va_start;		/*! internal use - last used va range start*/
+	VADDR	previous_descriptor_va_end;			/*! internal use - last used va range end*/
+}ENUMERATE_DESCRIPTOR_ARG, * ENUMERATE_DESCRIPTOR_ARG_PTR;
+
 static COMPARISION_RESULT compare_vm_descriptor_with_va(struct binary_tree * node1, struct binary_tree * node2);
 static COMPARISION_RESULT compare_vm_descriptor(struct binary_tree * node1, struct binary_tree * node2);
 static void * FindVaRange(VM_DESCRIPTOR_PTR descriptor_ptr, VADDR start, UINT32 size, int top_down_search, VADDR last_va_end);
+static int enumerate_descriptor_callback(AVL_TREE_PTR node, void * arg);
+
+CACHE vm_descriptor_cache;
 
 /*! Initializes the given VM descriptor structure and adds it to the VM map
+	\param descriptor - vm descriptor to be initialized
+	\param vmap - virtual map of this descriptor
+	\param start - starting va address of this descriptor range
+	\param end - ending va address of this descriptor range
+	\param vm_unit - vm unit which is backing this descriptor
+	\param protection - protection for this range
 */
 void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, VADDR start, VADDR end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection)
 {
@@ -36,9 +58,25 @@ void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, VADDR 
 	vmap->descriptor_count++;
 }
 
+/*! Creates and initalizes a vm descriptor
+	\param vmap - virtual map of this descriptor
+	\param start - starting va address of this descriptor range
+	\param end - ending va address of this descriptor range
+	\param vm_unit - vm unit which is backing this descriptor
+	\param protection - protection for this range
+	\return on success pointer to vm descriptor
+			on failure null
+*/
 VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR start, VADDR end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection)
 {
-	VM_DESCRIPTOR_PTR vd = (VM_DESCRIPTOR_PTR)kmalloc(sizeof(VM_DESCRIPTOR), KMEM_NO_FAIL);
+	VM_DESCRIPTOR_PTR vd;
+	
+	SpinLock(&vmap->lock);
+	vmap->reference_count++;
+	SpinUnlock(&vmap->lock);
+	
+	vd = (VM_DESCRIPTOR_PTR)kmalloc(sizeof(VM_DESCRIPTOR), KMEM_NO_FAIL);
+	//vd = AllocateBuffer( &vm_descriptor_cache, 0 );
 	InitVmDescriptor( vd, vmap, start, end, vm_unit, protection);
 	SpinLock(&vm_unit->lock);
 	vm_unit->reference_count++;
@@ -57,45 +95,64 @@ VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR start, VADDR en
 */
 void * FindFreeVmRange(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 size, UINT32 option)
 {
-	VADDR end = NULL;
+	VADDR result = NULL;
 	
  	assert( vmap!=NULL );
 	assert( size > 0 );
-	/*try to find a hole which has enough space*/
-	end = (VADDR)FindVaRange( STRUCT_ADDRESS_FROM_MEMBER( vmap->descriptors, VM_DESCRIPTOR, tree_node), start, size, option & VA_RANGE_SEARCH_FROM_TOP,  vmap->start);
-	/*if no hole found try to allocate at the end of virtual address map*/
-	if ( end == NULL )
+	
+	/*sanity check*/
+	if ( start+size <= start )
+		return NULL;
+
+	/*if there is no vm descriptors - we can just use the prefered start*/
+	if ( vmap->descriptors == NULL )
 	{
-		if (vmap == &kernel_map) 
+		/*return failure if the prefered start is outside boundary*/
+		if ( start < USER_MAP_START_VA || start > USER_MAP_END_VA || start+size > USER_MAP_END_VA )
 		{
-			if ( (KERNEL_MAP_END_VA - vmap->end) >= size )
-			{
-				end = vmap->end;
-				vmap->end += size;
-			}
+			return NULL;
 		}
-		else if ( (USER_MAP_END_VA - vmap->end) >= size )
+		result = start;
+	}
+	else
+	{
+		/*try to find whether we can use preferred address*/
+		if( GetVmDescriptor(vmap, start, size) == 0 )
 		{
-			end = vmap->end;
-			vmap->end += size;
+			result = start;
+		}
+		else
+		{
+			/*try to find a hole which has enough space*/
+			result = (VADDR)FindVaRange( STRUCT_ADDRESS_FROM_MEMBER( vmap->descriptors, VM_DESCRIPTOR, tree_node), start, size, option & VA_RANGE_SEARCH_FROM_TOP,  vmap->start);
 		}
 	}
-	return (void *)end;
+	/*if no hole found try to allocate at the end of virtual address map*/
+	if ( result == NULL )
+	{
+		if ( ( vmap == &kernel_map && (KERNEL_MAP_END_VA - vmap->end) >= size ) ||
+			 ( vmap != &kernel_map && (USER_MAP_END_VA   - vmap->end) >= size ) )
+		{
+				result = vmap->end;
+		}
+	}
+	return (void *)result;
 }
 
 /*! Returns the vm descriptor associated for the given VA in the given map
 	\param vmap - Virtual map which should be searched for the the VA
 	\param va - virtual address 
+	\param size - size of the virtual address range
 	\return if the va exists on the map the corresponding vm descriptor else NULL
 */
-VM_DESCRIPTOR_PTR GetVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR va)
+VM_DESCRIPTOR_PTR GetVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size)
 {
 	VM_DESCRIPTOR_PTR vm_descriptor = NULL;
 	VM_DESCRIPTOR search_descriptor;
 	AVL_TREE_PTR ret;
 	
 	search_descriptor.start = PAGE_ALIGN(va);
-	search_descriptor.end = search_descriptor.start + PAGE_SIZE;
+	search_descriptor.end = PAGE_ALIGN_UP(search_descriptor.start + size);
 	ret = SearchAvlTree(vmap->descriptors, &(search_descriptor.tree_node), compare_vm_descriptor_with_va);
 	if ( ret )
 		vm_descriptor = STRUCT_ADDRESS_FROM_MEMBER( ret, VM_DESCRIPTOR, tree_node );
@@ -112,8 +169,51 @@ VM_DESCRIPTOR_PTR GetVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR va)
 */
 static void * FindVaRange(VM_DESCRIPTOR_PTR descriptor_ptr, VADDR start, UINT32 size, int top_down_search, VADDR last_va_end)
 {
-	/*need implementation with a AVL TREE using size as key*/
-	return NULL;
+	ENUMERATE_DESCRIPTOR_ARG arg;
+		
+	memset( &arg, 0, sizeof(arg) );
+	arg.preferred_start = start;
+	arg.size = size;
+	
+	EnumerateAvlTree( &descriptor_ptr->tree_node, enumerate_descriptor_callback, &arg );
+	
+	return (void *)arg.result;
+}
+/*! Enumerator - call back function used by FindVaRange()->EnumerateAvlTree()
+	\param node - AVL tree node(vm descriptor)
+	\param arg - preferred start and size of the required new region
+*/
+static int enumerate_descriptor_callback(AVL_TREE_PTR node, void * arg)
+{
+	ENUMERATE_DESCRIPTOR_ARG_PTR a= (ENUMERATE_DESCRIPTOR_ARG_PTR) arg;
+	VM_DESCRIPTOR_PTR descriptor = STRUCT_ADDRESS_FROM_MEMBER(node, VM_DESCRIPTOR, tree_node);
+	VADDR va_start, va_end, size;
+	
+	va_start = PAGE_ALIGN(a->preferred_start);
+	va_end = PAGE_ALIGN_UP(a->preferred_start+a->size);
+	size = PAGE_ALIGN_UP(a->size);
+	
+	/*check whether the hole has "preferred" start and required size*/
+	if ( RANGE_WITH_IN_RANGE( a->previous_descriptor_va_end, descriptor->start, va_start, va_end ) )
+	{
+		/*update the result with correct address*/
+		a->result = va_start;
+		/*terminate enumeration*/
+		return 1;
+	}
+	/*atleast the hole has required size?*/
+	else if ( (a->previous_descriptor_va_end - descriptor->start) > size )
+	{
+		a->result = a->previous_descriptor_va_end;
+		/*break the enumeration if we passed preferred va range*/
+		//if ( descriptor->end < a->preferred_start )
+		//	return 1;
+	}
+	
+	a->previous_descriptor_va_start = descriptor->start;
+	a->previous_descriptor_va_end = descriptor->end;
+	/*continue enumeration*/
+	return 0;
 }
 
 /*! Searches the vm descriptor AVL tree for a particular vm descriptor*/
@@ -150,5 +250,21 @@ static COMPARISION_RESULT compare_vm_descriptor_with_va(struct binary_tree * nod
 		return GREATER_THAN;
 	else 
 		return LESS_THAN;
+}
+/*! Internal function used to initialize the vm descriptor structure*/
+int VmDescriptorCacheConstructor(void * buffer)
+{
+	VM_DESCRIPTOR_PTR vd = (VM_DESCRIPTOR_PTR)buffer;
+	memset(buffer, 0, sizeof(VM_DESCRIPTOR) );
+	
+	InitSpinLock( &vd->lock );
+	
+	return 0;
+}
+/*! Internal function used to clear the virtual map structure*/
+int VmDescriptorCacheDestructor(void * buffer)
+{
+	VmDescriptorCacheConstructor(buffer);
+	return 0;
 }
 

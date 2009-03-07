@@ -11,7 +11,7 @@
 
 #define KTRACE_PRINT_PARALLEL
 #define KTRACE_PRINT_SERIAL
-#define KTRACE_PRINT_VGA
+//#define KTRACE_PRINT_VGA
 
 /*if serial port printing is enabled then register port */
 #ifdef KTRACE_PRINT_SERIAL

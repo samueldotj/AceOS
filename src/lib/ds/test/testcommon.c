@@ -1,6 +1,6 @@
 #define MAX_NUMBER 			1000
 #define MAX_TREE_NUMBERS 	500
-#define MAX_DEL_NUMBERS  	500
+#define MAX_DEL_NUMBERS  	100
 
 #include <assert.h>
 #include <stdio.h>
@@ -21,7 +21,7 @@ int i, numbers[MAX_TREE_NUMBERS]={31,15,29,34,27,2,25,6,7,8,9,99,85,64,23,24,1,4
 int del_numbers[MAX_DEL_NUMBERS]={150, 8, 2, 9, 1, 6};
 int max_del_numbers = 6;
 int max_tree_numbers = 20;
-	
+
 static void print_usage(char * exe)
 {
 	printf("Usage : %s /r /p /a /d\n", exe);

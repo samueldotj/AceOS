@@ -13,3 +13,4 @@ all_clean:	always
 	@for dir in $(ALL_DIRS); do make -C $$dir all_clean; done
 
 always:	
+	@mkdir -p $(TOOLS_BIN)

@@ -82,13 +82,25 @@ void PageFaultHandler(REGS_PTR reg)
 		if ( err.rsvd ) 
 			kprintf( "Page fault - RESERVED BIT SET\n");
 		else
-			kprintf("Page fault(code %d): %s page %s attempt and %s fault.\n",  
+			kprintf("Page fault(code %d): %s page %s attempt : %s\n",  
 				reg->error_code,
 				err.user ? "User" : "Supervisor" ,
 				err.write ? "write" : "read",
-				err.present ? "protection" : "page not present");
+				err.present ? "protection failure" : "page not present");
 	
 		PRINT_REGS(reg);
 		ArchHalt();
 	}
+}
+void GeneralProtectionFaultHandler(REGS_PTR reg)
+{
+	GPF_ERROR_CODE err;
+	err.all = reg->error_code;
+	kprintf("General Protection Fault:%s %s descriptor table (index - %d)\n",
+		err.ext ? "External event" : "", 
+		err.idt ? "Interrupt" : err.ti ? "Local" : "Global",
+		err.segment_selector_index);
+	
+	PRINT_REGS(reg);
+	ArchHalt();
 }

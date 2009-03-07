@@ -107,6 +107,61 @@ BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_no
 	return NULL;
 }
 
+/*! Traverse(inorder) through binary tree and calls the given function for each node found
+	algorithm: (without recursion)
+		1) Goto left most node
+		2) Call the callback with the left most node
+		3) If the node is leaf 
+			a) go up one level (if we are from left list)
+			b) go up until the node ends in left list
+		4) Goto right node
+*/
+void EnumerateBinaryTree(BINARY_TREE_PTR root, int (*fnCallback)(BINARY_TREE_PTR, void *), void * arg)
+{
+	BINARY_TREE_PTR node = root;
+	do
+	{
+		/*go to the left most node*/
+		while( !IS_END_OF_LEFT_LIST(node) )
+			node = TREE_LEFT_NODE( node );
+		
+		/*we have a node*/
+		if ( fnCallback(node, arg) )
+			return;
+		
+		/*if the node is leaf - go back to parent*/
+		if( IS_END_OF_LEFT_LIST(node) && IS_END_OF_RIGHT_LIST(node) )
+		{
+			TREE_LIST_TYPE list_type;
+			while(1)
+			{
+				node = GetTreeNodeParent(node, &list_type);	
+				/*if we are coming back from left node */
+				if ( list_type == LEFT_TREE_LIST )
+				{
+					if ( fnCallback(node, arg) )
+						return;
+					/*there is no right node so goback one more level up*/
+					if ( IS_END_OF_RIGHT_LIST(node) )
+						continue;
+					else
+						break;
+				}
+				/*if we are coming back from right node goback one more level up*/
+				else if ( list_type == RIGHT_TREE_LIST )
+					continue;
+				/*if we are at root*/
+				else if ( list_type == NO_LIST )
+					return;
+			}
+		}
+		
+		/*select the right node*/
+		if( !IS_END_OF_RIGHT_LIST(node) )
+			node = TREE_RIGHT_NODE( node );
+	}while( 1 );
+}
+
 /*! Inserts an already created node into the binary tree.
 	Return values:
 		0    SUCCESS

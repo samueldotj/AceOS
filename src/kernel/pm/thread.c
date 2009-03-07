@@ -23,21 +23,53 @@ THREAD_PTR GetCurrentThread()
 }
 
 /*! Create a new thread
+	\param task - parent of this thread
 	\param start_address - starting functions address
 	\param priority_class - thread's priority class 
 */
-THREAD_CONTAINER_PTR CreateThread(void * start_address, SCHEDULER_PRIORITY_LEVELS priority_class)
+THREAD_CONTAINER_PTR CreateThread(TASK_PTR task, void * start_address, SCHEDULER_PRIORITY_LEVELS priority_class, BYTE is_kernel_thread)
 {
 	THREAD_CONTAINER_PTR thread_container;
+	VADDR user_stack;
 	
-	if ( (thread_container = AllocateBuffer( &thread_cache, 0 ) ) == NULL )
+	assert( task != NULL );
+	
+	if ( (thread_container = AllocateBuffer( &thread_cache, CACHE_ALLOC_SLEEP) ) == NULL )
 	{
 		KTRACE("AllocateBuffer failed");
 		return NULL;
 	}
-	/*architecture depended things*/
-	FillThreadContext(thread_container, start_address);
 	
+	SpinLock( &task->lock );
+	thread_container->thread.task = task;
+	/*if this is the first thread being created update the task's thread head*/
+	if ( task->thread_head == NULL )
+	{
+		task->thread_head = &thread_container->thread;
+	}
+	else
+	{
+		AddToListTail( &task->thread_head->thread_queue, &thread_container->thread.thread_queue );
+	}
+	SpinUnlock( &task->lock );
+	
+	/*if user mode thread then create user stack*/
+	if ( !is_kernel_thread )
+	{
+		if ( AllocateVirtualMemory( task->virtual_map, &user_stack, 0, USER_STACK_SIZE, PROT_WRITE|PROT_READ, 0, NULL ) != ERROR_SUCCESS )
+		{
+			KTRACE("User stack allocation failed");
+			return NULL;
+		}
+		user_stack = user_stack + USER_STACK_SIZE; /*stack grows from top to bottom*/
+	}
+	else
+		user_stack = NULL;
+			
+	/*architecture depended things*/
+	FillThreadContext(thread_container, start_address, is_kernel_thread, user_stack);
+	
+	/*add to the scheduler*/
 	thread_container->thread.priority = priority_class;
 	ScheduleThread( &thread_container->thread );
 	
@@ -122,6 +154,10 @@ void InitBootThread(int boot_processor_id)
 	boot_thread->priority_queue =  p->dormant_ready_queue->priority_queue[boot_thread->priority];
 	InitList( &boot_thread->priority_queue_list );
 	
+	/*For master for processor the following is done twice - once in InitKernelTask() and again here.
+	It is needed for early boot vm support. And no harm in doing it :)*/
+	GetCurrentThread()->task = &kernel_task;
+	
 	ScheduleThread( boot_thread );
 }
 
@@ -132,6 +168,7 @@ int ThreadCacheConstructor( void *buffer)
 	memset(buffer, 0, sizeof(THREAD_CONTAINER) );
 	
 	InitSpinLock( &thread_container->thread.lock );
+	InitList( &thread_container->thread.thread_queue );
 	thread_container->thread.current_processor = NULL;
 	thread_container->thread.state = THREAD_STATE_NEW;
 	thread_container->thread.reference_count = 1;
@@ -141,5 +178,6 @@ int ThreadCacheConstructor( void *buffer)
 /*! Internal function used to clear the thread structure*/
 int ThreadCacheDestructor( void *buffer)
 {
+	ThreadCacheConstructor(buffer);
 	return 0;
 }

@@ -36,6 +36,21 @@ typedef union pf_error_code
 	};
 }PF_ERROR_CODE, * PF_ERROR_CODE_PTR;
 
+/*! i386 specific general protection fault error code*/
+typedef union gpf_error_code
+{
+	UINT32 	all;
+	struct 
+	{
+		UINT32 	
+			ext:1,						/*if set the exception is because of external event - hardware*/
+			idt:1,						/*if set the index portion coming from idt, else it is from gdt/ldt */
+			ti:1,						/*if set the index portion coming from ldt, else it is from gdt*/
+			segment_selector_index:13,	/*segment / gate selector index*/
+			reserved:16;
+	};
+}GPF_ERROR_CODE, * GPF_ERROR_CODE_PTR;
+
 void SetupExceptionHandlers();
 void ExceptionHandler(REGS_PTR reg);
 

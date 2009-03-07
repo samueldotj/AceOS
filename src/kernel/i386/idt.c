@@ -15,15 +15,22 @@ struct idt_entry idt[IDT_ENTRIES];
 /*Interrupt Descriptor Table Register*/
 struct idt_ptr idtp;
 
-/* Use this function to set an entry in the IDT.*/
-void SetIdtGate(BYTE num, UINT32 base)
+/* ! Sets an entry in interrupt descriptor table
+	\param	num - Interrupt vector number
+	\param  base - Address of the interrrupt handler
+	\param	type - interrupt descriptor type(task gate, interrupt gate or trap gate)
+	\param 	dpl - descriptor privilege level (0 or 3)
+*/
+void SetIdtGate(BYTE num, UINT32 base, BYTE type, BYTE dpl)
 {	
 	idt[num].base_low = (base & 0xFFFF);	
 	idt[num].base_high = ((base>>16) & 0xFFFF);
 	
 	idt[num].selector = KERNEL_CODE_SELECTOR;
 	idt[num].always_zero = 0;
-	idt[num].flags = 0x8e;
+	idt[num].present = 1;
+	idt[num].type = type;
+	idt[num].descriptor_privilege_level = dpl;
 }
 
 /* Loads the Interrupt Descriptor Table*/

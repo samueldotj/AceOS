@@ -10,6 +10,7 @@
 #include <ds/avl_tree.h>
 #include <sync/spinlock.h>
 #include <kernel/error.h>
+#include <kernel/mm/kmem.h>
 #include <kernel/mm/vm_types.h>
 
 #if	ARCH == i386
@@ -31,6 +32,10 @@
 
 #define PAGE_ALIGN_4MB(addr)		((UINT32)(addr) & -(4096*1024))
 #define PAGE_ALIGN_UP_4MB(addr)		PAGE_ALIGN_4MB( (addr) + (1024*1024) - 1 )
+
+#define PAGE_MASK					( ~(PAGE_SIZE-1) )
+
+#define IS_PAGE_ALIGNED(addr)		( !( (addr) & PAGE_MASK ) )
 
 /*! Total number pages required by given size in bytes*/
 #define NUMBER_OF_PAGES(size)		(PAGE_ALIGN_UP(size) >> PAGE_SHIFT)
@@ -164,15 +169,20 @@ extern VM_PROTECTION protection_kernel_read;
 extern VM_PROTECTION protection_user_write;
 extern VM_PROTECTION protection_user_read;
 
+extern CACHE virtual_map_cache;
+extern CACHE vm_descriptor_cache;
+
 #ifdef __cplusplus
     extern "C" {
 #endif
 
 void InitVm();
 
+VIRTUAL_MAP_PTR CreateVirtualMap(VADDR start, VADDR end);
+
 void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, VADDR start, VADDR end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection);
 VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR start, VADDR end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection);
-VM_DESCRIPTOR_PTR GetVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR va);
+VM_DESCRIPTOR_PTR GetVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size);
 void * FindFreeVmRange(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 size, UINT32 option);
 
 VM_UNIT_PTR CreateVmUnit(UINT32 type, UINT32 size);
@@ -186,6 +196,11 @@ VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size);
 
 VIRTUAL_MAP_PTR GetCurrentVirtualMap();
 ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type);
+
+int VirtualMapCacheConstructor(void * buffer);
+int VirtualMapCacheDestructor(void * buffer);
+int VmDescriptorCacheConstructor(void * buffer);
+int VmDescriptorCacheDestructor(void * buffer);
 
 #ifdef __cplusplus
 	}

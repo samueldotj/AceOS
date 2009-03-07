@@ -1,0 +1,77 @@
+diff -rupN binutils-2.19/bfd/config.bfd ../binutils-2.19/bfd/config.bfd
+--- binutils-2.19/bfd/config.bfd	2008-04-16 23:32:01.000000000 +0530
++++ ../binutils-2.19/bfd/config.bfd	2009-02-14 08:23:19.515625000 +0530
+@@ -518,6 +518,10 @@ case "${targ}" in
+     targ_defvec=go32coff_vec
+     targ_selvecs="go32stubbedcoff_vec i386aout_vec"
+     ;;
++  i[3-7]86-*-aceos*)
++    targ_defvec=bfd_elf32_i386_vec
++    targ_selvecs=i386coff_vec
++    ;;
+   i[3-7]86-*-sysv* | i[3-7]86-*-isc* | i[3-7]86-*-sco* | i[3-7]86-*-coff | \
+   i[3-7]86-*-aix*)
+     targ_defvec=i386coff_vec
+diff -rupN binutils-2.19/config.sub ../binutils-2.19/config.sub
+--- binutils-2.19/config.sub	2008-04-14 14:58:35.000000000 +0530
++++ ../binutils-2.19/config.sub	2009-02-14 08:21:23.390625000 +0530
+@@ -1266,7 +1266,7 @@ case $os in
+ 	      | -os2* | -vos* | -palmos* | -uclinux* | -nucleus* \
+ 	      | -morphos* | -superux* | -rtmk* | -rtmk-nova* | -windiss* \
+ 	      | -powermax* | -dnix* | -nx6 | -nx7 | -sei* | -dragonfly* \
+-	      | -skyos* | -haiku* | -rdos* | -toppers* | -drops*)
++	      | -skyos* | -haiku* | -rdos* | -toppers* | -drops* | -aceos*)
+ 	# Remember, each alternative MUST END IN *, to match a version number.
+ 		;;
+ 	-qnx*)
+diff -rupN binutils-2.19/gas/configure.tgt ../binutils-2.19/gas/configure.tgt
+--- binutils-2.19/gas/configure.tgt	2008-10-02 13:37:17.000000000 +0530
++++ ../binutils-2.19/gas/configure.tgt	2009-02-14 08:24:31.093750000 +0530
+@@ -171,6 +171,7 @@ case ${generic_target} in
+ 
+   i370-*-elf* | i370-*-linux*)		fmt=elf ;;
+ 
++  i386-*-aceos)				fmt=elf ;;
+   i386-ibm-aix*)			fmt=coff em=i386aix ;;
+   i386-sequent-bsd*)			fmt=aout em=dynix ;;
+   i386-*-beospe*)			fmt=coff em=pe ;;
+diff -rupN binutils-2.19/ld/Makefile.in ../binutils-2.19/ld/Makefile.in
+--- binutils-2.19/ld/Makefile.in	2008-09-09 13:32:19.000000000 +0530
++++ ../binutils-2.19/ld/Makefile.in	2009-02-14 08:29:14.140625000 +0530
+@@ -1958,6 +1958,8 @@ ehppaobsd.c: $(srcdir)/emulparams/hppaob
+ ehppa64linux.c: $(srcdir)/emulparams/hppa64linux.sh \
+   $(ELF_DEPS) $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+ 	${GENSCRIPTS} hppa64linux "$(tdir_hppa64linux)"
++ei386aceos.c: $(srcdir)/emulparams/i386aceos.sh $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} i386aceos "$(tdir_i386aceos)"
+ ei386aout.c: $(srcdir)/emulparams/i386aout.sh \
+   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/aout.sc ${GEN_DEPENDS}
+ 	${GENSCRIPTS} i386aout "$(tdir_i386aout)"
+diff -rupN binutils-2.19/ld/configure.tgt ../binutils-2.19/ld/configure.tgt
+--- binutils-2.19/ld/configure.tgt	2008-08-09 11:05:13.000000000 +0530
++++ ../binutils-2.19/ld/configure.tgt	2009-02-14 08:25:00.281250000 +0530
+@@ -171,6 +171,7 @@ hppa*-*-openbsd*)	targ_emul=hppaobsd
+ 			;;
+ i370-*-elf* | i370-*-linux-*) targ_emul=elf32i370
+ 			;;
++i[3-7]86-*-aceos*)      targ_emul=i386aceos ;;
+ i[3-7]86-*-nto-qnx*)	targ_emul=i386nto ;;
+ i[3-7]86-*-vsta)	targ_emul=vsta ;;
+ i[3-7]86-*-go32)	targ_emul=i386go32 ;;
+diff -rupN binutils-2.19/ld/emulparams/i386aceos.sh ../binutils-2.19/ld/emulparams/i386aceos.sh
+--- binutils-2.19/ld/emulparams/i386aceos.sh	1970-01-01 05:30:00.000000000 +0530
++++ ../binutils-2.19/ld/emulparams/i386aceos.sh	2009-02-14 08:25:32.109375000 +0530
+@@ -0,0 +1,13 @@
++SCRIPT_NAME=elf
++OUTPUT_FORMAT="elf32-i386"
++TEXT_START_ADDR=0x08048000
++MAXPAGESIZE="CONSTANT (MAXPAGESIZE)"
++COMMONPAGESIZE="CONSTANT (COMMONPAGESIZE)"
++ARCH=i386
++MACHINE=
++NOP=0x90909090
++TEMPLATE_NAME=elf32
++GENERATE_SHLIB_SCRIPT=yes
++GENERATE_PIE_SCRIPT=yes
++NO_SMALL_DATA=yes
++SEPARATE_GOTPLT=12

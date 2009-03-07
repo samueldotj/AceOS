@@ -54,7 +54,6 @@ all_clean:	clean
 $(TARGET):  kernel_build_number $(KERNEL_OBJ) $(STATIC_MODS)
 	@$(LD) -T kernel.ld $(LDFLAGS) -Map kernel.map -o $(TARGET) $(KERNEL_OBJ) $(STATIC_MODS)  $(LIBS)
 	@echo "New kernel is at $(TARGET)"
-	$(ACE_ROOT)/img/create_bootcd.sh
 
 #include dependency files
 -include $(KERNEL_OBJ:.o=.d)

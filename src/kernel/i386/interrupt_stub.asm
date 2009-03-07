@@ -4,6 +4,7 @@
 
 extern ExceptionHandler
 extern PageFaultHandler
+extern GeneralProtectionFaultHandler
 extern InterruptHandler
 extern SetIdtGate
 global ReturnFromInterruptContext
@@ -57,9 +58,11 @@ global %1Stub%2
 %endmacro
 
 ReturnFromInterruptContext:	
-	pop eax													
+	pop eax		
 	
-	add esp, 16												; Clean up the pushed control registers
+	add esp, 12												; Clean up the pushed control registers cr0, cr1, cr2
+	pop eax
+	mov cr3, eax
 	
 	pop gs													; Pop segment registers
 	pop fs
@@ -74,11 +77,15 @@ ReturnFromInterruptContext:
 
 ;Install the stub as interrupt gates
 ;Parameters
-%macro SetIdtGateMacro 2
+%macro SetIdtGateMacro 4
+	push dword %4
+	push dword %3
 	push dword %1%2
 	push dword %2
+	
+	
 	call SetIdtGate
-	add esp, 8
+	add esp, 16
 %endmacro
 
 [SECTION .text]
@@ -87,7 +94,9 @@ ReturnFromInterruptContext:
 ;Generate exception stubs
 %assign i 0
 %rep 32
-	%if i = 14
+	%if i = 13
+		IsrStubMacro GeneralProtectionFaultHandler, i
+	%elif i = 14
 		IsrStubMacro PageFaultHandler, i
 	%else
 		IsrStubMacro ExceptionHandler, i
@@ -105,10 +114,12 @@ ReturnFromInterruptContext:
 SetupExceptionStubs:
 	%assign i 0
 	%rep 32
-		%if i = 14
-			SetIdtGateMacro PageFaultHandlerStub, i
+		%if i = 13
+			SetIdtGateMacro GeneralProtectionFaultHandlerStub, i, IDT_TYPE_INTERRUPT_GATE, KERNEL_PRIVILEGE_LEVEL
+		%elif i = 14
+			SetIdtGateMacro PageFaultHandlerStub, i, IDT_TYPE_INTERRUPT_GATE, KERNEL_PRIVILEGE_LEVEL
 		%else
-			SetIdtGateMacro ExceptionHandlerStub, i
+			SetIdtGateMacro ExceptionHandlerStub, i, IDT_TYPE_INTERRUPT_GATE, KERNEL_PRIVILEGE_LEVEL
 		%endif
 		
 		%assign i i+1
@@ -118,7 +129,7 @@ SetupExceptionStubs:
 SetupInterruptStubs:
 	%assign i 32
 	%rep 255-32
-		SetIdtGateMacro InterruptHandlerStub, i
+		SetIdtGateMacro InterruptHandlerStub, i, IDT_TYPE_INTERRUPT_GATE, USER_PRIVILEGE_LEVEL
 		
 		%assign i i+1
 	%endrep

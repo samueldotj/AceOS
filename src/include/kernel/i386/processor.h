@@ -10,16 +10,17 @@
 #define _PROCESSOR_I386_H_
 
 #include <ace.h>
-#include <kernel/i386/apic.h>
 #include <kernel/processor.h>
-#include <kernel/i386/processor.h>
+#include <kernel/i386/apic.h>
+#include <kernel/i386/cpuid.h>
+#include <kernel/i386/tss.h>
 
 /*! Data structure for architecture independed part of a i386 processor(which supports CPUID and has LAPIC)*/
 typedef struct processor_i386
 {
-	CPUID_INFO				cpuid;							/*! CPUID data returned by the processor*/
-	UINT16					apic_id;						/*! APIC id of the CPU, we cant use CPUID data until the CPU starts*/
-	
+	CPUID_INFO			cpuid;					/*! CPUID data returned by the processor*/
+	UINT16				apic_id;				/*! APIC id of the CPU, we cant use CPUID data until the CPU starts*/
+	TSS					tss;					/*! task state segment for this cpu*/	
 }PROCESSOR_I386, *PROCESSOR_I386_PTR;
 
 /*Processors are indexed by using APIC ID*/

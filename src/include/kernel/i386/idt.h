@@ -6,18 +6,25 @@
 #define _IDT_H_
 
 #include <ace.h>
+#include <kernel/i386/gdt.h>
 
 /*! Total interrupt descriptor table entries in i386*/
 #define IDT_ENTRIES 256
 
+#define	IDT_TYPE_TASK_GATE			5
+#define	IDT_TYPE_INTERRUPT_GATE		14
+#define	IDT_TYPE_TRAP_GATE			15
+
 /*! Interrupt Descriptor Entry data structure*/
 struct idt_entry
 {
-    UINT16 base_low;
-    UINT16 selector;
-    BYTE always_zero; 
-    BYTE flags;
-    UINT16 base_high;
+    UINT16 	base_low;								/*base address of interrupt handler*/
+    UINT16 	selector;								/*segment selector for the interrupt handler - always KERNEL_CODE_SELECTOR */
+    BYTE 	always_zero; 							/*reserved and always zero*/
+    BYTE 	type:5,									/*type of the interrupt descriptor*/
+			descriptor_privilege_level:2,			/*privilege level*/
+			present:1;
+    UINT16 base_high;								/*base address of interrupt handler*/
 } __attribute__((packed));
 
 /*! Interrupt Descriptor Entry pointer*/
@@ -28,7 +35,7 @@ struct idt_ptr
 } __attribute__((packed));
 
 void LoadIdt();
-void SetIdtGate(BYTE num, UINT32 base);
+void SetIdtGate(BYTE num, UINT32 base, BYTE type, BYTE dpl);
 
 #endif
 

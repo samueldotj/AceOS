@@ -42,7 +42,10 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	
 	/* Initialize virtual memory manager*/
 	InitVm();
-
+	
+	/* Initialize kernel task and link current thread(boot thread) with it*/
+	InitKernelTask();
+	
 	/* Read ACPI tables and enable ACPI mode*/
 	if ( InitACPI() != 0 )
 		panic("ACPI Initialization failed.\n");
@@ -75,10 +78,11 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	
 	/* Initialize IO manager and start drivers*/
 	InitIoManager();
-
+	
 	/* now lets set up system call handler */
 	SetupSystemCallHandler();
 	
-	kprintf("Kernel initialization complete\n");
+	CreateTask("hello");
 	
+	kprintf("Kernel initialization complete\n");	
 }

@@ -4,6 +4,14 @@
 
 #include <ds/avl_tree.h>
 
+/*! structure used to store enum function and argument*/
+typedef struct enumerate_avltree_arg
+{
+	int (*fnCallback)(AVL_TREE_PTR, void *);
+	void * arg;
+}ENUMERATE_AVLTREE_ARG, * ENUMERATE_AVLTREE_ARG_PTR;
+
+
 /*! Gets left height and right height of a given AVL tree node*/
 #define GET_AVL_TREE_HEIGHTS( node, left_height, right_height )					\
 	left_height = right_height = -1;											\
@@ -36,6 +44,8 @@ static int RecalculateAvlTreeHeight(AVL_TREE_PTR node);
 static void RightRotateAvlTree(AVL_TREE_PTR node, AVL_TREE_PTR *root_ptr);
 static void LeftRotateAvlTree(AVL_TREE_PTR  node, AVL_TREE_PTR *root_ptr);
 
+static int EnumerateAvlTreeCallback(BINARY_TREE_PTR node, void * arg);
+
 /*!
  * \brief  Initializes the avl tree structure.
  * \param node - Node to initialize
@@ -64,6 +74,19 @@ AVL_TREE_PTR SearchAvlTree(AVL_TREE_PTR start, AVL_TREE_PTR search_node, void * 
 		return STRUCT_ADDRESS_FROM_MEMBER(bt, AVL_TREE, bintree);
 	else
 		return NULL;
+}
+
+/*!
+ * \brief Enumerates the AVL tree and calls the given function with each node
+ * \param start - node to start
+ * \param fnCallback - callback function
+ */
+void EnumerateAvlTree(AVL_TREE_PTR start, int (*fnCallback)(AVL_TREE_PTR, void *), void * arg)
+{
+	ENUMERATE_AVLTREE_ARG e;
+	e.arg = arg;
+	e.fnCallback = fnCallback;
+	EnumerateBinaryTree(&start->bintree, EnumerateAvlTreeCallback, &e);
 }
 
 /*!
@@ -171,6 +194,13 @@ int InsertNodeIntoAvlTree(AVL_TREE_PTR * avl_root_ptr, AVL_TREE_PTR new_node, in
 		return 0;
 	}
 	return BalanceAvlTree(grand_parent, avl_root_ptr);
+}
+
+/*! Callback function to enumerate AVL tree*/
+static int EnumerateAvlTreeCallback(BINARY_TREE_PTR node, void * arg)
+{
+	ENUMERATE_AVLTREE_ARG_PTR e = arg;
+	return e->fnCallback( STRUCT_ADDRESS_FROM_MEMBER(node, AVL_TREE, bintree), e->arg );
 }
 
 /*! Recalculates the AVL Tree height and returns the value

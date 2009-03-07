@@ -513,6 +513,26 @@ void DestroyCache(CACHE_PTR rem_cache)
 	return;
 }
 
+/*!  Adds preallocated memory pages to cache
+	\param start_address - starting address of the memory page
+	\param end_address - end address of the memory
+	
+	\return 0 on success
+*/
+int AddMemoryToCache(CACHE_PTR cache_ptr, char * start_address, char * end_address )
+{
+	char * addr;
+	for(addr=start_address; addr<end_address; )
+	{
+		/*add the pages to the cache*/
+		if ( AddSlabToCache(cache_ptr, (VADDR)addr) != 0 )
+			return -1;
+		/*increment the address by allocated size*/
+		addr += cache_ptr->slab_size;
+	}
+	return 0;
+}
+
 /*!
  *	\brief				Adds the given slab to cache.
  *	\param	cache_ptr	Pointer to my cache entry.

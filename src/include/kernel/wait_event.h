@@ -6,11 +6,10 @@
 #ifndef WAIT_EVENT_H
 #define WAIT_EVENT_H
 
+typedef struct wait_event WAIT_EVENT, *WAIT_EVENT_PTR;
+
 #include <ace.h>
 #include <ds/list.h>
-
-
-typedef struct wait_event WAIT_EVENT, *WAIT_EVENT_PTR;
 #include <kernel/pm/task.h>
 
 #define WAIT_EVENT_WAKE_UP_ALL 1

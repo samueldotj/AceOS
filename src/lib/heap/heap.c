@@ -105,7 +105,7 @@ void * AllocateFromHeap(int size)
 	}
 	bucket_index = BUCKET_INDEX(bucket_size);
 	cache_ptr = &CACHE_FROM_INDEX(bucket_index);
-	heap_data_ptr = (HEAP_DATA_PTR) AllocateBuffer(cache_ptr, 0);
+	heap_data_ptr = (HEAP_DATA_PTR) AllocateBuffer(cache_ptr, CACHE_ALLOC_SLEEP);
 	if ( heap_data_ptr == NULL )
 		return NULL;
 	heap_data_ptr->bucket_index = bucket_index;

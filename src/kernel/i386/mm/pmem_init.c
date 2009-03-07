@@ -23,7 +23,7 @@ static void InitKernelPageDirectory();
 static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa);
 
 /*the following contains where kernel code/data physical address start and end*/
-VADDR kernel_physical_address_start=KERNEL_PHYSICAL_ADDRESS_LOAD, kernel_physical_address_end=0;
+UINT32 kernel_physical_address_start=KERNEL_PHYSICAL_ADDRESS_LOAD, kernel_physical_address_end=0;
 
 /*! Initializes memory areas and kernel page directory.
  * \param magic - magic number passed by multiboot loader
@@ -39,15 +39,15 @@ void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi
 	/* get physical address of the memory area - currently no NUMA support for i386*/
 	*((int *)BOOT_ADDRESS ( &memory_area_count ) ) = 1;
 	
-	*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.code_pa_start ) ) = PAGE_ALIGN (  BOOT_ADDRESS(&kernel_code_start) );
-	*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.code_pa_end ) ) = PAGE_ALIGN_UP (  BOOT_ADDRESS(&ebss) );
+	*((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.code_pa_start ) ) = PAGE_ALIGN (  BOOT_ADDRESS(&kernel_code_start) );
+	*((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.code_pa_end ) ) = PAGE_ALIGN_UP (  BOOT_ADDRESS(&ebss) );
 	
 	/* calculate the address range occupied by kernel modules */
 	if ( mbi->flags & MB_FLAG_MODS )
 	{
 		MULTIBOOT_MODULE_PTR mod = (MULTIBOOT_MODULE_PTR)mbi->mods_addr;
-		* ((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_start ) ) = mod->mod_start;
-		* ((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_end ) ) = PAGE_ALIGN_UP( mod->mod_end );
+		* ((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_start ) ) = PAGE_ALIGN(mod->mod_start);
+		* ((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_end ) ) = PAGE_ALIGN_UP( mod->mod_end );
 	}
 	/* calculate the address range occupied by kernel symbol table*/
 	if ( mbi->flags & MB_FLAG_ELF )
@@ -78,14 +78,14 @@ void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi
 		/*if symbol table found update it in the global data structure*/
 		if( symbol_table_header )
 		{
-			* ((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.symbol_pa_start ) ) = symbol_table_header->sh_addr;
-			* ((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.symbol_pa_end ) ) = ((UINT32)symbol_table_header->sh_addr)+symbol_table_header->sh_size;	
+			* ((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.symbol_pa_start ) ) = symbol_table_header->sh_addr;
+			* ((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.symbol_pa_end ) ) = ((UINT32)symbol_table_header->sh_addr)+symbol_table_header->sh_size;	
 		}
 		/*if string table found update it in the global data structure*/
 		if( string_table_header )
 		{
-			* ((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_start ) ) = string_table_header->sh_addr;
-			* ((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_end ) ) = ((UINT32)string_table_header->sh_addr)+string_table_header->sh_size;
+			* ((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_start ) ) = string_table_header->sh_addr;
+			* ((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_end ) ) = ((UINT32)string_table_header->sh_addr)+string_table_header->sh_size;
 		}
 	}
 	/*Initialize the memory area - calculate virtual page array*/
@@ -309,7 +309,7 @@ static void InitKernelPageDirectory()
 {
 	int i;
 	UINT32 * k_page_dir = (UINT32 *)BOOT_ADDRESS( kernel_page_directory );
-	UINT32 va, physical_address, end_physical_address, module_start, kernel_symbol_table_start, kernel_string_table_start;
+	UINT32 va, physical_address, end_physical_address, module_start, kernel_symbol_table_start, kernel_symbol_table_size, kernel_string_table_start, kernel_string_table_size;
 	MEMORY_AREA_PTR ma_pa;
 	
 	/*initialize all kernel pages as invalid*/
@@ -333,11 +333,11 @@ static void InitKernelPageDirectory()
 	}while( physical_address < end_physical_address );
 		
 	/* Enter mapping for kernel modules*/
-	module_start = *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_start));
+	module_start = PAGE_ALIGN( *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_start)) );
 	if ( module_start )
 	{
 		physical_address = module_start;
-		end_physical_address = *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_end));;
+		end_physical_address = PAGE_ALIGN_UP( *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_pa_end)) );
 		*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_va_start ) ) = va;
 		do
 		{
@@ -345,17 +345,20 @@ static void InitKernelPageDirectory()
 			physical_address += PAGE_SIZE;
 			va += PAGE_SIZE;
 		}while( physical_address < end_physical_address );
-		*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_va_end ) ) = va;
+		*((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.module_va_end ) ) = va;
 	}
 	/* Enter mapping for kernel symbol table*/
-	kernel_symbol_table_start = *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.symbol_pa_start));
+	kernel_symbol_table_start = *((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.symbol_pa_start));
+	kernel_symbol_table_size = *((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.symbol_pa_end)) - kernel_symbol_table_start;
 	if ( kernel_symbol_table_start )
 	{
-		/*kernel symbol table may not page aligned address, so correct va*/
-		* ((VADDR *)BOOT_ADDRESS ( &kernel_reserve_range.symbol_va_start ) ) = va + (kernel_symbol_table_start-PAGE_ALIGN(kernel_symbol_table_start));
-		* ((UINT32 *)BOOT_ADDRESS ( &kernel_reserve_range.symbol_va_end ) ) += va;
+		UINT32 corrected_va;
+		/*symbol table may not page aligned address, so correct va*/
+		corrected_va = va + (kernel_symbol_table_start-PAGE_ALIGN(kernel_symbol_table_start));
+		* ((UINT32 *)BOOT_ADDRESS ( &kernel_reserve_range.symbol_va_start ) ) = corrected_va;
+		* ((UINT32 *)BOOT_ADDRESS ( &kernel_reserve_range.symbol_va_end ) ) = corrected_va + kernel_symbol_table_size;
 		physical_address = kernel_symbol_table_start;
-		end_physical_address = * ((UINT32 *)BOOT_ADDRESS ( &kernel_reserve_range.symbol_pa_end ) );
+		end_physical_address = PAGE_ALIGN_UP( * ((UINT32 *)BOOT_ADDRESS ( &kernel_reserve_range.symbol_pa_end ) ) );
 		do
 		{
 			EnterKernelPageTableEntry(va, physical_address);
@@ -364,20 +367,23 @@ static void InitKernelPageDirectory()
 		}while( physical_address < end_physical_address );
 	}
 	/* Enter mapping for kernel string table*/
-	kernel_string_table_start = *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_start));
+	kernel_string_table_start = *((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_start));
+	kernel_string_table_size = *((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_end)) - kernel_string_table_start;
 	if ( kernel_string_table_start )
 	{
-		/*kernel symbol table may not page aligned address, so correct va*/
-		*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_va_start)) = va + (kernel_string_table_start-PAGE_ALIGN(kernel_string_table_start));
-		*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_va_end)) += va;
+		UINT32 corrected_va;
+		/*string table may not page aligned address, so correct va*/
+		corrected_va = va + (kernel_string_table_start-PAGE_ALIGN(kernel_string_table_start));
+		*((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.string_va_start)) = corrected_va;
+		*((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.string_va_end)) = corrected_va + kernel_string_table_size;
 		physical_address = kernel_string_table_start;
-		end_physical_address = *((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_end));;
+		end_physical_address = PAGE_ALIGN_UP( *((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_end)) );
 		do
 		{
 			EnterKernelPageTableEntry(va, physical_address);
 			physical_address += PAGE_SIZE;
 			va += PAGE_SIZE;
-		}while( physical_address < end_physical_address );
+		}while( physical_address <= end_physical_address );
 	}
 
 	/*map virtual page array*/
@@ -403,7 +409,7 @@ static void InitKernelPageDirectory()
 	}
 	
 	/*Update the kernel free VA start address*/
-	*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.kmem_va_start ) ) = va;
+	*((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.kmem_va_start ) ) = va;
 	
 	/*self mapping*/
 	k_page_dir[PT_SELF_MAP_INDEX] = ((UINT32)k_page_dir) | KERNEL_PTE_FLAG;

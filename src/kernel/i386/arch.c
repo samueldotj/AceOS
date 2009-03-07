@@ -123,6 +123,9 @@ void InitArchPhase2(MULTIBOOT_INFO_PTR mbi)
 	
 	/* Initialize real time clock*/
 	InitRtc();
+	
+	/* Load TSS so that we can switch to user mode*/
+	LoadTss();
 }
 
 /*! returns the current processor's LAPIC id
@@ -162,9 +165,12 @@ void SecondaryCpuStart()
 	
 	/* Install interrupt handler for the LAPIC timer*/
 	InstallInterruptHandler( LOCAL_TIMER_VECTOR_NUMBER-32, LapicTimerHandler, 0);
-		
+
+	/* Load TSS so that we can switch to user mode*/
+	LoadTss();
+
 	/* Start the architecture depended timer for secondary processor - to enable scheduler */
-	//StartTimer(SCHEDULER_DEFAULT_QUANTUM, TRUE);
+	StartTimer(SCHEDULER_DEFAULT_QUANTUM, TRUE);
 	
 	kprintf("Secondary CPU %d is started\n", processor_id);
 }

@@ -3,7 +3,7 @@ vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 #optromimage1: file=$BXSHARE/gpxe-0.9.3-pci_fefe_efef.rom, address=0xd0000
 
 #no of processors:cores per processor:threads per core
-cpu: count=2:1:1, ips=10000000, reset_on_triple_fault=1
+cpu: count=2:1:1, ips=10000000, reset_on_triple_fault=0
 
 megs: 64
 vga: extension=none

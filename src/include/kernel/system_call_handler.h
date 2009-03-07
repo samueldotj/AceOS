@@ -25,6 +25,6 @@ void SetupSystemCallHandler(void);
 int SystemCallCacheConstructor(void *buffer);
 int SystemCallCacheDestructor(void *buffer);
 extern const int max_system_calls;
-extern ERROR_CODE ( *(system_calls[]) )(SYSTEM_CALL_ARGS_PTR, UINT32*);
+extern UINT32 ( *(system_calls[]) )(SYSTEM_CALL_ARGS_PTR, UINT32*);
 
 #endif

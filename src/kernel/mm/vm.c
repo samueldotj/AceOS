@@ -124,8 +124,6 @@ static ERROR_CODE MapKernel()
 		InitKernelDescriptorVtoP(vd, kernel_reserve_range.string_va_start, kernel_reserve_range.string_va_end, kernel_reserve_range.string_pa_start );	
 	}
 
-	/*todo update all the pages in the vtoparray*/
-	
 	return ERROR_SUCCESS;
 }
 static void InitKernelDescriptorVtoP(VM_DESCRIPTOR_PTR vd, VADDR va_start, VADDR va_end, VADDR pa_start)
@@ -182,10 +180,15 @@ VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size)
 */
 ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR preferred_start, UINT32 size, UINT32 protection, UINT32 flags, VM_UNIT_PTR unit)
 {
-	VADDR start;
+	VADDR start, end;
 	VM_PROTECTION_PTR prot;
 	
 	assert( size > 0 );
+	/*page align the start and size*/
+	end = PAGE_ALIGN_UP(preferred_start + size);
+	preferred_start = PAGE_ALIGN(preferred_start);
+	size = end - preferred_start;
+	
 	size = PAGE_ALIGN_UP(size);
 	
 	/*assume error*/
@@ -245,37 +248,41 @@ ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32
 	return ERROR_SUCCESS;
 }
 
-/*! This function maps va to pa mapping in one virtual address space to another virtual address space*/
+/*! This function maps va to pa mapping in one virtual address space to another virtual address space
+*/
 ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, VIRTUAL_MAP_PTR dest_vmap, VADDR *dest_preferred_va, UINT32 dest_size, UINT32 protection)
 {
-	VM_DESCRIPTOR_PTR vd;
-	VM_UNIT_PTR unit;
-	VADDR va, unit_offset;
+	VM_DESCRIPTOR_PTR src_vd, dest_vd;
+	VM_UNIT_PTR unit=NULL;
+	VADDR va, unit_offset, va_difference;
 	ERROR_CODE ret;
 	
+	/*adjust starting and ending of the va range for page alignment*/
+	va_difference = src_va - PAGE_ALIGN(src_va);
 	src_va = PAGE_ALIGN(src_va);
-	dest_size = PAGE_ALIGN_UP(dest_size);
+	dest_size = PAGE_ALIGN_UP(dest_size+va_difference);
 	
-	vd = GetVmDescriptor(src_vmap, src_va);
-	assert( vd != NULL );
-	unit_offset = vd->offset_in_unit + PAGE_ALIGN(src_va - vd->start);
-	unit = vd->unit;
+	/*get vm descriptor of source*/
+	src_vd = GetVmDescriptor(src_vmap, src_va, PAGE_SIZE);
+	if ( src_vd== NULL ) 
+		return ERROR_NOT_FOUND;
+	unit = src_vd->unit;
+	unit_offset = src_vd->offset_in_unit + src_va - src_vd->start;
 	assert( unit!=NULL && unit_offset < unit->size );
 	
-	/*! allocate virtaul address range and map the same vm unit*/
+	/*allocate virtaul address range and map the same vm unit*/
 	ret = AllocateVirtualMemory(dest_vmap, &va, *dest_preferred_va, dest_size, protection, 0, unit);
 	if ( ret != ERROR_SUCCESS )
 		return ret;
 	
-	*dest_preferred_va = va;
-	/*if the descriptor maps only part of the vm_unit then update the starting offset in unit*/
-	if ( unit_offset )
-	{
-		vd = GetVmDescriptor(dest_vmap, va);
-		assert( vd != NULL );
-		vd->offset_in_unit = unit_offset;
-	}
-	
+	/*set the offset in descriptor of the newly allocated va*/
+	dest_vd = GetVmDescriptor(dest_vmap, va, PAGE_SIZE);
+	assert( dest_vd != NULL );
+	dest_vd->offset_in_unit = unit_offset;
+		
+	/*although we cant protect the caller using the entire page, we should return where the actual data starts*/
+	*dest_preferred_va = va + va_difference;
+
 	return ERROR_SUCCESS;
 }
 
@@ -284,7 +291,7 @@ ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, VIRTU
 */
 VIRTUAL_MAP_PTR GetCurrentVirtualMap()
 {
-	return &kernel_map;
+	return GetCurrentThread()->task->virtual_map;
 }
 
 /*! Generic memory management fault handler
@@ -297,26 +304,32 @@ ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type)
 	UINT32 protection = access_type;
 	VIRTUAL_PAGE_PTR vp = NULL;
 	
-	/*! \todo implement user mode fault handling*/
-	if ( is_user_mode )
-		return ERROR_NOT_SUPPORTED;
-		
 	virtual_map = GetCurrentVirtualMap();
 	assert( virtual_map != NULL );
 	
-	vd = GetVmDescriptor(virtual_map, va);
-	/*! if the faulting va is kernel va and the kernel map doesnt have descriptor panic*/
-	if ( vd == NULL && !is_user_mode )
+	vd = GetVmDescriptor(virtual_map, va, PAGE_SIZE);
+	if ( vd == NULL  )
 	{
+		/*! if the faulting va is from userland kill the process*/
+		if ( is_user_mode )
+		{
+			kprintf("User VA  %p not found - kill it\n", va);
+			/*\todo - kill the process*/
+			return ERROR_NOT_FOUND;
+		}
+		/*! if the faulting va is kernel va and the kernel map doesnt have descriptor panic*/
 		kprintf("Kernel memory fault - va = %p virtual_map = %p\n", va, virtual_map);
 		return ERROR_NOT_FOUND;	
 	}
 	
 	vtop_index = ((va - vd->start) / PAGE_SIZE) + (vd->offset_in_unit/PAGE_SIZE);
-
+	assert( vtop_index < (vd->unit->size/PAGE_SIZE) );
+	
 	/*! if a page is already allocated use it else allocate new page*/
 	if ( vd->unit->vtop_array[vtop_index].in_memory )
+	{
 		vp = (VIRTUAL_PAGE_PTR) ( (VADDR)vd->unit->vtop_array[vtop_index].vpage & ~1 );
+	}
 	else
 	{
 		vp = AllocateVirtualPages(1, VIRTUAL_PAGE_RANGE_TYPE_NORMAL);
@@ -335,6 +348,6 @@ ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type)
 		vd->unit->vtop_array[vtop_index].vpage = (VIRTUAL_PAGE_PTR) ( ((VADDR)vp) | 1 );
 	}
 	CreatePhysicalMapping( virtual_map->physical_map, va, vp->physical_address, protection);
-	
+		
 	return ERROR_SUCCESS;
 }

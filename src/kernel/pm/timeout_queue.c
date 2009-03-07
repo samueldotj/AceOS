@@ -19,7 +19,6 @@ int RemoveFromTimeoutQueue(void)
 	THREAD_PTR			wake_me_thread, current_thread;
 	LIST_PTR			temp_list1;
 	TIMEOUT_QUEUE_PTR	temp_queue;
-	IRQ_PRIORITY_LEVELS	my_ipl;
 	int					ret_val = -1; /* 0=FOUND ; -1= NOT FOUND */
 
 	if(timeout_queue == NULL)

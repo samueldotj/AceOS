@@ -17,7 +17,7 @@
 /*Page Table Entry flags*/
 #define PAGE_PRESENT				1
 #define PAGE_READ_WRITE				2
-#define PAGE_SUPERUSER				4
+#define PAGE_USER					4
 #define PAGE_WT						8
 #define PAGE_CACHE_DISABLE			16
 #define PAGE_ACCESSED				32
@@ -26,11 +26,11 @@
 #define PAGE_GLOBAL					256
 
 /*! kernel page table entry flag*/
-#define KERNEL_PTE_FLAG				(PAGE_PRESENT | PAGE_READ_WRITE | PAGE_SUPERUSER | PAGE_GLOBAL)
+#define KERNEL_PTE_FLAG				(PAGE_PRESENT | PAGE_READ_WRITE | PAGE_GLOBAL)
 /*! user page directory entry flag*/
-#define USER_PDE_FLAG				(PAGE_PRESENT | PAGE_READ_WRITE | PAGE_SUPERUSER )
+#define USER_PDE_FLAG				(PAGE_PRESENT | PAGE_READ_WRITE | PAGE_USER )
 /*! user page table entry flag*/
-#define USER_PTE_FLAG				(PAGE_PRESENT | PAGE_READ_WRITE )
+#define USER_PTE_FLAG				(PAGE_PRESENT | PAGE_READ_WRITE | PAGE_USER )
 
 #define CR3_PAGE_CACHE_DISABLE         
 #define CR3_PAGE_WRITES_TRANSPARENT   
@@ -88,10 +88,6 @@ the page tables = ((KERNEL_VIRTUAL_ADDRESS / (PAGE_TABLE_ENTRIES * PAGE_SIZE)) -
 /*! Physical address to Page frame number*/
 #define PA_TO_PFN(pa)						( ((UINT32)pa) >> PAGE_SHIFT )
 
-#ifdef __cplusplus
-    extern "C" {
-#endif
-
 typedef struct virtual_address
 {
 	UINT32	offset:12,
@@ -107,7 +103,7 @@ typedef union page_directory_entry
 		UINT32	
 			present:1,
 			write:1,
-			supervisior:1,
+			user:1,
 			write_through:1,
 			cache_disabled:1,
 			accessed:1,
@@ -127,7 +123,7 @@ typedef union page_table_entry
 		UINT32	
 			present:1,
 			write:1,
-			supervisior:1,
+			user:1,
 			write_through:1,
 			cache_disabled:1,
 			accessed:1,
@@ -141,13 +137,25 @@ typedef union page_table_entry
 
 struct physical_map
 {	
-	SPIN_LOCK					lock;
-	PAGE_DIRECTORY_ENTRY_PTR 	page_directory;
+	SPIN_LOCK					lock;					/*! spinlock for protection*/
+	
+	long						locked_page_count;		/*! number of locked pages in this map*/
+	VIRTUAL_MAP_PTR				virtual_map;			/*! associated virtual map*/
+	
+	PAGE_DIRECTORY_ENTRY_PTR 	page_directory;			/*! page directory of this map*/
 };
 
 extern PAGE_DIRECTORY_ENTRY kernel_page_directory[PAGE_DIRECTORY_ENTRIES] __attribute__ ((aligned (PAGE_SIZE)));
 extern PHYSICAL_MAP kernel_physical_map;
 
+extern CACHE physical_map_cache;
+
+#ifdef __cplusplus
+    extern "C" {
+#endif
+
+extern int PhysicalMapCacheConstructor( void *buffer);
+int PhysicalMapCacheDestructor( void *buffer);
 
 #ifdef __cplusplus
 	}

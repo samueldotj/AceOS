@@ -6,11 +6,17 @@
 #ifndef GDT_H
 #define GDT_H
 
+#include <ace.h>
+#include <kernel/i386/processor.h>
+
 #define KERNEL_CODE_SELECTOR	8
 #define KERNEL_DATA_SELECTOR	16
 
 #define USER_CODE_SELECTOR		24
 #define USER_DATA_SELECTOR		32
+
+#define KERNEL_PRIVILEGE_LEVEL	0
+#define USER_PRIVILEGE_LEVEL	3
 
 /*! GDT structure.
  * Defines a GDT entry. We say packed, because it prevents the compiler from doing things that it thinks is best.
@@ -48,7 +54,8 @@ struct gdt_register
         UINT32 base;
 } __attribute__ ((packed));
 
-#define GDT_ENTRIES		5
+#define STATIC_GDT_ENTRIES	5
+#define GDT_ENTRIES			(STATIC_GDT_ENTRIES + MAX_PROCESSORS)
 
 /*global descriptor table*/
 extern struct gdt_entry gdt[GDT_ENTRIES];

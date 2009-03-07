@@ -5,9 +5,12 @@
 #include <kernel/pm/task.h>
 #include <kernel/pm/elf.h>
 
-static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_table, VIRTUAL_MAP_PTR virtual_map, char * start_symbol_name, VADDR * start_entry);
+static ERROR_CODE LoadElfSegments(ELF_HEADER_PTR file_header, char * string_table, VIRTUAL_MAP_PTR virtual_map);
+static ERROR_CODE LoadElfSegmentIntoMap(ELF_PROGRAM_HEADER_PTR program_header, char *segment_start, VIRTUAL_MAP_PTR virtual_map);
+static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_table, VIRTUAL_MAP_PTR virtual_map, VADDR * section_loaded_va);
 static ERROR_CODE LoadElfSectionIntoMap(ELF_SECTION_HEADER_PTR section_header, VADDR section_data_offset, VIRTUAL_MAP_PTR virtual_map, VADDR * section_loaded_va);
 static ERROR_CODE RelocateSection(ELF_SECTION_HEADER_PTR section_header, ELF_SYMBOL_PTR symbol_table, int relocation_section_index, char * string_table, VADDR relocation_entries, VADDR * section_loaded_va);
+static VADDR FindSymbolAddress(ELF_HEADER_PTR file_header, char * symbol_name, VADDR * section_loaded_va);
 static ELF_SYMBOL_PTR FindElfSymbolByName(ELF_SYMBOL_PTR symbol_table, UINT32 symbol_table_size, char * string_table, char * symbol_name);
 
 #if ARCH == i386
@@ -24,8 +27,13 @@ static void RelocateI386Field(ELF32_RELOCATION_PTR rp, VADDR symbol_value, VADDR
 */
 ERROR_CODE LoadElfImage(ELF_HEADER_PTR file_header, VIRTUAL_MAP_PTR virtual_map, char * start_symbol_name, VADDR * start_entry)
 {
-	ELF_SECTION_HEADER_PTR string_section_header=NULL;
+	ELF_SECTION_HEADER_PTR string_section_header = NULL;
 	char * string_table = NULL;
+	VADDR * section_loaded_va = NULL;
+	ERROR_CODE err = ERROR_NOT_SUPPORTED;
+	int i;
+	
+	assert(file_header != NULL);
 	
 	/*check for correct file type and machine type*/
 	if( file_header->e_ident[EI_MAGIC0] != ELFMAGIC0 || file_header->e_ident[EI_MAGIC1] != ELFMAGIC1 || 
@@ -38,65 +46,152 @@ ERROR_CODE LoadElfImage(ELF_HEADER_PTR file_header, VIRTUAL_MAP_PTR virtual_map,
 	if ( file_header->e_type == ET_NONE )
 		return ERROR_NOT_SUPPORTED;
 
-	/*loop through the segments and load the segments*/
-	if ( file_header->e_shoff != 0 )
+	/*section_loaded_va holds address of where the section is loaded into the virtual map*/
+	section_loaded_va  = (VADDR *) kmalloc( sizeof(VADDR) * file_header->e_shnum, 0 );
+	if ( section_loaded_va  == NULL )
+		return ERROR_NOT_ENOUGH_MEMORY;
+	for(i=0; i<file_header->e_shnum; i++)
+		section_loaded_va[i] = NULL;
+
+	/*find string table*/
+	if ( file_header->e_shoff != 0 && file_header->e_shstrndx != SHN_UNDEF )
 	{
-		/*load the string table*/
-		if ( file_header->e_shstrndx != SHN_UNDEF )
-		{
-			string_section_header = (ELF_SECTION_HEADER_PTR)( (VADDR)file_header + file_header->e_shoff + (file_header->e_shstrndx*file_header->e_shentsize) );
-			if ( string_section_header->sh_type != SHT_STRTAB )
-				return ERROR_NOT_SUPPORTED;
-			string_table = (char *)file_header + string_section_header->sh_offset;
-		}
-		/*load the elf section and relocate it if needed*/
-		LoadElfSections(file_header, string_table, virtual_map, start_symbol_name, start_entry);
+		string_section_header = (ELF_SECTION_HEADER_PTR)( (VADDR)file_header + file_header->e_shoff + (file_header->e_shstrndx*file_header->e_shentsize) );
+		/*just make sure we have correct section type*/
+		if ( string_section_header->sh_type != SHT_STRTAB )
+			return ERROR_NOT_SUPPORTED;
+		
+		string_table = (char *)file_header + string_section_header->sh_offset;
+	}
+
+	/*if program header present load all segments*/
+	if (  file_header->e_phoff != 0 )
+	{
+		/*load the elf section and relocate it */
+		err = LoadElfSegments(file_header, string_table, virtual_map);
+	}
+	/*else load all segments*/
+	else if ( file_header->e_shoff != 0 )
+	{
+		/*load the elf section and relocate it */
+		err = LoadElfSections(file_header, string_table, virtual_map, section_loaded_va);
 	}
 	
-	return ERROR_SUCCESS;
+	assert( start_entry != NULL );
+	*start_entry = NULL;
+	
+	/*if start symbol name given find its address*/
+	if ( start_symbol_name )
+	{
+		*start_entry = FindSymbolAddress( file_header, start_symbol_name, section_loaded_va);
+	}
+	/*get the start entry from elf header*/
+	else 
+	{
+		*start_entry =  file_header->e_entry;
+	}
+	
+	kfree( section_loaded_va );
+	return err;
+}
+static ERROR_CODE LoadElfSegments(ELF_HEADER_PTR file_header, char * string_table, VIRTUAL_MAP_PTR virtual_map)
+{
+	ELF_PROGRAM_HEADER_PTR first_program_header, program_header;
+	ERROR_CODE ret = ERROR_SUCCESS;
+	int i;
+	
+	/*start of the section header*/
+	first_program_header = (ELF_PROGRAM_HEADER_PTR)( (VADDR)file_header + file_header->e_phoff );
+	
+	/*load all the segments into address space*/
+	for(i=0, program_header = first_program_header; i<file_header->e_phnum;i++, program_header = (ELF_PROGRAM_HEADER_PTR) (((VADDR)program_header) + file_header->e_phentsize))
+	{
+		if ( program_header->p_type == PT_NULL )
+		{
+			continue;
+		}
+		else
+		{
+			ret = LoadElfSegmentIntoMap(program_header, ((char *)file_header)+program_header->p_offset, virtual_map );
+			if ( ret != ERROR_SUCCESS )
+				return ret;
+		}
+	}
+	
+	return ret;
+}
+static ERROR_CODE LoadElfSegmentIntoMap(ELF_PROGRAM_HEADER_PTR program_header, char * segment_start, VIRTUAL_MAP_PTR virtual_map)
+{
+	ERROR_CODE ret = ERROR_SUCCESS;
+	UINT32 protection = 0;
+	VADDR preferred_va;
+	
+	/*load only segments which occupies memory others skip silently*/
+	if ( program_header->p_memsz == 0 )
+		return ret;
+	
+	/*get the correct permission for the segment*/
+	if ( program_header->p_flags & PF_R )
+		protection |= PROT_READ;
+	if ( program_header->p_flags & PF_W )
+		protection |= PROT_WRITE;
+	if ( program_header->p_flags & PF_X )
+		protection |= PROT_EXECUTE;
+
+	preferred_va = program_header->p_vaddr;
+
+	/*if the segment is loadable - map it into the address space*/
+	if ( program_header->p_type == PT_LOAD )
+	{
+		ret = CopyVirtualAddressRange( GetCurrentVirtualMap(), (VADDR)segment_start, virtual_map, &preferred_va, program_header->p_filesz, protection );
+		if ( program_header->p_filesz < program_header->p_memsz )
+		{
+			/* \todo - fill the remaining space with zero*/
+		}
+	}
+	else
+	{
+		/*else create a new zero filled section*/
+		typeof(program_header->p_memsz) size = program_header->p_memsz;
+		if ( size == 0 )
+			size = PAGE_SIZE;
+		/* \todo - ensure we load into preferred address else do the relocation...*/
+		ret = AllocateVirtualMemory( virtual_map, &preferred_va, program_header->p_vaddr, size, protection, 0, NULL );
+	}
+	
+	return ret;
 }
 /*! Loads ELF sections into given virtual map and fixes the relocations
 	\param file_header - virtual address where the elf file resides
 	\param string_table - string table for the elf section names
 	\param virtual_map - the elf sections will be loaded into this virtual map
-	\param start_symbol_name - program's first function to start
-	\param start_entry - if start_symbol_name is not null then the symbol will be searched in the symbol table and if found its loaded VA will be updated here.
+	\param section_loaded_va - pointer to section's va 
 */
-static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_table, VIRTUAL_MAP_PTR virtual_map, char * start_symbol_name, VADDR * start_entry)
+static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_table, VIRTUAL_MAP_PTR virtual_map, VADDR * section_loaded_va)
 {
-	ELF_SECTION_HEADER_PTR start_section_header, section_header;
-	VADDR * section_loaded_va = NULL;
+	ELF_SECTION_HEADER_PTR first_section_header, section_header;
 	ERROR_CODE ret = ERROR_SUCCESS;
 	int i;
 	
-	/*if start symbol needs to be returned initialize the value*/
-	if( start_symbol_name )
-	{
-		assert( start_entry != NULL );
-		*start_entry = NULL;
-	}	
-	
-	/*section_loaded_va holds address of where the section is loaded into the virtual map*/
-	section_loaded_va  = (VADDR *) kmalloc( sizeof(VADDR) * file_header->e_shnum, 0 );
-	if ( section_loaded_va  == NULL )
-		return ERROR_NOT_ENOUGH_MEMORY;
-
 	/*start of the section header*/
-	start_section_header = (ELF_SECTION_HEADER_PTR)( (VADDR)file_header + file_header->e_shoff );
+	first_section_header = (ELF_SECTION_HEADER_PTR)( (VADDR)file_header + file_header->e_shoff );
 	
 	/*first pass - load all the sections into address space*/
-	for(i=0, section_header = start_section_header; i<file_header->e_shnum;i++, section_header = (ELF_SECTION_HEADER_PTR) (((VADDR)section_header) + file_header->e_shentsize))
+	for(i=0, section_header = first_section_header; i<file_header->e_shnum;i++, section_header = (ELF_SECTION_HEADER_PTR) (((VADDR)section_header) + file_header->e_shentsize))
 	{
 		/*analyze only active sections*/
 		if ( section_header->sh_type == SHT_NULL )
+		{
+			section_loaded_va[i] = NULL;
 			continue;
+		}
 		
 		ret = LoadElfSectionIntoMap(section_header, (VADDR)file_header+section_header->sh_offset, virtual_map, &section_loaded_va[i]);
 		if ( ret != ERROR_SUCCESS )
-			goto done;
+			return ret;
 	}
-	/*second pass - relocate and find start symbol*/
-	for(i=0, section_header = start_section_header; i<file_header->e_shnum;i++, section_header = (ELF_SECTION_HEADER_PTR) (((VADDR)section_header) + file_header->e_shentsize))
+	/*second pass - relocate */
+	for(i=0, section_header = first_section_header; i<file_header->e_shnum;i++, section_header = (ELF_SECTION_HEADER_PTR) (((VADDR)section_header) + file_header->e_shentsize))
 	{
 		/*relocate the image if needed*/
 		if ( section_header->sh_type == SHT_RELA || section_header->sh_type == SHT_REL )
@@ -107,25 +202,15 @@ static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_tabl
 			symbol_table_index = section_header->sh_link;
 			relocation_section_index = section_header->sh_info;
 
-			symbol_table_header = &start_section_header[section_header->sh_link];
-			string_table_header = &start_section_header[symbol_table_header->sh_link];
+			symbol_table_header = &first_section_header[section_header->sh_link];
+			string_table_header = &first_section_header[symbol_table_header->sh_link];
 			ret = RelocateSection( section_header, (ELF_SYMBOL_PTR) ((char*)file_header + symbol_table_header->sh_offset),
 				relocation_section_index, (char*)file_header + string_table_header->sh_offset, (VADDR)file_header + section_header->sh_offset, section_loaded_va );
 			if ( ret != ERROR_SUCCESS )
-				goto done;
-		}
-		/*find start symbol - if start symbol name is given and start entry is not yet found*/
-		if ( start_symbol_name && *start_entry==NULL && ( section_header->sh_type == SHT_SYMTAB || section_header->sh_type == SHT_DYNSYM ) )
-		{
-			char * string_table = (char *)file_header + start_section_header[section_header->sh_link].sh_offset;
-			ELF_SYMBOL_PTR sym = FindElfSymbolByName( (ELF_SYMBOL_PTR)((char*)file_header + section_header->sh_offset), section_header->sh_size , string_table, start_symbol_name);
-			if ( sym != NULL )
-				*start_entry = section_loaded_va[sym->st_shndx] + sym->st_value;
+				return ret;
 		}
 	}
 
-done:
-	kfree( section_loaded_va );
 	return ret;
 }
 /*! Loads a given ELF section into a Virtual Map and returns the loaded virtual address in section_loaded_va
@@ -168,10 +253,92 @@ static ERROR_CODE LoadElfSectionIntoMap(ELF_SECTION_HEADER_PTR section_header, V
 			size = PAGE_SIZE;
 		ret = AllocateVirtualMemory( virtual_map, section_loaded_va, section_header->sh_addr, size, protection, 0, NULL );
 	}
-	/*adjust the section loaded address*/
-	*section_loaded_va += (section_data_offset - PAGE_ALIGN(section_data_offset) );
 	
 	return ret;
+}
+
+/*! Searches for a given symbol name in the given symbol table and returns its loaded virtual address
+	\param file_header - virtual address where the elf file resides
+	\param symbol_name - symbol name to search
+	\param section_loaded_va - pointer to array of virtual address where sections are loaded
+	\return on success - SYMBOL's virtual address 
+			on failure - NULL
+*/
+static VADDR FindSymbolAddress(ELF_HEADER_PTR file_header, char * symbol_name, VADDR * section_loaded_va)
+{
+	VADDR result = NULL;
+	ELF_SYMBOL_PTR sym;
+	int i;
+	
+	ELF_SECTION_HEADER_PTR first_section_header, section_header;
+	
+	if ( file_header->e_shoff == 0 )
+		return NULL;
+	
+	first_section_header = (ELF_SECTION_HEADER_PTR)( (VADDR)file_header + file_header->e_shoff );
+	/*loop through the section tables to find symbol table*/
+	for(i=0, section_header = first_section_header; i<file_header->e_shnum;i++, section_header = (ELF_SECTION_HEADER_PTR) (((VADDR)section_header) + file_header->e_shentsize))
+	{
+		char * string_table;
+		int string_table_index;
+		if ( section_header->sh_type != SHT_SYMTAB && section_header->sh_type != SHT_DYNSYM )
+			continue;
+
+		/*try to use section specific string table if present else use file specific string table, if both not present return NULL*/
+		if(  section_header->sh_link != SHN_UNDEF )
+			string_table_index = section_header->sh_link;
+		else if ( file_header->e_shstrndx != SHN_UNDEF )
+			string_table_index = file_header->e_shstrndx;
+		else 
+			return NULL;
+		string_table = ((char *)file_header) + first_section_header[string_table_index].sh_offset;
+		sym = FindElfSymbolByName( (ELF_SYMBOL_PTR)((char*)file_header + section_header->sh_offset), section_header->sh_size, string_table, symbol_name);
+		if ( sym == NULL )
+			continue;
+		/*ok - we found our symbol just get the correct address based on the type*/
+		if ( sym->st_shndx == SHN_ABS )
+		{
+			/*absolute value - ace supports?*/
+			result = sym->st_value;
+		}
+		else if ( sym->st_shndx == SHN_COMMON || sym->st_shndx == SHN_UNDEF )
+		{
+			KTRACE("sym->st_shndx == SHN_COMMON || sym->st_shndx == SHN_UNDEF");
+		}
+		else 
+		{
+			/*If a symbol’s value refers to a speciﬁc location within a section, its section index member, st_shndx, holds an index into the section header table.
+			If we relocated that section, then find the correct va*/
+			ELF_SECTION_HEADER_PTR other_section_header = (ELF_SECTION_HEADER_PTR) (((VADDR)first_section_header) + (file_header->e_shentsize * sym->st_shndx) );
+			VADDR relocated_va = sym->st_value - other_section_header->sh_addr;
+			if ( section_loaded_va )
+				result = section_loaded_va[sym->st_shndx] + relocated_va;
+			else
+				result = sym->st_value;
+		}
+		break;
+	}
+	
+	return result;
+}
+/*! Searches for a given symbol name in the given symbol table
+	\param symbol_table - symbol table to search
+	\param symbol_table_size - size of the symbol table in bytes
+	\param string_table - string table associated with the symbol table
+	\param symbol_name - symbol name to search
+	\return on success - SYMBOL address 
+			on failure - NULL
+*/
+static ELF_SYMBOL_PTR FindElfSymbolByName(ELF_SYMBOL_PTR symbol_table, UINT32 symbol_table_size, char * string_table, char * symbol_name)
+{
+	int i;
+	for(i=0;i<symbol_table_size/sizeof(ELF_SYMBOL) ;i++)
+	{
+		if ( strcmp( string_table+symbol_table[i].st_name, symbol_name ) == 0 )
+				return &symbol_table[i];
+	}
+	KTRACE("Symbol not found %s(%p:%d) string table %p\n", symbol_name, symbol_table, symbol_table_size/sizeof(ELF_SYMBOL), string_table);
+	return NULL;
 }
 
 /*! Fixes the relocation entries by walking all the relocation entries and calling architecture specific fixup routines*/
@@ -207,7 +374,7 @@ static ERROR_CODE RelocateSection(ELF_SECTION_HEADER_PTR section_header, ELF_SYM
 				
 				/*search kernel symbols and update the symbol value.*/
 				symbol = FindElfSymbolByName( (ELF_SYMBOL_PTR)kernel_reserve_range.symbol_va_start, kernel_reserve_range.symbol_va_end-kernel_reserve_range.symbol_va_start, 
-												(char *)kernel_reserve_range.string_va_start, &string_table[ symbol_table[sym_index].st_name ]  );
+												(char *)kernel_reserve_range.string_va_start, &string_table[ symbol_table[sym_index].st_name ] );
 				if ( symbol  )
 					symbol_value = symbol->st_value;
 				else
@@ -224,25 +391,6 @@ static ERROR_CODE RelocateSection(ELF_SECTION_HEADER_PTR section_header, ELF_SYM
 		}
 	}
 	return ERROR_SUCCESS;
-}
-/*! Searches for a given symbol name in the given symbol table
-	\param symbol_table - symbol table to search
-	\param symbol_table_size - size of the symbol table in bytes
-	\param string_table - string table associated with the symbol table
-	\param symbol_name - symbol name to search
-	\return on success - SYMBOL address 
-			on failure - NULL
-*/
-static ELF_SYMBOL_PTR FindElfSymbolByName(ELF_SYMBOL_PTR symbol_table, UINT32 symbol_table_size, char * string_table, char * symbol_name)
-{
-	int i;
-	for(i=0;i<symbol_table_size/sizeof(ELF_SYMBOL) ;i++)
-	{
-		if ( strcmp( string_table+symbol_table[i].st_name, symbol_name ) == 0 )
-				return &symbol_table[i];
-	}
-	kprintf("ELF: Symbol not found %s(%p:%d)\n", symbol_name, symbol_table, symbol_table_size/sizeof(ELF_SYMBOL));
-	return NULL;
 }
 
 #if ARCH == i386

@@ -10,6 +10,17 @@
 #include <kernel/pm/elf.h>
 #include <kernel/iom/iom.h>
 
+#define DEVICE_OBJECT_CACHE_FREE_SLABS_THRESHOLD	10
+#define DEVICE_OBJECT_CACHE_MIN_BUFFERS				10
+#define DEVICE_OBJECT_CACHE_MAX_SLABS				10
+
+#define DRIVER_OBJECT_CACHE_FREE_SLABS_THRESHOLD	5
+#define DRIVER_OBJECT_CACHE_MIN_BUFFERS				5
+#define DRIVER_OBJECT_CACHE_MAX_SLABS				5
+
+#define IRP_CACHE_FREE_SLABS_THRESHOLD				50
+#define IRP_CACHE_MIN_BUFFERS						50
+#define IRP_CACHE_MAX_SLABS							50
 
 static ERROR_CODE DummyMajorFunction(DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pIrp);
 
@@ -60,12 +71,14 @@ int DeviceObjectCacheConstructor( void *buffer)
 	
 	return 0;
 }
+
 /*! Internal function used to clear the device object structure*/
 int DeviceObjectCacheDestructor( void *buffer)
 {
 	DeviceObjectCacheConstructor( buffer );
 	return 0;
 }
+
 /*! Internal function used to initialize the IRP structure*/
 int IrpCacheConstructor( void * buffer)
 {
@@ -73,6 +86,7 @@ int IrpCacheConstructor( void * buffer)
 
 	return 0;
 }
+
 /*! Internal function used to initialize the IRP structure*/
 int IrpCacheDestructor( void * buffer)
 {
@@ -80,19 +94,6 @@ int IrpCacheDestructor( void * buffer)
 	
 	return 0;
 }
-
-#define DEVICE_OBJECT_CACHE_FREE_SLABS_THRESHOLD	10
-#define DEVICE_OBJECT_CACHE_MIN_BUFFERS				10
-#define DEVICE_OBJECT_CACHE_MAX_SLABS				10
-
-#define DRIVER_OBJECT_CACHE_FREE_SLABS_THRESHOLD	5
-#define DRIVER_OBJECT_CACHE_MIN_BUFFERS				5
-#define DRIVER_OBJECT_CACHE_MAX_SLABS				5
-
-#define IRP_CACHE_FREE_SLABS_THRESHOLD				50
-#define IRP_CACHE_MIN_BUFFERS						50
-#define IRP_CACHE_MAX_SLABS							50
-
 
 /*! Initialize IO manager and start required boot drivers*/
 void InitIoManager()
@@ -122,6 +123,7 @@ void InitIoManager()
 	InvalidateDeviceRelations(root_bus_device_object, DEVICE_RELATIONS_TYPE_BUS_RELATION);
 	
 }
+
 /*! Dummy Major function handler - used to initialize driver object function pointers
 	Just returns failure
 */
@@ -134,28 +136,38 @@ static ERROR_CODE DummyMajorFunction(DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pI
 	
 	return ERROR_NOT_SUPPORTED;
 }
-/*! Returns the current IO Stack location associated with the given IRP*/
+
+/*! Returns the current IO Stack location associated with the given IRP
+	\param irp - interrupt request packet
+	\return Current IO stack location on the given irp
+*/
 IO_STACK_LOCATION_PTR GetCurrentIrpStackLocation(IRP_PTR Irp)
 {
 	return Irp->current_stack_location;
 }
-/*! Returns the next lower level IO Stack location associated with the given IRP*/
+
+/*! Returns the next lower level IO Stack location associated with the given IRP
+	\param irp - interrupt request packet
+	\return Next IO stack loation on the given irp.
+*/
 IO_STACK_LOCATION_PTR GetNextIrpStackLocation(IRP_PTR Irp)
 {
 	assert( Irp->current_stack >0 && Irp->current_stack < Irp->stack_count );
 	return Irp->current_stack_location-1;
 }
 /*! Creates a device object for use by the driver
-	\input driver_object - caller's driver object - this is used by io manager to link the created device with the driver
-	\input device_extension_size - size of the device_externsion - io manager allocates this much byte in the device_object
-	\input device_object - pointer to device object - io manager updates this pointer with the newly created device object
+	\param driver_object - caller's driver object - this is used by io manager to link the created device with the driver
+	\param device_extension_size - size of the device_externsion - io manager allocates this much byte in the device_object
+	\param device_object - pointer to device object - io manager updates this pointer with the newly created device object
 */
 ERROR_CODE CreateDevice(DRIVER_OBJECT_PTR driver_object, UINT32 device_extension_size, DEVICE_OBJECT_PTR * device_object)
 {
 	DEVICE_OBJECT_PTR dob;
 	assert( device_object != NULL );
 	
-	dob = AllocateBuffer( &device_object_cache, 0 );
+	dob = AllocateBuffer( &device_object_cache, CACHE_ALLOC_SLEEP );
+	if ( dob == NULL )
+		return ERROR_NOT_ENOUGH_MEMORY;
 	dob->driver_object = driver_object;
 	if ( device_extension_size )
 		dob->device_extension = kmalloc( device_extension_size, KMEM_NO_FAIL );
@@ -169,7 +181,11 @@ ERROR_CODE CreateDevice(DRIVER_OBJECT_PTR driver_object, UINT32 device_extension
 	*device_object = dob;
 	return ERROR_SUCCESS;
 }
+
 /*! Links the given source device to target device at higher level, such that any IRP passed to source device can be passed down to target_device
+	\param source_device - parent device
+	\param target_device - child device
+	\return parent device
 */
 DEVICE_OBJECT_PTR AttachDeviceToDeviceStack(DEVICE_OBJECT_PTR source_device, DEVICE_OBJECT_PTR target_device)
 {
@@ -193,6 +209,10 @@ DEVICE_OBJECT_PTR AttachDeviceToDeviceStack(DEVICE_OBJECT_PTR source_device, DEV
 	return parent_device;
 }
 
+/*! Invalidates the device relations, so that IO manager will Query the driver for new relations
+	\param device_object - device object on which relations should be invalidates
+	\param type - type of the invalidation
+*/
 void InvalidateDeviceRelations(DEVICE_OBJECT_PTR device_object, DEVICE_RELATION_TYPE type)
 {
 	DEVICE_RELATIONS_PTR dr;
@@ -240,13 +260,20 @@ void InvalidateDeviceRelations(DEVICE_OBJECT_PTR device_object, DEVICE_RELATION_
 done:
 	FreeIrp(irp);
 }
+
+/*! Allocates a Irp for the use of driver
+	\param stack_size - number of stacks assoicated with this irp
+	\return irp
+*/
 IRP_PTR AllocateIrp(BYTE stack_size)
 {
 	IRP_PTR irp;
 	
 	assert( stack_size>0 );
 	/*! allocate irp and io stack*/
-	irp = AllocateBuffer( &irp_cache, 0 );
+	irp = AllocateBuffer( &irp_cache, CACHE_ALLOC_SLEEP );
+	if ( irp == NULL )
+		return NULL;
 	irp->current_stack_location = kmalloc( sizeof(IO_STACK_LOCATION)*stack_size, KMEM_NO_FAIL );
 	
 	irp->stack_count = stack_size;
@@ -254,6 +281,10 @@ IRP_PTR AllocateIrp(BYTE stack_size)
 	
 	return irp;
 }
+
+/*! Frees a irp
+	\param irp - pointer to irp to be freed
+*/
 void FreeIrp(IRP_PTR irp)
 {
 	assert( irp != NULL );
@@ -261,6 +292,11 @@ void FreeIrp(IRP_PTR irp)
 	kfree( irp->current_stack_location );
 	FreeBuffer( irp, &irp_cache );
 }
+
+/*! Reuses a already allocated Irp
+	\param irp - pointer to irp
+	\param error_code - Io status will be set with this error code
+*/
 void ReuseIrp(IRP_PTR irp, ERROR_CODE error_code)
 {
 	BYTE stack_size;
@@ -278,6 +314,10 @@ void ReuseIrp(IRP_PTR irp, ERROR_CODE error_code)
 	irp->io_status.status = error_code;
 }
 
+/*! Dispatches a call to driver based on the given Irp
+	\param device_object - device object
+	\param irp - irp
+*/
 ERROR_CODE CallDriver(DEVICE_OBJECT_PTR device_object, IRP_PTR irp)
 {
 	assert( device_object != NULL );
@@ -287,7 +327,7 @@ ERROR_CODE CallDriver(DEVICE_OBJECT_PTR device_object, IRP_PTR irp)
 	return ERROR_SUCCESS;
 }
 
-/*Fills Io Stack with given information*/
+/*Helper routine to fill a Io Stack with given information*/
 inline void FillIoStack(IO_STACK_LOCATION_PTR io_stack, BYTE major_function, BYTE minor_function, DEVICE_OBJECT_PTR device_object, IO_COMPLETION_ROUTINE completion_routine, void * context)
 {
 	assert( io_stack );
@@ -297,6 +337,8 @@ inline void FillIoStack(IO_STACK_LOCATION_PTR io_stack, BYTE major_function, BYT
 	io_stack->completion_routine = completion_routine;
 	io_stack->context = context;
 }
+
+/*! Loads a driver*/
 static DRIVER_OBJECT_PTR LoadDriver(char * device_id)
 {
 	char * driver_file_name;
@@ -320,31 +362,32 @@ static DRIVER_OBJECT_PTR LoadDriver(char * device_id)
 			return driver_object;
 	}
 	
-	kprintf("Loading driver %s:", driver_file_name );
+	ktrace("Loading driver %s:", driver_file_name );
 	LoadBootModule( driver_file_name, &driver_start_address, NULL );
 	if( driver_start_address == NULL )
 	{
-		kprintf(" driver not found. \n");
+		ktrace(" driver not found. \n");
 		return NULL;
 	}
 	err = LoadElfImage( driver_start_address, &kernel_map, "DriverEntry", (void *)&DriverEntry );
-	if ( err != ERROR_SUCCESS )
+	if ( err != ERROR_SUCCESS || DriverEntry == NULL )
 	{
-		kprintf(" failed (error - %d)\n", err );
+		ktrace(" failed (error - %d)\n", err );
 		return NULL;
 	}
-	driver_object = AllocateBuffer( &driver_object_cache, 0 );
+	driver_object = AllocateBuffer( &driver_object_cache, CACHE_ALLOC_SLEEP );
+	if ( driver_object == NULL )
+		return NULL;
+	
 	driver_object->driver_file_name = driver_file_name;
 	err = DriverEntry( driver_object );
 	if ( err != ERROR_SUCCESS )
 	{
-		kprintf(" driver intialization failed %d\n", err );
+		ktrace(" driver intialization failed %d\n", err );
 		return NULL;
 	}
 	/*add the driver to the driver list*/
 	AddToListTail( driver_list_head, &driver_object->driver_list );
 
-	kprintf(" success\n");
-	
 	return driver_object;
 }

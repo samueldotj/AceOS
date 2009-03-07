@@ -39,16 +39,20 @@ ERROR_CODE InitBootModuleContainer()
 ERROR_CODE LoadBootModule(char * module_name, void ** start_address, UINT32 * size)
 {
 	MODULE_HEADER_PTR module_header = boot_module_header_start;
-	VADDR module_content_start = (VADDR) ((char *)boot_module_header_start) + ( sizeof(MODULE_HEADER) * total_modules );
+	char * module_content_start;
 	int i = 0;
 	
+	/*module content starts after all the headers*/
+	module_content_start = ((char *)boot_module_header_start) + ( sizeof(MODULE_HEADER) * total_modules );
+		
 	assert( start_address != NULL );
-	
+	*start_address = NULL;
 	while (i<total_modules)
 	{
 		/*! check the module name*/
 		if ( strcmp(module_name, module_header->ModuleName ) == 0 )
 		{
+			//kprintf("%s %d @%p\n", module_name, module_header->Size, module_content_start);
 			/*! update the result and return success*/
 			*start_address = (void *)module_content_start;
 			if ( size )
@@ -57,6 +61,8 @@ ERROR_CODE LoadBootModule(char * module_name, void ** start_address, UINT32 * si
 		}
 		i++;
 		module_content_start += module_header->Size;
+		/*next module*/
+		module_header++;
 	}
 	return ERROR_NOT_FOUND;
 }

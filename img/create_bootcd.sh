@@ -5,13 +5,21 @@ then
 	exit
 fi
 
+OBJ=$ACE_ROOT/obj/
+IMG=$ACE_ROOT/img/
+TOOLS_BIN=$ACE_ROOT/obj/tools/
+USR_BIN=$ACE_ROOT/obj/usr/bin/
+
+rm -f $ACE_ROOT/obj/boot_modules.mod.gz
 #create kernel boot module container
-$ACE_ROOT/obj/mkmc -o $ACE_ROOT/obj/boot_modules.mod $ACE_ROOT/obj/pci_bus.sys
+$TOOLS_BIN/mkmc -v -o $OBJ/boot_modules.mod $USR_BIN/hello $OBJ/pci_bus.sys
+gzip $OBJ/boot_modules.mod
 
-mkdir -p $ACE_ROOT/img/iso/boot/grub
-cp $ACE_ROOT/img/boot/grub/stage2_eltorito $ACE_ROOT/img/iso/boot/grub
-cp $ACE_ROOT/img/boot/grub/menu.lst $ACE_ROOT/img/iso/boot/grub
-cp $ACE_ROOT/obj/kernel.sys $ACE_ROOT/img/iso/
-cp $ACE_ROOT/obj/boot_modules.mod $ACE_ROOT/img/iso/
+rm -rf $IMG/iso/
+mkdir -p $IMG/iso/boot/grub
+cp $IMG/boot/grub/stage2_eltorito $IMG/iso/boot/grub
+cp $IMG/boot/grub/menu.lst $IMG/iso/boot/grub
+cp $OBJ/kernel.sys $IMG/iso
+cp $OBJ/boot_modules.mod.gz $IMG/iso
 
-mkisofs -quiet -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $ACE_ROOT/img/bootcd.iso $ACE_ROOT/img/iso
+mkisofs -quiet -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $IMG/bootcd.iso $IMG/iso

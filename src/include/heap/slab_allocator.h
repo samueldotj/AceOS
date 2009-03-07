@@ -13,6 +13,7 @@
 #include <sync/spinlock.h>
 
 /*flags for cache alloc*/
+#define CACHE_ALLOC_SLEEP				0
 #define CACHE_ALLOC_NO_SLEEP			1
 
 /* define this macro to enable statistics */
@@ -120,5 +121,8 @@ CACHE_STATISTICS_PTR GetCacheStatistics(CACHE_PTR cache_ptr);
 
 /*! gives a page to cache*/
 int AddSlabToCache(CACHE_PTR cache_ptr, VADDR slab_start);
+
+/*! wrapper for AddSlabToCache()*/
+int AddMemoryToCache(CACHE_PTR cache_ptr, char * start_address, char * end_address );
 
 #endif

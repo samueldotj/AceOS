@@ -23,7 +23,7 @@ DRIVER_OBJECT_PTR root_bus_driver_object;
 /*! Initializes and returns root bus driver*/
 DRIVER_OBJECT_PTR LoadRootBusDriver()
 {
-	root_bus_driver_object = AllocateBuffer( &driver_object_cache, 0 );
+	root_bus_driver_object = AllocateBuffer( &driver_object_cache, CACHE_ALLOC_SLEEP );
 	return root_bus_driver_object;
 }
 

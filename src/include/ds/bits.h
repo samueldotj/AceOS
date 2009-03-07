@@ -22,6 +22,13 @@
 	x = y;					\
 	y = tmp;				\
 }
+
+/*! Evaluvates whether the given "value" is with in the given range */
+#define VALUE_WITH_IN_RANGE( range_start, range_end, value )	( (value) >= (range_start) && value <= (range_end) )
+/*! Evaluvates whether the given start and end is with in the given range */
+#define RANGE_WITH_IN_RANGE( range_start, range_end, start, end )	\
+					( VALUE_WITH_IN_RANGE(range_start, range_end, start) && VALUE_WITH_IN_RANGE(range_start, range_end, end) )
+
 inline int FindFirstSetBitInLong(register unsigned long value);
 
 inline int GetBitFromBitArray(void * bit_array, UINT32 bit_index);

@@ -19,12 +19,17 @@ struct bt_test
 };
 typedef struct bt_test BT_TEST, * BT_TEST_PTR;
 
+FILE * gfp=NULL;
+
 COMPARISION_RESULT compare_number(struct binary_tree * node1, struct binary_tree * node2);
 BT_TEST_PTR InitBT_TestNode(BT_TEST_PTR node, int data);
-
+int EnumerateBinaryTreeCallback(BINARY_TREE_PTR node, void * arg);
+void print_tree_graph(BINARY_TREE_PTR node, char * name);
 void print_tree(BINARY_TREE_PTR node);
 int * init_numbers(int * total_numbers, int ** del_numbers_ptr, int * total_del_numbers, int allow_duplicates);
 int parse_arguments(int argc, char * argv[]);
+
+int EnumerateBinaryTreeCallback(BINARY_TREE_PTR node, void * arg);
 
 extern int verbose_level;
 int main(int argc, char* argv[])
@@ -66,11 +71,15 @@ int main(int argc, char* argv[])
 			if ( verbose_level > 1 ) printf("success\n");
 		
 	}
+	printf("\nEnumerating : ");
+	EnumerateBinaryTree(root_ptr, EnumerateBinaryTreeCallback, NULL);
+	printf("\n");
+	
+	print_tree_graph(root_ptr, "initial.dot");
+	
 	if ( verbose_level > 0 )
-	{
-		print_tree(root_ptr);
 		printf("\nDeleting %d numbers from the tree\n", del_number_index);
-	}
+	
 	/*duplicate node delete*/
 	if ( duplicate_node )
 	{
@@ -104,7 +113,7 @@ int main(int argc, char* argv[])
 			if ( !ALLOW_DUPLICATE && SearchBinaryTree(root_ptr, &del_node.t, compare_number) )
 			{
 				printf("Deleted node still exists(%d)\n", del_node.data);
-				print_tree(root_ptr);
+				print_tree_graph(root_ptr, "error.dot");
 				return 1;
 			}
 			else
@@ -113,15 +122,13 @@ int main(int argc, char* argv[])
 		else
 		{
 			printf("Node (%d) index %d not found while deleting \n", del_node.data, del_number_index);
-			print_tree( root_ptr );
+			print_tree_graph(root_ptr, "error.dot");
 			return 1;
 		}
 	}
-	if ( root_ptr && verbose_level > 1 )
+	if ( root_ptr )
 	{
-		printf("-------------------FINAL TREE---------------------------------------------\n");
-		print_tree( root_ptr );
-		printf("\n--------------------------------------------------------------------------\n");
+		print_tree_graph(root_ptr, "final.dot");
 	}
 	if ( verbose_level > 1 ) 
 		printf("\nNormal exit\n");
@@ -157,26 +164,40 @@ COMPARISION_RESULT compare_number(struct binary_tree * node1, struct binary_tree
 		return EQUAL;
 }
 
+int EnumerateBinaryTreeCallback(BINARY_TREE_PTR node, void * arg)
+{
+	printf("%02d, ", STRUCT_ADDRESS_FROM_MEMBER(node, BT_TEST, t)->data );
+	return 0;
+}
+
+void print_tree_graph(BINARY_TREE_PTR node, char * name)
+{
+	gfp = fopen( name, "w" );
+	if ( gfp == NULL )
+	{
+		perror("fopen - ");
+		return;
+	}
+	fprintf( gfp, "digraph bin_tree{\n");
+	print_tree(node);
+	fprintf( gfp, "}");
+	fclose( gfp );
+}
+
 void print_tree(BINARY_TREE_PTR node)
 {
-	static int level=0;
-	int len = printf("%02d", STRUCT_ADDRESS_FROM_MEMBER(node, BT_TEST, t)->data )+1;
+	int data = STRUCT_ADDRESS_FROM_MEMBER(node, BT_TEST, t)->data;
 	if (! IS_TREE_LIST_END(&node->right) )
 	{
-		level++;
-		printf("-");
+		int right_data = STRUCT_ADDRESS_FROM_MEMBER(TREE_RIGHT_NODE(node), BT_TEST, t)->data;
+		fprintf( gfp, "%d->%d;\n", data, right_data );
 		print_tree( TREE_RIGHT_NODE(node) );
-		level--;
 	}
 	
 	if (! IS_TREE_LIST_END(&node->left ) )
 	{
-		int j=0;
-		printf("\n");
-		
-		for (j=0 ;j<(level*len);j++ ) printf(" ");
-		printf("|\n");
-		for (j=0 ;j<(level*len);j++ ) printf(" ");
+		int left_data = STRUCT_ADDRESS_FROM_MEMBER(TREE_LEFT_NODE(node), BT_TEST, t)->data;
+		fprintf( gfp, "%d->%d;\n", data, left_data );
 		print_tree( TREE_LEFT_NODE(node) );
 	}
 }

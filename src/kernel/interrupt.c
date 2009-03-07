@@ -9,7 +9,7 @@
 #include <kernel/mm/kmem.h>
 
 /*define this to print debug problems*/
-#define DEBUG_INTERRUPT
+//#define DEBUG_INTERRUPT
 
 /* External functions present in i386/pic/apic.c */
 extern UINT32 GetInterruptPriorityLevel(void);

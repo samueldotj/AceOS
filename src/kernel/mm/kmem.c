@@ -6,6 +6,9 @@
 #include <kernel/mm/kmem.h>
 #include <kernel/mm/pmem.h>
 #include <kernel/pm/task.h>
+#if ARCH == i386
+#include <kernel/i386/pmem.h>
+#endif
 
 static void * kmem_page_alloc(int size);
 static int kmem_page_free(void * va, int size);
@@ -25,14 +28,29 @@ void InitKmem()
 	if ( MapVirtualAddressRange( &kernel_physical_map, kernel_reserve_range.kmem_va_start, kmem_reserved_mem_size, PROT_WRITE) != ERROR_SUCCESS )
 		panic("InitKmem() - MapVirtualAddressRange() failed.");
 
+	/*initialize heap and slab allocator global variables*/
 	if ( InitHeap(PAGE_SIZE, kmem_page_alloc, kmem_page_free, kmem_page_protect) )
 		panic("InitKmem() - InitHeap() failed.");
-	
+
 	if ( AddMemoryToHeap((char *)kernel_reserve_range.kmem_va_start, (char*)kernel_reserve_range.kmem_va_end ) != 0 )
 		panic("InitKmem() -  AddMemoryToHeap() failed.");
 		
 	if ( InitCache(&thread_cache, sizeof(THREAD_CONTAINER), THREAD_CACHE_FREE_SLABS_THRESHOLD, THREAD_CACHE_MIN_SLABS, THREAD_CACHE_MAX_SLABS, &ThreadCacheConstructor, &ThreadCacheDestructor) == -1 )
-		panic("InitKmem() - InitCache() failed");
+		panic("InitCache(thread_cache) failed");
+
+	if ( InitCache(&task_cache, sizeof(TASK), TASK_CACHE_FREE_SLABS_THRESHOLD, TASK_CACHE_MIN_SLABS, TASK_CACHE_MAX_SLABS, &TaskCacheConstructor, &TaskCacheDestructor) == -1 )
+		panic("InitCache(task_cache) failed");
+		
+	if ( InitCache(&virtual_map_cache, sizeof(VIRTUAL_MAP), TASK_CACHE_FREE_SLABS_THRESHOLD, TASK_CACHE_MIN_SLABS, TASK_CACHE_MAX_SLABS, &VirtualMapCacheConstructor, &VirtualMapCacheDestructor) == -1 )
+		panic("InitCache(virtual_map_cache) failed");
+	
+	if ( InitCache(&vm_descriptor_cache, sizeof(VM_DESCRIPTOR), TASK_CACHE_FREE_SLABS_THRESHOLD*10, TASK_CACHE_MIN_SLABS*10, TASK_CACHE_MAX_SLABS*10, &VirtualMapCacheConstructor, &VirtualMapCacheDestructor) == -1 )
+		panic("InitCache(vm_descriptor_cache) failed");
+	//AddMemoryToCache(&vm_descriptor_cache, (char *)kernel_reserve_range.kmem_va_start, (char *)kernel_reserve_range.kmem_va_end);
+	
+	if ( InitCache(&physical_map_cache, sizeof(PHYSICAL_MAP), 0, 0, 0, PhysicalMapCacheConstructor, PhysicalMapCacheDestructor) == -1 )
+		panic("InitCache(vm_descriptor_cache) failed");
+	
 }
 
 /*! kmem Wrapper function for AllocateVirtualMemory

@@ -22,8 +22,41 @@ int memory_area_count;
 PAGE_DIRECTORY_ENTRY kernel_page_directory[PAGE_DIRECTORY_ENTRIES] __attribute__ ((aligned (PAGE_SIZE)));
 PHYSICAL_MAP kernel_physical_map;
 
+CACHE physical_map_cache;
+
 static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va );
 
+/*! Creates a new physical map and allocate page directory for it
+	\param vmap - Virtual map for which physical map needs to be created
+	\return on success physical map address 
+			on failure null
+*/
+PHYSICAL_MAP_PTR CreatePhysicalMap(VIRTUAL_MAP_PTR vmap)
+{
+	PHYSICAL_MAP_PTR pmap;
+	UINT32 page_dir_pa;
+	
+	pmap = AllocateBuffer( &physical_map_cache, CACHE_ALLOC_SLEEP );
+	if ( pmap == NULL )
+		return NULL;
+		
+	pmap->virtual_map = vmap;
+	/*allocate page directory from kernel map*/
+	if ( AllocateVirtualMemory(&kernel_map, (VADDR*) &pmap->page_directory, 0, PAGE_SIZE, PROT_READ|PROT_WRITE, 0, NULL) != ERROR_SUCCESS )
+	{
+		FreeBuffer( pmap, &physical_map_cache );
+		return NULL;
+	}
+	/*copy the kernel page directory*/
+	memcpy(pmap->page_directory,  kernel_physical_map.page_directory, PAGE_SIZE );
+	
+	/*set the self mapping*/
+	if ( TranslatePaFromVa( (VADDR )pmap->page_directory, &page_dir_pa ) == VA_NOT_EXISTS )
+		panic("pagedirectory is not in memory");
+	pmap->page_directory[PT_SELF_MAP_INDEX].all = (page_dir_pa | KERNEL_PTE_FLAG);
+	
+	return pmap;
+}
 
 /*! Fills page table entry for a given VA. This function makes the corresponding VA to point to PA by filling PTEs.
 	this function can be also called to change the protection.
@@ -60,24 +93,23 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 	{
 		/*if somebody else created this mapping return*/
 		if ( mapped_pte->page_pfn == pfn )
+		{
+			//todo - handle protection change here
 			goto finish;
+		}
 		else
 		{
 			kprintf("VA %p PA %p Existing PA %p\n", va, pa, mapped_pte->page_pfn<<PAGE_SHIFT);
 			panic("Trying to map over a existing map\n");
 		}
 	}
-	
-	if ( !mapped_pte->present )
+	else
 	{
 		//now mapping should present for the page table
 		assert( mapped_pde->present );
 		mapped_pte->all = pte.all;
 	}
-	else
-	{
-		//todo - handle protection change here
-	}
+	
 
 finish:
 	return ERROR_SUCCESS;
@@ -158,7 +190,10 @@ static UINT32 AllocatePageTable()
 	assert ( vp != NULL );
 	return vp->physical_address;
 }
-/*! creates page table for a given VA.*/
+/*! creates page table for a given VA.
+	\param pmap - physical map for which va mapping should be created
+	\param va - virtual address
+*/
 static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
 {
 	int pd_index;
@@ -177,7 +212,14 @@ static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
 		page_dir[pd_index].all = pa | USER_PDE_FLAG;
 	}
 }
-/*! Reports the given virtual address range's status*/
+/*! Reports the given virtual address range's status - readable/writeable or mapping not exists
+	\param va - virtual address
+	\param size - size of the va range
+	\return 
+			VA_WRITEABLE if the page is writeable
+			VA_READABLE if the page is readable
+			VA_NOT_EXISTS if there is no physical mapping for the given va
+*/
 VA_STATUS GetVirtualRangeStatus(VADDR va, UINT32 size)
 {
 	PAGE_DIRECTORY_ENTRY_PTR pde;
@@ -202,3 +244,46 @@ VA_STATUS GetVirtualRangeStatus(VADDR va, UINT32 size)
 		return VA_WRITEABLE;
 	return VA_READABLE;
 }
+
+/*! Returns Physical address for a given VA by looking inside the page tables
+	\param va - IN  virtual address
+	\param pa - OUT physical adress
+	\return 
+		VA_WRITEABLE if the page is writeable
+		VA_READABLE if the page is readable
+		VA_NOT_EXISTS if there is no physical mapping for the given va
+*/
+VA_STATUS TranslatePaFromVa(VADDR va, VADDR * pa)
+{
+	PAGE_DIRECTORY_ENTRY_PTR pde;
+	PAGE_TABLE_ENTRY_PTR pte;
+	pde = PT_SELF_MAP_PAGE_DIRECTORY_PTR(va);
+	if ( !pde->present )
+		return VA_NOT_EXISTS;
+	pte = PT_SELF_MAP_PAGE_TABLE1_PTE(va);
+	if ( !pte->present )
+		return VA_NOT_EXISTS;
+	
+	*pa = PFN_TO_PA( pte->page_pfn );
+	if ( pte->write )
+		return VA_WRITEABLE;
+	return VA_READABLE;
+}
+
+
+/*! Internal function used to initialize the physical map structure*/
+int PhysicalMapCacheConstructor( void *buffer)
+{
+	PHYSICAL_MAP_PTR physical_map = (PHYSICAL_MAP_PTR) buffer;
+	memset(buffer, 0, sizeof(PHYSICAL_MAP) );
+	
+	InitSpinLock( &physical_map->lock );
+	return 0;
+}
+/*! Internal function used to clear the physical map structure*/
+int PhysicalMapCacheDestructor( void *buffer)
+{
+	PhysicalMapCacheConstructor(buffer);
+	return 0;
+}
+

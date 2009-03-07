@@ -38,7 +38,7 @@ void exceptionHandler(int exc, void *addr)
 {
 	/*dont register page fault with gdb*/
 	if ( exc != 14 )
-		SetIdtGate(exc, (UINT32)addr);
+		SetIdtGate(exc, (UINT32)addr, IDT_TYPE_INTERRUPT_GATE, KERNEL_PRIVILEGE_LEVEL);
 	
 }
 /*! Flushes instruction cache*/

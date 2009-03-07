@@ -28,6 +28,11 @@ PAGE_SIZE				equ		4096
 
 KSTACK_SIZE             equ 	PAGE_SIZE
 
+KERNEL_PRIVILEGE_LEVEL	equ		0
+USER_PRIVILEGE_LEVEL		equ		3
+
+IDT_TYPE_INTERRUPT_GATE 	equ		0xE
+
 EXTERN sbss
 EXTERN ebss
 EXTERN kernel_page_directory

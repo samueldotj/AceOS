@@ -18,11 +18,14 @@ char * sys_kernel_cmd_line = NULL;
 static COMPARISION_RESULT compare_kernel_parameter(char * data1, char * data2);
 static KERNEL_PARAMETER_PTR FindKernelParameter(char * parameter_name);
 
+extern UINT32 max_message_queue_length;
+
 /*! global kernel parameters*/
 static KERNEL_PARAMETER kernel_parameters[] = {
 	{"gdb_port", &sys_gdb_port, UINT32Validator, {0, 0xFFFF, 0}, UINT32Assignor, NULL},
 	{"kmem_reserved_mem_size", &kmem_reserved_mem_size, UINT32Validator, {0, 1024*1024*1024, 0}, UINT32Assignor, NULL},
-	{"limit_pmem", &limit_physical_memory, UINT32Validator, {8, (UINT32)4*1024*1024, 0}, UINT32Assignor, NULL}
+	{"limit_pmem", &limit_physical_memory, UINT32Validator, {8, (UINT32)4*1024*1024, 0}, UINT32Assignor, NULL},
+	{"max_message_queue_length", &max_message_queue_length, UINT32Validator, {0, 1024, 0}, UINT32Assignor, NULL}
 };
 
 /*! Initializes the kernel parameter*/

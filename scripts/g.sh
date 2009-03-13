@@ -1,1 +1,4 @@
-gdb -q --command=$ACE_ROOT/img/gdb/.gdbinit --directory=$ACE_ROOT/src/kernel --symbols=$ACE_ROOT/obj/kernel.sys
+#! /bin/sh
+
+SCRIPT_PATH=`dirname $0`
+gdb -q --command=$SCRIPT_PATH/gdb/.gdbinit --directory=$SCRIPT_PATH/../src/kernel --symbols=$SCRIPT_PATH/../build/default/src/kernel/kernel.sys

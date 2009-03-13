@@ -5,8 +5,7 @@ then
 	exit
 fi
 
-PWD='pwd'
-cd $ACE_ROOT/img
+SCRIPT_PATH=`dirname $0`
 #create_bootcd.sh
-qemu -L "$QEMU_BIOS_DIR" -M pc -cdrom bootcd.iso -boot d -m 32 -smp 1 -localtime -no-kqemu $*
-cd $PWD
+qemu -L "$QEMU_BIOS_DIR" -M pc -cdrom $SCRIPT_PATH/../build/bootcd.iso -boot d -m 32 -smp 1 -localtime -no-kqemu $*
+

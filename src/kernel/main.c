@@ -82,7 +82,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	/* now lets set up system call handler */
 	SetupSystemCallHandler();
 	
-	CreateTask("hello");
+	//CreateTask("hello.exe");
 	
 	kprintf("Kernel initialization complete\n");	
 }

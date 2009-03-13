@@ -5,8 +5,5 @@ then
 	exit
 fi
 
-if [ $OSTYPE = cygwin ] ; then
-	export ACE_ROOT=`cygpath -a -w $ACE_ROOT`
-fi
-
-qemu -L "$QEMU_BIOS_DIR" -M pc -m 32 -no-kqemu -hdc c.img -boot n -net nic,model=ne2k_pci,macaddr=52:54:00:12:34:56,vlan=0 -net tap,vlan=0,ifname=tap0
+SCRIPT_PATH=`dirname $0`
+qemu -L "$QEMU_BIOS_DIR" -M pc -m 32 -no-kqemu -hdc $SCRIPT_PATH/../build/c.img -boot n -net nic,model=ne2k_pci,macaddr=52:54:00:12:34:56,vlan=0 -net tap,vlan=0,ifname=tap0

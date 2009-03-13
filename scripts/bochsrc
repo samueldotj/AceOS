@@ -54,4 +54,4 @@ boot: cdrom
 
 #ata0-master: type=disk, path="$ACE_ROOT/img/c.img", model="ATA_DEV_1", translation=lba
 #ata0-slave: type=disk, path="$ACE_ROOT/img/d.img", model="Generic IDE 1234", translation=lba
-ata1-master: type=cdrom, path="$ACE_ROOT/img/bootcd.iso", status=inserted	
+ata1-master: type=cdrom, path="build/bootcd.iso", status=inserted	

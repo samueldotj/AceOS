@@ -1,0 +1,20 @@
+#! /usr/bin/env python
+
+arch = Options.options.arch
+include_dirs = '../include/'
+
+#build string library
+string = bld.new_task_gen('cc', 'staticlib', target='string', name='string', install_path=None, includes=include_dirs)
+string.find_sources_in_dirs('string')
+
+#build ds library
+ds = bld.new_task_gen('cc', 'staticlib', target='ds', name='ds', install_path=None, includes=include_dirs)
+ds.find_sources_in_dirs('ds')
+
+#build sync library
+sync = bld.new_task_gen('cc', 'staticlib', target='sync', name='sync', install_path=None, includes=include_dirs)
+sync.find_sources_in_dirs('sync sync/'+ arch )
+
+#build heap library
+heap = bld.new_task_gen('cc', 'staticlib', target='heap', name='heap', install_path=None, includes=include_dirs, uselib='ds, sync')
+heap.find_sources_in_dirs('heap')

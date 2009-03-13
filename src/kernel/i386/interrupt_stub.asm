@@ -1,6 +1,6 @@
 ; Interrupt and exception stubs
 
-%include "kernel/i386/i386.inc"
+%include "/kernel/i386/i386.inc"
 
 extern ExceptionHandler
 extern PageFaultHandler

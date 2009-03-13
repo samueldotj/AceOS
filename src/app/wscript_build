@@ -1,0 +1,6 @@
+#! /usr/bin/env python
+
+include_dirs = Options.options.usr_include
+#build hello world application
+hello = bld.new_task_gen('cc', 'program', target='hello', name='hello', install_path=None, includes=include_dirs, uselib='APPLICATION' )
+hello.find_sources_in_dirs('hello')

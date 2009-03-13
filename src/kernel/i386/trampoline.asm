@@ -2,7 +2,7 @@
 ;Copied from Linux source
 ;Real mode 16 bit code for starting secondary processors.
 
-%include "kernel/i386/i386.inc"
+%include "/kernel/i386/i386.inc"
 
 EXTERN SecondaryCPUEntry
 

@@ -1,0 +1,9 @@
+#! /usr/bin/env python
+
+arch = Options.options.arch
+include_dirs = '../include/'
+
+#build pci driver
+pci = bld.new_task_gen('cc', 'program', target='pci', name='pci', install_path=None, includes=include_dirs, uselib='DRIVER' )
+pci.env['program_PATTERN'] = '%s.sys'
+pci.find_sources_in_dirs('pci')

@@ -1,7 +1,7 @@
 ;Ace Kernel Startup file
 ;32bit Kernel gets control from multiboot loader here.
 
-%include "kernel/i386/i386.inc"
+%include "/kernel/i386/i386.inc"
 
 GLOBAL KernelEntry
 GLOBAL SecondaryCPUEntry

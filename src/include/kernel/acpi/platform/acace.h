@@ -128,7 +128,7 @@
 
 //#define ACPI_NO_ERROR_MESSAGES
 
-#ifdef __KERNEL_BUILT__
+#ifdef _KERNEL_
 
 #include <ace.h>
 #include <string.h>
@@ -154,8 +154,6 @@ typedef UINT32 FILE;
 #include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <unistd.h>
 
 #ifndef __cdecl
 #define __cdecl

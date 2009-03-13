@@ -11,10 +11,14 @@
 #include <sys/mman.h>
 
 #include <kernel/module.h>
-#include <kernel/mm/vm.h>
+//#include <kernel/mm/vm.h>
 
 int verbose = 0;
 char * output_file_name = "boot_modules.mod";
+
+/*! aligns a address to page upper boundary*/
+#define PAGE_SIZE	4096
+#define PAGE_ALIGN_UP(addr)			((UINT32)((addr) + PAGE_SIZE - 1) & -PAGE_SIZE)
 
 void PrintUsage(char * executable)
 {

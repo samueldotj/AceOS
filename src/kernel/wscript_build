@@ -7,7 +7,7 @@ if arch == 'i386':
 else:
 	arch_source_dirs = ''
 	
-source_dirs			= '. iom ipc mm pit pm rtc ' + arch_source_dirs 
+source_dirs			= '. mm pm ipc iom pit rtc ' + arch_source_dirs 
 acpi_source_dirs	= 'acpi acpi/events acpi/hardware acpi/interpreter/dispatcher acpi/interpreter/executer acpi/interpreter/parser acpi/namespace acpi/resources acpi/tables acpi/utilities '
 
 include_dirs		= '../include/'
@@ -18,9 +18,6 @@ acpi = bld.new_task_gen('cc', 'staticlib', target='acpi', name='acpi', install_p
 acpi.find_sources_in_dirs(acpi_source_dirs)
 
 # build kernel
-#bld.env['program_PATTERN'] = '%s.sys'
 kernel = bld.new_task_gen('cc', 'program', target='kernel', name='kernel', install_path=None, includes=include_dirs, uselib_local='acpi ds sync string heap', uselib='KERNEL')
 kernel.env['program_PATTERN'] = '%s.sys'
 kernel.find_sources_in_dirs(source_dirs)
-
-

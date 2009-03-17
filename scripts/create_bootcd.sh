@@ -3,7 +3,7 @@
 BUILD_DIR=$1/src/
 ACE_ROOT=$BUILD_DIR/../../../
 ISO_DIR=$BUILD_DIR/../../iso
-TOOLS_DIR=$ACE_ROOT/src/tools/build/default/
+TOOLS_DIR=$BUILD_DIR/../../../toolsbuild/default
 GRUB_BIN=$ACE_ROOT/boot/grub/
 
 #directory clean up and create if needed
@@ -13,7 +13,7 @@ mkdir -p $ISO_DIR/boot/grub
 
 #create kernel boot module container
 rm -f $ISO_DIR/boot_modules.mod
-$TOOLS_DIR/mc/mkmc -o $ISO_DIR/boot_modules.mod $BUILD_DIR/app/hello.exe $BUILD_DIR/drivers/pci_bus.sys
+$TOOLS_DIR/mkmc -o $ISO_DIR/boot_modules.mod $BUILD_DIR/app/hello.exe $BUILD_DIR/drivers/pci_bus.sys
 gzip $ISO_DIR/boot_modules.mod
 
 #copy grub

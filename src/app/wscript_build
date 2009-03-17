@@ -3,4 +3,5 @@
 include_dirs = Options.options.usr_include
 #build hello world application
 hello = bld.new_task_gen('cc', 'program', target='hello', name='hello', install_path=None, includes=include_dirs, uselib='APPLICATION' )
+hello.env['program_PATTERN'] = '%s.exe'
 hello.find_sources_in_dirs('hello')

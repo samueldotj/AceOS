@@ -55,6 +55,7 @@ def build(bld):
 	bld.add_group()
 	bld.new_task_gen( name='bootcd', source='src/kernel/kernel.sys', target='../bootcd.iso', rule='../scripts/create_bootcd.sh ${TGT[0].abspath(env)}' )	
 
+
 def set_options(opt):
 	opt.add_option("--arch", action="store", default="i386", help="Hardware architecture to build for.(currently only i386)", dest="arch")
 	opt.add_option("--build", action="store", default="debug", help="Build type - release, debug", dest="build_type")

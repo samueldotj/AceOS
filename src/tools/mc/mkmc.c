@@ -11,7 +11,6 @@
 #include <sys/mman.h>
 
 #include <kernel/module.h>
-//#include <kernel/mm/vm.h>
 
 int verbose = 0;
 char * output_file_name = "boot_modules.mod";

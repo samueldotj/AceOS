@@ -1,34 +1,74 @@
 /*!
   \file	tss.c
-  \brief	i386 specific task state segment 
+  \brief	i386 specific task state segment
 */
 #include <ace.h>
+#include <string.h>
+#include <kernel/debug.h>
+#include <kernel/mm/vm.h>
+#include <kernel/mm/pmem.h>
+#include <kernel/i386/pmem.h>
 #include <kernel/i386/gdt.h>
 #include <kernel/i386/processor.h>
 #include <kernel/i386/tss.h>
 
-/*! Loads tss register for the current cpu*/
-void LoadTss() 
-{
-    UINT32 tss_address;
-	int cpu_number = GetCurrentProcessorId();
-    
-	tss_address = (UINT32)&processor_i386[cpu_number].tss;
-    /* build descriptor */
-    gdt[STATIC_GDT_ENTRIES + cpu_number].base_high = tss_address >> 24;
-	gdt[STATIC_GDT_ENTRIES + cpu_number].base_mid = (tss_address >> 16) & 0xFF;
-	gdt[STATIC_GDT_ENTRIES + cpu_number].base_low = tss_address & 0xFFFF;
-	gdt[STATIC_GDT_ENTRIES + cpu_number].segment_limit_high = 0;
-	gdt[STATIC_GDT_ENTRIES + cpu_number].segment_limit_low = sizeof(TSS)-1;
-	gdt[STATIC_GDT_ENTRIES + cpu_number].descriptor_privilege_level = 0;
-	gdt[STATIC_GDT_ENTRIES + cpu_number].default_operation_size = 1;
-	gdt[STATIC_GDT_ENTRIES + cpu_number].granularity = 1;
-	gdt[STATIC_GDT_ENTRIES + cpu_number].type = 0x9;
-	gdt[STATIC_GDT_ENTRIES + cpu_number].present = 1;
+/*! task state segment for double fault handling.
+	Double faults are usually happens due to stack corruption, if interrupt gate is used to handle double fault then stack corruption will result in a triple fault causing processor reset.
+	To avoid this double faults are handled using task gate.
+*/
+TSS double_fault_tss;
 
-	processor_i386[cpu_number].tss.ss0 = KERNEL_DATA_SELECTOR;
-	/* set to point beyond the TSS limit */
-    processor_i386[cpu_number].tss.iomap = (UINT16) sizeof(TSS)-1;
+/*! Helper function to fill a TSS and corresponding gdt entry
+	\param tss - task state segment to initialize
+	\param gdt_index - index in global descriptor table
+	\param start_addess - eip will be set with this pointer
+	\param kernel_stack - stack for kernel
+*/
+static void FillTss(TSS_PTR tss, int gdt_index, UINT32 start_address, UINT32 kernel_stack)
+{
+	UINT32 tss_address = (UINT32)tss;
 	
-    asm volatile("ltr %%ax": : "a" ((STATIC_GDT_ENTRIES +  cpu_number)<<3));
+	memset( &gdt[gdt_index], 0, sizeof(struct gdt_entry) );
+	gdt[gdt_index].base_high = tss_address >> 24;
+	gdt[gdt_index].base_mid = ( tss_address >> 16 ) & 0xFF;
+	gdt[gdt_index].base_low = tss_address & 0xFFFF;
+	gdt[gdt_index].segment_limit_high = 0;
+	gdt[gdt_index].segment_limit_low = sizeof( TSS )-1;
+	gdt[gdt_index].descriptor_privilege_level = 0;
+	gdt[gdt_index].granularity = 1;
+	gdt[gdt_index].type = 0x9;
+	gdt[gdt_index].present = 1;
+
+	/* update tss*/
+	memset( (void *)tss, 0, sizeof( tss ) );
+	tss->cs = KERNEL_CODE_SELECTOR;
+	tss->eip = (UINT32)start_address;
+	tss->ds = tss->es = tss->fs = tss->gs = KERNEL_DATA_SELECTOR;
+	tss->ss = tss->ss0 = tss->ss1 = tss->ss2 = KERNEL_DATA_SELECTOR;
+	tss->esp = kernel_stack+PAGE_SIZE;
+	tss->eflags = 0x202;
+	if ( TranslatePaFromVa( (VADDR)kernel_map.physical_map->page_directory, (VADDR *)&tss->cr3 ) == VA_NOT_EXISTS )
+		panic( "kernel page table not present" );
+
+	/* set to point beyond the TSS limit */
+	tss->iomap = ( UINT16 ) sizeof( TSS )-1;
+}
+ 
+/*! Loads tss register for the current cpu*/
+void LoadTss()
+{
+	int cpu_number = GetCurrentProcessorId();
+
+	FillTss( &processor_i386[cpu_number].tss, STATIC_GDT_ENTRIES+cpu_number, NULL, NULL );
+	
+	/*load the tss into task register*/
+	asm volatile( "ltr %%ax": : "a" ((STATIC_GDT_ENTRIES+cpu_number)<<3) );
+}
+
+/*! Setup task gate for double fault handler
+	\param 	kernel_stack - kernel stack to be used by double fault
+*/
+void FillTssForDoubleFaultHandler(void * fault_handler, UINT32 kernel_stack )
+{
+	FillTss( &double_fault_tss, DOUBLE_FAULT_GDT_INDEX, (UINT32)fault_handler, kernel_stack);
 }

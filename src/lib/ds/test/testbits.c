@@ -8,11 +8,6 @@
 
 void exit(int status);
 
-void _assert(const char *msg, const char *file, int line)
-{
-	printf("assertion failed %s : %s %d", msg, file, line);
-	exit(1);
-}
 
 inline int FindFirstSetBitInLong(register unsigned long value);
 

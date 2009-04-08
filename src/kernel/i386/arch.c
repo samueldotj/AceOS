@@ -5,7 +5,7 @@
 #include <ace.h>
 #include <kernel/arch.h>
 #include <kernel/parameter.h>
-#include <kernel/module.h>
+#include <kernel/pm/thread.h>
 #include <kernel/i386/vga_text.h>
 #include <kernel/i386/gdt.h>
 #include <kernel/i386/idt.h>
@@ -85,9 +85,8 @@ void InitArchPhase2(MULTIBOOT_INFO_PTR mbi)
 {
 	CPUID_INFO cpuid;
 	UINT64 start_time;
+	UINT32 va;
 	
-	InitBootModuleContainer();
-
 	/*execute cpuid and load the data structure*/
 	LoadCpuIdInfo( &cpuid );
 	memcpy( &processor_i386[cpuid.feature._.apic_id].cpuid, &cpuid, sizeof(CPUID_INFO) );
@@ -123,6 +122,16 @@ void InitArchPhase2(MULTIBOOT_INFO_PTR mbi)
 	
 	/* Initialize real time clock*/
 	InitRtc();
+	
+	/*allocate va for double fault handler stack*/
+	if ( AllocateVirtualMemory(&kernel_map, &va, 0, PAGE_SIZE, 0, 0, NULL) != ERROR_SUCCESS )
+		panic("Unable to allocate memory for double fault handler stack");
+	/*Create va to pa mapping*/
+	((UINT32*)va)[0]=0;
+	/*! \todo - remove the virtual page from pager*/
+
+	/*setup double fault handler tss and gdt entries*/
+	FillTssForDoubleFaultHandler(DoubleFaultHandler, va);
 	
 	/* Load TSS so that we can switch to user mode*/
 	LoadTss();

@@ -54,8 +54,13 @@ struct gdt_register
         UINT32 base;
 } __attribute__ ((packed));
 
-#define STATIC_GDT_ENTRIES	5
-#define GDT_ENTRIES			(STATIC_GDT_ENTRIES + MAX_PROCESSORS)
+/* Hardcoded - 0-NULL 1-Kernel Code 2-Kernel Data 3-User Code 4-User Data
+   Runtime	 - 5-Doublefault TSS
+*/
+#define STATIC_GDT_ENTRIES		(5+1)
+#define GDT_ENTRIES				(STATIC_GDT_ENTRIES + MAX_PROCESSORS)
+
+#define DOUBLE_FAULT_GDT_INDEX	5
 
 /*global descriptor table*/
 extern struct gdt_entry gdt[GDT_ENTRIES];

@@ -227,7 +227,7 @@ static COMPARISION_RESULT compare_vm_descriptor(struct binary_tree * node1, stru
 	d2 = STRUCT_ADDRESS_FROM_MEMBER(node2, VM_DESCRIPTOR, tree_node.bintree);
 
 	assert( d1->start != d2->start );
-	if ( d1->start < d2->start )
+	if ( d1->start > d2->start )
 		return GREATER_THAN;
 	else 
 		return LESS_THAN;
@@ -246,7 +246,7 @@ static COMPARISION_RESULT compare_vm_descriptor_with_va(struct binary_tree * nod
 	if( d1->start <= d2->start && d1->end >= d2->end )
 		return EQUAL;
 
-	if ( d1->start < d2->start )
+	if ( d1->start > d2->start )
 		return GREATER_THAN;
 	else 
 		return LESS_THAN;

@@ -12,6 +12,7 @@
 #include <kernel/error.h>
 #include <kernel/mm/kmem.h>
 #include <kernel/mm/vm_types.h>
+#include <kernel/vfs/vfs_types.h>
 
 #if	ARCH == i386
 	#define PAGE_SIZE					4096
@@ -35,7 +36,7 @@
 
 #define PAGE_MASK					( ~(PAGE_SIZE-1) )
 
-#define IS_PAGE_ALIGNED(addr)		( !( (addr) & PAGE_MASK ) )
+#define IS_PAGE_ALIGNED(addr)		( !( ((unsigned long)addr) & (PAGE_SIZE-1) ) )
 
 /*! Total number pages required by given size in bytes*/
 #define NUMBER_OF_PAGES(size)		(PAGE_ALIGN_UP(size) >> PAGE_SHIFT)
@@ -46,6 +47,20 @@
 #define PROT_READ					1
 #define PROT_WRITE					2
 #define PROT_EXECUTE				4
+
+typedef enum 
+{
+	VM_UNIT_TYPE_KERNEL=1,				/*kernel mapping*/
+	VM_UNIT_TYPE_ANONYMOUS,				
+	VM_UNIT_TYPE_FILE_MAPPED,
+	VM_UNIT_TYPE_STACK
+}VM_UNIT_TYPE;
+
+typedef enum
+{
+	VM_UNIT_FLAG_SHARED=1,
+	VM_UNIT_FLAG_PRIVATE
+}VM_UNIT_FLAG;
 
 /*! structure to contain VM data for a NUMA node*/
 struct vm_data
@@ -111,22 +126,27 @@ struct vm_unit
 	SPIN_LOCK			lock;				/*! lock for the entire structure*/
 	int					reference_count;	/*! total number of references*/
 	
-	UINT32				type;				/*! type - text, code, heap...*/
-	UINT32				flag;				/*! flag - shared, private....*/
+	VM_UNIT_TYPE		type;				/*! type - text, code, heap...*/
+	VM_UNIT_FLAG		flag;				/*! flag - shared, private....*/
 		
 	UINT32				size;				/*! total size of this unit*/
 	
 	SPIN_LOCK			vtop_lock;			/*! lock to protect array and page_count*/
 	VM_VTOP_PTR			vtop_array;			/*! pointer to the virtual page array*/
 	int					page_count;			/*! total pages in memory*/
+	
+	VNODE_PTR			vnode;				/*! pointer to vnode, if this unit backed by a file/swap*/
+	UINT32				offset;				/*! offset in the file*/
+	LIST				units_in_vnode_list;/*! all the vmunits corresponds to a vm unit are linked through this list*/
 };
 
 struct vm_vtop 
 {
 	union
 	{
-		int 				in_memory;		/*! if 1 means it is in memory*/
-		VIRTUAL_PAGE_PTR	vpage;			/*! pointer to the virtual page*/
+		int 				in_memory;		/*! if 1 means it is in memory else in filesystem/swap*/
+		VIRTUAL_PAGE_PTR	vpage;			/*! pointer to the virtual page if the page is in memory*/
+		VNODE_PTR			vnode;			/*! pointer to the vnode if the page is in filesystem/swap*/
 	};
 };
 
@@ -185,10 +205,11 @@ VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR start, VADDR en
 VM_DESCRIPTOR_PTR GetVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size);
 void * FindFreeVmRange(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 size, UINT32 option);
 
-VM_UNIT_PTR CreateVmUnit(UINT32 type, UINT32 size);
+VM_UNIT_PTR CreateVmUnit(VM_UNIT_TYPE type, VM_UNIT_FLAG flag, UINT32 size);
 
 ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR preferred_start, UINT32 size, UINT32 protection, UINT32 flags, VM_UNIT_PTR unit);
 ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32 flags);
+ERROR_CODE MapViewOfFile(int file_id, VADDR * va, UINT32 protection, UINT32 file_offset, UINT32 size, UINT32 preferred_start, UINT32 flags);
 
 ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, VIRTUAL_MAP_PTR dest_vmap, VADDR *dest_preferred_va, UINT32 dest_size, UINT32 protection);
 

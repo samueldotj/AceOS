@@ -5,13 +5,13 @@
 #ifndef _THREAD_H_
 #define _THREAD_H_
 
-typedef struct thread THREAD, * THREAD_PTR;
 #include <ace.h>
 #include <ds/list.h>
 #include <sync/spinlock.h>
+#include <kernel/processor.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/kmem.h>
-#include <kernel/processor.h>
+#include <kernel/pm/pm_types.h>
 #include <kernel/pm/scheduler.h>
 #include <kernel/pm/timeout_queue.h>
 
@@ -58,6 +58,11 @@ struct thread
 
 	/* Wait event queue lock */
 	SPIN_LOCK				wait_event_queue_lock;	/*! Anybody accessing any wait events belonging to this structure or count_wait_event_queue variable should take this lock */
+	
+	/*ipc reply*/
+	THREAD_PTR				ipc_reply_to_thread;	/*! Last message came from which thread(ie to which thread i have to reply)*/
+	WAIT_EVENT_PTR			ipc_reply_event;		/*! Waitevent to wait to receive message(reply)*/
+	MESSAGE_BUFFER			ipc_reply_message;		/*! buffer to receive reply data*/
 };
 
 /*

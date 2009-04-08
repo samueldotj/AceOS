@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <ds/bits.h>
 #include <kernel/error.h>
 #include <kernel/debug.h>
 #include <kernel/pm/task.h>
@@ -38,13 +39,15 @@ ERROR_CODE LoadElfImage(ELF_HEADER_PTR file_header, VIRTUAL_MAP_PTR virtual_map,
 	/*check for correct file type and machine type*/
 	if( file_header->e_ident[EI_MAGIC0] != ELFMAGIC0 || file_header->e_ident[EI_MAGIC1] != ELFMAGIC1 || 
 		file_header->e_ident[EI_MAGIC2] != ELFMAGIC2 || file_header->e_ident[EI_MAGIC3] != ELFMAGIC3 )
-		return ERROR_INVALID_FORMAT;
+		return ERROR_INVALID_FORMAT;	
+		
 #if ARCH == i386
 	if( file_header->e_ident[EI_CLASS] != ELFCLASS32 || file_header->e_ident[EI_DATA] != ELFDATA2LSB )
 		return ERROR_INVALID_FORMAT;
 #endif
 	if ( file_header->e_type == ET_NONE )
 		return ERROR_NOT_SUPPORTED;
+		
 
 	/*section_loaded_va holds address of where the section is loaded into the virtual map*/
 	section_loaded_va  = (VADDR *) kmalloc( sizeof(VADDR) * file_header->e_shnum, 0 );
@@ -59,7 +62,7 @@ ERROR_CODE LoadElfImage(ELF_HEADER_PTR file_header, VIRTUAL_MAP_PTR virtual_map,
 		string_section_header = (ELF_SECTION_HEADER_PTR)( (VADDR)file_header + file_header->e_shoff + (file_header->e_shstrndx*file_header->e_shentsize) );
 		/*just make sure we have correct section type*/
 		if ( string_section_header->sh_type != SHT_STRTAB )
-			return ERROR_NOT_SUPPORTED;
+			return ERROR_INVALID_FORMAT;
 		
 		string_table = (char *)file_header + string_section_header->sh_offset;
 	}
@@ -338,6 +341,38 @@ static ELF_SYMBOL_PTR FindElfSymbolByName(ELF_SYMBOL_PTR symbol_table, UINT32 sy
 				return &symbol_table[i];
 	}
 	KTRACE("Symbol not found %s(%p:%d) string table %p\n", symbol_name, symbol_table, symbol_table_size/sizeof(ELF_SYMBOL), string_table);
+	return NULL;
+}
+
+/*! Searches for a given symbol name in the given symbol table
+	\param address 	- kernel address to look
+	\param offset	- offset from the symbol name will be updated here
+	\return on success - SYMBOL name 
+			on failure - NULL
+*/
+char * FindKernelSymbolByAddress(VADDR address, int * offset)
+{
+	int i;
+	ELF_SYMBOL_PTR symbol_table = (ELF_SYMBOL_PTR)kernel_reserve_range.symbol_va_start;
+	UINT32 total_symbols = (kernel_reserve_range.symbol_va_end-kernel_reserve_range.symbol_va_start)/sizeof(ELF_SYMBOL);
+	char * string_table = (char *)kernel_reserve_range.string_va_start;
+	
+	/*loop through kernel symbol table entries*/
+	for(i=0;i<total_symbols;i++)
+	{
+		/*if the given address lies within the symbol value return symbol name*/
+		if ( VALUE_WITH_IN_RANGE(symbol_table[i].st_value, symbol_table[i].st_value+symbol_table[i].st_size, address) )
+		{
+			/*if the caller wants offset from the symbol start, update it*/
+			if ( offset )
+				*offset = address-symbol_table[i].st_value;
+			
+			/*return the symbol name string*/
+			return string_table+symbol_table[i].st_name;
+		}
+	}
+	
+	/*no matching symbol found*/
 	return NULL;
 }
 

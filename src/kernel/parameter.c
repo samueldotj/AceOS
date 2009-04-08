@@ -57,7 +57,7 @@ void ParaseBootParameters()
 			kprintf("Error parsing boot command line.\n");
 			continue;
 		}
-		str_get_token(parameter_name, sys_kernel_cmd_line, i, ' ');
+		str_get_token(sys_kernel_cmd_line, i, ' ', parameter_name, KERNEL_PARAMETER_NAME_MAX );
 		str_atrim( parameter_name );
 		/*skip the prefix / or -*/
 		if (parameter_name[0] == '/' || parameter_name[0] == '-' )
@@ -79,7 +79,7 @@ void ParaseBootParameters()
 					continue;
 				}
 				i++;
-				str_get_token(value, sys_kernel_cmd_line, i, ' ');
+				str_get_token(sys_kernel_cmd_line, i, ' ', value, sizeof(value));
 				str_atrim( value );
 				SetKernelVariable(parameter_name, value);
 			}

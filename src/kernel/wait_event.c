@@ -4,13 +4,14 @@
 */
 
 #include <ace.h>
+#include <assert.h>
+#include <kernel/debug.h>
+#include <kernel/interrupt.h>
 #include <kernel/wait_event.h>
+#include <kernel/mm/kmem.h>
 #include <kernel/pm/scheduler.h>
 #include <kernel/pm/timeout_queue.h>
-#include <kernel/interrupt.h>
-#include <kernel/mm/kmem.h>
-#include <kernel/debug.h>
-#include <assert.h>
+#include <kernel/pm/thread.h>
 
 static void ClearRelatedWaitEvents(WAIT_EVENT_PTR event);
 
@@ -53,7 +54,6 @@ UINT32 WaitForEvent(WAIT_EVENT_PTR event, UINT32 timeout)
 	if(timeout > 0) /* Wait until the event fires up or the timeout expires */
 	{
 		ret_timeout = Sleep(timeout); /* This will block for the specified time */
-
 		if(ret_timeout > 0) /* We woke up because, some other event finished */
 		{
 			/* Removes the registered timeout event from timout queue */
@@ -93,6 +93,10 @@ void WakeUpEvent(WAIT_EVENT_PTR *event, int flag)
 	WAIT_EVENT_PTR temp_wait_event;
 	THREAD_PTR thread;
 
+	assert( event!=NULL );
+	/*if no one is waiting return*/
+	if ( *event == NULL )
+		return;
 	head_list = &((*event)->in_queue) ;
 
 	if(flag & WAIT_EVENT_WAKE_UP_ALL)
@@ -205,15 +209,14 @@ void RemoveEventFromQueue(WAIT_EVENT_PTR search_wait_event, WAIT_EVENT_PTR *wait
 {
 	LIST_PTR temp1;
 	WAIT_EVENT_PTR temp_event;
-//	kprintf("remove event=%p from queue=%p\n", search_wait_event, *wait_queue);
-
+	
+	assert( search_wait_event != NULL );
+	assert( wait_queue != NULL );
+	assert( *wait_queue != NULL );
 	if(*wait_queue == search_wait_event)
 	{
 		if( IsListEmpty( &(search_wait_event->in_queue) ) )
-		{
-	//		kprintf("queue %p is made NULL\n");
 			*wait_queue = NULL;
-		}
 		else
 			RemoveFromList( &((*wait_queue)->in_queue) );
 
@@ -226,7 +229,7 @@ void RemoveEventFromQueue(WAIT_EVENT_PTR search_wait_event, WAIT_EVENT_PTR *wait
 		if(temp_event == search_wait_event)
 		{
 			assert(temp_event->thread == NULL); /* make sure that this event is dormant */
-			RemoveFromList( &(temp_event->in_queue) );
+			RemoveFromList( &temp_event->in_queue );
 			return;
 		}
 	}

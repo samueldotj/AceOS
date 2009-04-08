@@ -15,7 +15,7 @@ struct idt_entry idt[IDT_ENTRIES];
 /*Interrupt Descriptor Table Register*/
 struct idt_ptr idtp;
 
-/* ! Sets an entry in interrupt descriptor table
+/*! Sets an entry in interrupt descriptor table as interrupt gate
 	\param	num - Interrupt vector number
 	\param  base - Address of the interrrupt handler
 	\param	type - interrupt descriptor type(task gate, interrupt gate or trap gate)
@@ -30,6 +30,23 @@ void SetIdtGate(BYTE num, UINT32 base, BYTE type, BYTE dpl)
 	idt[num].always_zero = 0;
 	idt[num].present = 1;
 	idt[num].type = type;
+	idt[num].descriptor_privilege_level = dpl;
+}
+
+/*! Sets an entry in interrupt descriptor table as task gate
+	\param	num - Interrupt vector number
+	\param  task_selector - task selector in the gdt
+	\param 	dpl - descriptor privilege level (0 or 3)
+*/
+void SetIdtTaskGate(BYTE num, BYTE task_selector, BYTE dpl)
+{
+	idt[num].base_low = 0;	
+	idt[num].base_high = 0;
+	
+	idt[num].selector = task_selector;
+	idt[num].always_zero = 0;
+	idt[num].present = 1;
+	idt[num].type = 0x5;
 	idt[num].descriptor_privilege_level = dpl;
 }
 

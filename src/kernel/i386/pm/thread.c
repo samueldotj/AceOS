@@ -6,7 +6,9 @@
 #include <ace.h>
 #include <kernel/debug.h>
 #include <kernel/arch.h>
+#include <kernel/pm/pm_types.h>
 #include <kernel/pm/task.h>
+#include <kernel/pm/thread.h>
 #include <kernel/i386/pmem.h>
 #include <kernel/i386/exception.h>
 #include <kernel/i386/gdt.h>
@@ -66,7 +68,7 @@ void FillThreadContext(THREAD_CONTAINER_PTR thread_container, void * start_addre
 	regs->cr3 = cr3;
 	
 	/*! update the stack address*/
-	thread_container->kernel_stack_pointer = (BYTE *) ((UINT32)regs) - sizeof(UINT32);
+	thread_container->kernel_stack_pointer = (BYTE *) (((UINT32)regs) - sizeof(UINT32));
 }
 
 /*! Switches the execution context to the given thread
@@ -74,12 +76,17 @@ void FillThreadContext(THREAD_CONTAINER_PTR thread_container, void * start_addre
 */
 void SwitchContext(THREAD_CONTAINER_PTR thread_container)
 {
+	BYTE * esp;
+	
+	assert( thread_container->kernel_stack_pointer != 0);
+	esp = thread_container->kernel_stack_pointer;
 	/*reset the ring 0 stack pointer*/
+	thread_container->kernel_stack_pointer = (BYTE *)PAGE_ALIGN_UP((UINT32)thread_container->kernel_stack_pointer);
 	processor_i386[GetCurrentProcessorId()].tss.esp0 = (UINT32)thread_container->kernel_stack_pointer;
 	
 	asm volatile("movl %%eax, %%esp; jmp *%%ebx"
 				:
-				:"a"( thread_container->kernel_stack_pointer ),
+				:"a"( esp ),
 				 "b"( ReturnFromInterruptContext )
 				);
 }

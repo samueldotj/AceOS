@@ -53,5 +53,6 @@ typedef union gpf_error_code
 
 void SetupExceptionHandlers();
 void ExceptionHandler(REGS_PTR reg);
+void DoubleFaultHandler();
 
 #endif

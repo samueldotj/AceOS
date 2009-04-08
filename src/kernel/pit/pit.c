@@ -9,6 +9,7 @@
 #include <kernel/pit.h>
 #include <kernel/interrupt.h>
 #include <kernel/pm/task.h>
+#include <kernel/pm/thread.h>
 #include <kernel/pm/scheduler.h>
 
 extern THREAD_CONTAINER_PTR kthread1, kthread2;
@@ -36,6 +37,7 @@ ISR_RETURN_CODE _8254Handler(INTERRUPT_INFO_PTR interrupt_info, void * arg)
 ISR_RETURN_CODE LapicTimerHandler(INTERRUPT_INFO_PTR interrupt_info, void * arg)
 {
 	THREAD_PTR current_thread = GetCurrentThread();
+	assert( current_thread != NULL );
 	THREAD_CONTAINER_PTR tc = STRUCT_ADDRESS_FROM_MEMBER( current_thread, THREAD_CONTAINER, thread );
 	
 	/*Update current thread's kernel stack pointer*/

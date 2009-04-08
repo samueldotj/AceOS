@@ -199,7 +199,7 @@ static UINT32 InitMemoryArea(MEMORY_AREA_PTR ma_pa, MULTIBOOT_MEMORY_MAP_PTR mem
 			/*after the start physical address adjustment make sure the region is not out of memory*/
 			if ( pmr_pa->start_physical_address < pmr_pa->end_physical_address )
 			{
-				region_size = pmr_pa->end_physical_address - pmr_pa->start_physical_address;
+				region_size = PAGE_ALIGN(pmr_pa->end_physical_address - pmr_pa->start_physical_address);
 				
 				/*calculate virtual page array size*/
 				total_virtual_pages =  region_size / PAGE_SIZE;
@@ -241,7 +241,7 @@ static UINT32 InitMemoryArea(MEMORY_AREA_PTR ma_pa, MULTIBOOT_MEMORY_MAP_PTR mem
 					/*not enough space for virtual page array*/
 					pmr_pa->type = PMEM_TYPE_RESERVED;
 				}
-				pmr_pa->virtual_page_count = total_virtual_pages;
+				pmr_pa->virtual_page_count = total_virtual_pages-1;
 				
 				total_size += virtual_page_array_size;
 			}

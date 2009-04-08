@@ -42,6 +42,8 @@ void MaskInterrupt(BYTE interrupt_number);
 void StartTimer(UINT32 frequency, BYTE periodic);
 void StopTimer();
 
+void PrintStackTrace(unsigned int max_frames);
+
 extern UINT16 master_processor_id;
 extern UINT32 cpu_frequency;
 

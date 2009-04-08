@@ -1,0 +1,9 @@
+#device_id 								driver_file_name
+
+pci_bus									pci_bus.sys
+PCI_VEN_32902&DEV_28672&SUBSYS_0&REV_0	piix3_pci_to_isa_bridge.sys	
+PCI_VEN_32902&DEV_28688&SUBSYS_0&REV_0	piix3_ata_ide.sys
+PCI_VEN_32902&DEV_28947&SUBSYS_0&REV_0	piix4_power_man.sys
+PCI_VEN_4332&DEV_32809&SUBSYS_0&REV_0	pci_rtl8029.sys
+#PCI_VEN_4115&DEV_184&SUBSYS_0&REV_0		cl_gd5446.sys
+PCI_VEN_32902&DEV_4663&SUBSYS_0&REV_2	pci_mem.sys

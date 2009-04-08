@@ -36,6 +36,8 @@ struct idt_ptr
 
 void LoadIdt();
 void SetIdtGate(BYTE num, UINT32 base, BYTE type, BYTE dpl);
+void SetIdtTaskGate(BYTE num, BYTE task_selector, BYTE dpl);
 
 #endif
+
 

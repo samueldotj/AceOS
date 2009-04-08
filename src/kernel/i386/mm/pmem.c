@@ -85,7 +85,7 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 	pte.page_pfn = pfn;
 	
 	mapped_pde = &pmap->page_directory[PAGE_DIRECTORY_ENTRY_INDEX(va)];
-	//create page table if not present
+	/*create page table if not present*/
 	if ( !mapped_pde->present )
 		CreatePageTable( pmap, va );
 
@@ -94,7 +94,7 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 		/*if somebody else created this mapping return*/
 		if ( mapped_pte->page_pfn == pfn )
 		{
-			//todo - handle protection change here
+			/*! \todo - handle protection change here*/
 			goto finish;
 		}
 		else
@@ -124,32 +124,40 @@ finish:
 ERROR_CODE MapVirtualAddressRange(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 size, UINT32 protection)
 {
 	UINT32 i,j;
-	VIRTUAL_PAGE_PTR vp, first_vp;
+	VIRTUAL_PAGE_PTR vp;
 	ERROR_CODE ret = ERROR_SUCCESS;
 	
 	size = PAGE_ALIGN_UP( size );
-	
-	vp = first_vp = AllocateVirtualPages( NUMBER_OF_PAGES(size), VIRTUAL_PAGE_RANGE_TYPE_NORMAL );
-	if ( vp == NULL )
-		return ERROR_NOT_ENOUGH_MEMORY;
-	
+		
 	SpinLock( &pmap->lock );
 	
 	for(i=0; i<size; i+=PAGE_SIZE )
 	{
-		ret = CreatePhysicalMapping( pmap, va+i, VP_TO_PHYS(vp), protection );
-		if ( ret != ERROR_SUCCESS )
+		vp = AllocateVirtualPages( 1, VIRTUAL_PAGE_RANGE_TYPE_NORMAL );
+		if ( vp == NULL )
 		{
-			/*remove already entered mapping*/
-			for(j=0; j<i; j+=PAGE_SIZE)
-				RemovePhysicalMapping(pmap, va+i);
-			/*free the allocated pages*/
-			FreeVirtualPages( first_vp, NUMBER_OF_PAGES(size) );
+			ret = ERROR_NOT_ENOUGH_MEMORY;
 			break;
 		}
+			
+		ret = CreatePhysicalMapping( pmap, va+i, VP_TO_PHYS(vp), protection );
+		if ( ret != ERROR_SUCCESS )
+			break;
 		vp = PHYS_TO_VP( vp->physical_address + PAGE_SIZE );
 	}
-
+	
+	if ( ret == ERROR_SUCCESS )
+	{
+		SpinUnlock( &pmap->lock );
+		return ERROR_SUCCESS;
+	}
+		
+	/*remove already entered mapping*/
+	for(j=0; j<i; j+=PAGE_SIZE)
+		RemovePhysicalMapping(pmap, va+i);
+	/*\todo - free the allocated pages
+	FreeVirtualPages( first_vp, NUMBER_OF_PAGES(size) );*/
+	
 	SpinUnlock( &pmap->lock );
 	return ret;
 }
@@ -187,6 +195,7 @@ static UINT32 AllocatePageTable()
 	VIRTUAL_PAGE_PTR vp;
 	
 	vp = AllocateVirtualPages(1, VIRTUAL_PAGE_RANGE_TYPE_NORMAL);
+
 	assert ( vp != NULL );
 	return vp->physical_address;
 }
@@ -198,19 +207,26 @@ static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
 {
 	int pd_index;
 	PAGE_DIRECTORY_ENTRY_PTR page_dir;
+	VADDR page_table_va;
+	UINT32 pa;
 	
 	page_dir = pmap->page_directory;
 	pd_index = PAGE_DIRECTORY_ENTRY_INDEX(va);
 	
-	//if we dont have a page table, create it
-	if ( !page_dir[ pd_index ].present )
-	{
-		/*allocate page table*/
-		UINT32 pa = AllocatePageTable();
+	/*if page table already present do nothing*/
+	if ( page_dir[ pd_index ].present )
+		return;
+
+	/*allocate page table*/
+	pa = AllocatePageTable();
 		
-		/*enter pde*/
-		page_dir[pd_index].all = pa | USER_PDE_FLAG;
-	}
+	/*enter pde*/
+	page_dir[pd_index].all = pa | USER_PDE_FLAG;
+	
+	/*zero fill the page table*/
+	page_table_va = PT_SELF_MAP_PAGE_TABLE1(va);
+	assert( page_table_va != NULL );
+	memset( (void *) page_table_va, 0, PAGE_SIZE);
 }
 /*! Reports the given virtual address range's status - readable/writeable or mapping not exists
 	\param va - virtual address

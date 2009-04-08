@@ -325,14 +325,9 @@ typedef struct
 
 /*! How to extract and insert information held in the st_info field.  */
 
-#define ELF32_ST_BIND(val)			(((unsigned char) (val)) >> 4)
-#define ELF32_ST_TYPE(val)			((val) & 0xf)
-#define ELF32_ST_INFO(bind, type)	(((bind) << 4) + ((type) & 0xf))
-
-/*! Both ELF32_SYMBOL and ELF64_SYMBOL use the same one-byte st_info field.  */
-#define ELF64_ST_BIND(val)			ELF32_ST_BIND (val)
-#define ELF64_ST_TYPE(val)			ELF32_ST_TYPE (val)
-#define ELF64_ST_INFO(bind, type)	ELF32_ST_INFO ((bind), (type))
+#define ELF_ST_BIND(val)			(((unsigned char) (val)) >> 4)
+#define ELF_ST_TYPE(val)			((val) & 0xf)
+#define ELF_ST_INFO(bind, type)		(((bind) << 4) + ((type) & 0xf))
 
 /*! Legal values for ST_BIND subfield of st_info (symbol binding).  */
 
@@ -1561,5 +1556,8 @@ extern UINT32 kernel_string_table_size;
 
 ERROR_CODE LoadElfImage(ELF_HEADER_PTR file_header, VIRTUAL_MAP_PTR virtual_map, char * start_symbol_name, VADDR * start_entry);
 
+char * FindKernelSymbolByAddress(VADDR address, int * offset);
+
 #endif	/*! elf.h */
+
 

@@ -6,6 +6,7 @@
 #include "testcommon.h"
 #include "leak_detector_c.h"
 
+int atexit ( void ( * function ) (void) );
 int cache_constructor( void *buffer);
 int cache_destructor( void *buffer);
 void AllocateMemory(CACHE_PTR c, void * va_array[], int count);

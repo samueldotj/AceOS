@@ -42,21 +42,23 @@ COMPARISION_RESULT compare_pid_info(struct binary_tree * node1, struct binary_tr
 	n1 = STRUCT_ADDRESS_FROM_MEMBER(STRUCT_ADDRESS_FROM_MEMBER(node1, AVL_TREE, bintree), PID_INFO, tree_node)->pid;
 	n2 = STRUCT_ADDRESS_FROM_MEMBER(STRUCT_ADDRESS_FROM_MEMBER(node2, AVL_TREE, bintree), PID_INFO, tree_node)->pid;
 	
-	if ( n1 < n2 )
+	if ( n1 > n2 )
 		return GREATER_THAN;
-	else if ( n1 > n2 )
+	else if ( n1 < n2 )
 		return LESS_THAN;
 	else 
 		return EQUAL;
 }
-/*! Initializes the PID global variables*/
-void InitPid()
+/*! Initializes the PID global variables and returns pid info for kernel task*/
+PID_INFO_PTR InitPid()
 {
 	InitSpinLock( &pid_info_lock );
 	pid_root = NULL;
 	
 	PidCacheConstructor( &pid_zero );
 	pid_zero.free_count = MAX_PROCESS_ID-1;
+	
+	return &pid_zero;
 }
 /*! Allocate PID info structure
 	\param ppid - parent process id

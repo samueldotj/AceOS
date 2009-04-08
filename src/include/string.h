@@ -20,7 +20,7 @@ void* memset(void *s, int c, size_t n);
 int str_total_characters(char * src, char ch);
 int str_total_tokens(char * src, char ch);
 char * str_get_token_info(char * src, unsigned int token_no, char token_separator, unsigned int * token_len);
-char * str_get_token(char * buf, char * src, unsigned int token_no, char token_separator);
+char * str_get_token(char * src, unsigned int token_no, char token_separator, char * buf, int buf_size );
 void str_replace(char * src, char oldch, char newch);
 char* str_ltrim(char * src);
 char* str_rtrim(char * src);

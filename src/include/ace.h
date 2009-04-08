@@ -15,22 +15,24 @@
 #define FALSE		0
 #define TRUE  		1
 
-typedef char CHAR;
-typedef signed char INT8;
-typedef unsigned char BYTE;
-typedef unsigned char UINT8;
-typedef BYTE BOOLEAN;
-
-typedef short INT16;
-typedef unsigned short UINT16;
-
-typedef long INT32;
-typedef unsigned long UINT32;
-
-typedef long long INT64;
-typedef unsigned long long UINT64;
-
 #if	ARCH == i386
+	typedef char CHAR;
+	typedef signed char INT8;
+	typedef unsigned char BYTE;
+	typedef unsigned char UINT8;
+	typedef BYTE BOOLEAN;
+
+	typedef short INT16;
+	typedef unsigned short UINT16;
+
+	typedef long INT32;
+	typedef unsigned long UINT32;
+
+	typedef long long INT64;
+	typedef unsigned long long UINT64;
+	
+	typedef unsigned long WORD;
+
 	typedef UINT32 VADDR;
 	#define BITS_PER_BYTE	(8)
 	#define BITS_PER_LONG	(32)
@@ -55,4 +57,5 @@ typedef enum
 }COMPARISION_RESULT;
 
 #endif
+
 

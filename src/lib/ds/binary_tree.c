@@ -86,8 +86,11 @@ BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_no
 	COMPARISION_RESULT result;
 	BINARY_TREE_PTR next_node;
 	
-	assert( root != NULL );
 	assert( search_node != NULL );
+	
+	/*if no node exists*/
+	if( root == NULL )
+		return NULL;
 	
 	while(1)
 	{
@@ -99,6 +102,9 @@ BINARY_TREE_PTR SearchBinaryTree(BINARY_TREE_PTR root, BINARY_TREE_PTR search_no
 		/*end of list - node not found*/
 		if ( ( result == LESS_THAN    && IS_TREE_LIST_END(&root->left) ) || 
 			 ( result == GREATER_THAN && IS_TREE_LIST_END(&root->right) ) )
+			return NULL;
+		/*compare function did nt return correct return value*/
+		if( next_node== NULL)
 			return NULL;
 		root = next_node;
 	}
@@ -341,7 +347,7 @@ int RemoveNodeFromBinaryTree(BINARY_TREE_PTR node, BINARY_TREE_PTR * leaf_node, 
 		
 		return 0;/*success*/
 	}
-	
+
 	/*case 4(both left and right nodes present)
 	right_most_node = "Right most node" of the "left node" of the del_node
 		1) Remove the right_most_node
@@ -536,4 +542,5 @@ static void ReplaceTreeListNode(LIST_PTR old_node, LIST_PTR new_node)
 	if( is_tail )
 		MARK_TREELIST_END( new_node );
 }
+
 

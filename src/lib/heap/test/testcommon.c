@@ -10,6 +10,7 @@ int test_type = 0;
 int rand();
 void srand(unsigned int seed);
 void exit(int status);
+int atoi ( const char * str );
 
 static void print_usage(char * exe)
 {
@@ -121,7 +122,7 @@ void fill_random_numbers(int * number_array, int capacity, int max_number)
 }
 void print_stats(CACHE_PTR cache_ptr)
 {
-	CACHE_STATISTICS_PTR stat = GetCahcheStatistics(cache_ptr);
+	CACHE_STATISTICS_PTR stat = GetCacheStatistics(cache_ptr);
 	if ( stat == NULL )
 	{
 		printf("Cache Statistics are not enabled\n");
@@ -198,4 +199,9 @@ int virtual_protect(void * va, int size, int protection)
 		exit(1);
 	}
 	return mprotect( va, size, protection );
+}
+void SpinLockTimeout(SPIN_LOCK_PTR pLockData, void * caller)
+{
+	printf("spinlock timeout");
+	exit(1);
 }

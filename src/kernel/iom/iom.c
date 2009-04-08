@@ -4,11 +4,12 @@
 */
 #include <ace.h>
 #include <string.h>
+#include <ctype.h>
 #include <kernel/debug.h>
-#include <kernel/module.h>
 #include <kernel/mm/kmem.h>
 #include <kernel/pm/elf.h>
 #include <kernel/iom/iom.h>
+#include <kernel/vfs/vfs.h>
 
 #define DEVICE_OBJECT_CACHE_FREE_SLABS_THRESHOLD	10
 #define DEVICE_OBJECT_CACHE_MIN_BUFFERS				10
@@ -34,6 +35,7 @@ CACHE device_object_cache;
 CACHE irp_cache;
 
 static DRIVER_OBJECT_PTR LoadDriver(char * device_id);
+static ERROR_CODE FindDriverFile(char * device_id, char * buffer, int buf_length);
 
 /*! Internal function used to initialize the driver object structure*/
 int DriverObjectCacheConstructor( void * buffer)
@@ -341,19 +343,20 @@ inline void FillIoStack(IO_STACK_LOCATION_PTR io_stack, BYTE major_function, BYT
 /*! Loads a driver*/
 static DRIVER_OBJECT_PTR LoadDriver(char * device_id)
 {
-	char * driver_file_name;
-	void * driver_start_address;
+	char driver_file_name[MAX_FILE_NAME], driver_file_path[MAX_FILE_PATH]="/boot/drivers/";
+	VADDR driver_start_address;
+	int file_id;
+	long file_size;
 	DRIVER_OBJECT_PTR driver_object;
 	ERROR_CODE (*DriverEntry)(DRIVER_OBJECT_PTR pDriverObject);
 	ERROR_CODE err;
 	LIST_PTR node;
-		
-	driver_file_name = kmalloc( strlen(device_id+5), 0);
-	if ( driver_file_name == NULL )
-		return NULL;
-	strcpy( driver_file_name, device_id );
-	strcat( driver_file_name, ".sys");
 	
+	err = FindDriverFile(device_id, driver_file_name, sizeof(driver_file_name));
+	ktrace("Driver for id %s : %s\n", device_id, driver_file_name);
+	if ( err != ERROR_SUCCESS )
+		return NULL;
+
 	/*check whether the driver is already loaded*/
 	LIST_FOR_EACH(node, driver_list_head)
 	{
@@ -361,33 +364,120 @@ static DRIVER_OBJECT_PTR LoadDriver(char * device_id)
 		if ( strcmp( driver_file_name, driver_object->driver_file_name )==0 )
 			return driver_object;
 	}
+	strcat( driver_file_path, driver_file_name );
+	kprintf("Loading %s: ", driver_file_path);
 	
-	ktrace("Loading driver %s:", driver_file_name );
-	LoadBootModule( driver_file_name, &driver_start_address, NULL );
-	if( driver_start_address == NULL )
-	{
-		ktrace(" driver not found. \n");
-		return NULL;
-	}
-	err = LoadElfImage( driver_start_address, &kernel_map, "DriverEntry", (void *)&DriverEntry );
+	err = OpenFile(driver_file_path, VFS_ACCESS_TYPE_READ, OPEN_EXISTING, &file_id);
+	if ( err != ERROR_SUCCESS )
+		goto error;
+	err = GetFileSize(file_id, &file_size);
+	if ( err != ERROR_SUCCESS )
+		goto error;
+	file_size = PAGE_ALIGN_UP(file_size);
+	err = MapViewOfFile(file_id, &driver_start_address, PROT_READ, 0, file_size, 0, 0);
+	if ( err != ERROR_SUCCESS )
+		goto error;
+	err = LoadElfImage( (void *) driver_start_address, &kernel_map, "DriverEntry", (void *)&DriverEntry );
 	if ( err != ERROR_SUCCESS || DriverEntry == NULL )
-	{
-		ktrace(" failed (error - %d)\n", err );
-		return NULL;
-	}
+		goto error;
 	driver_object = AllocateBuffer( &driver_object_cache, CACHE_ALLOC_SLEEP );
 	if ( driver_object == NULL )
-		return NULL;
-	
+	{
+		err = ERROR_NOT_ENOUGH_MEMORY;
+		goto error;
+	}
+			
 	driver_object->driver_file_name = driver_file_name;
 	err = DriverEntry( driver_object );
 	if ( err != ERROR_SUCCESS )
-	{
-		ktrace(" driver intialization failed %d\n", err );
-		return NULL;
-	}
+		goto error;
+
 	/*add the driver to the driver list*/
 	AddToListTail( driver_list_head, &driver_object->driver_list );
-
+	kprintf("success\n");
 	return driver_object;
+
+error:
+	kprintf("%s\n", ERROR_CODE_AS_STRING(err) );
+	return NULL;
+
+}
+
+#define SKIP_WHITE_SPACES	while( i<file_size && isspace(va[i]) ) i++;
+
+/*! Finds suitable driver for the given id and returns its full path in the given buffer
+	\param device_id - device identification string
+	\param buffer - buffer to place the driver path
+	\param buf_length - buffer size
+*/
+static ERROR_CODE FindDriverFile(char * device_id, char * buffer, int buf_length)
+{
+	ERROR_CODE err;
+	int file_id,i=0;
+	long file_size;
+	char driver_id_database[] = "/boot/driver_id.txt";
+	char * va;
+	
+	assert(device_id != NULL );
+	assert(buffer != NULL );
+	assert(buf_length > 0);
+	
+	buffer[0]=0;
+	
+	err = OpenFile(driver_id_database, VFS_ACCESS_TYPE_READ, OPEN_EXISTING, &file_id);
+	if ( err != ERROR_SUCCESS )
+		goto done;
+		
+	err = GetFileSize(file_id, &file_size);
+	if ( err != ERROR_SUCCESS )
+		goto done;
+
+	err = MapViewOfFile(file_id, (VADDR *) &va, PROT_READ, 0, file_size, 0, 0);
+	if ( err != ERROR_SUCCESS )
+		goto done;
+	
+	err=ERROR_NOT_FOUND;
+	/*read the file and try to find the driver file name*/
+	while(i<file_size)
+	{
+		char driver_device_id[100];
+		SKIP_WHITE_SPACES;
+		
+		/*skip comments*/
+		if( va[i]!='#' )
+		{
+			int j=0;
+			
+			/*copy the driver id*/
+			while( i<file_size && j<sizeof(driver_device_id)-1 && !isspace(va[i]) )
+				driver_device_id[j++] = va[i++];
+			driver_device_id[j]=0;
+			
+			/*if user didnt provide driver file name break*/
+			if ( va[i] != ' ' && va[i] != '\t' )
+				break;
+				
+			SKIP_WHITE_SPACES;
+			
+			if( strcmp(driver_device_id, device_id) == 0 )
+			{
+				/*copy driver file name*/
+				j=0;
+				while( i<file_size && j<buf_length-1 && !isspace(va[i]) )
+					buffer[j++] = va[i++];
+					
+				buffer[j]=0;
+				err = ERROR_SUCCESS;
+				break;
+			}
+		}
+		/*skip till end of line*/
+		while( i<file_size && va[i]!='\n') i++;
+	}
+	
+done:
+	/* \todo - release the mapping */
+	
+	CloseFile(file_id);
+	return err;
 }

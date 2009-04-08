@@ -26,7 +26,7 @@ struct tss{
 
 	UINT32	cr3;
 	UINT32	eip;
-	UINT32	reserved_5;
+	UINT32	eflags;
 
 	UINT32	eax;
 	UINT32	ecx;
@@ -67,5 +67,6 @@ struct tss{
 typedef volatile struct tss TSS, * TSS_PTR;
 
 void LoadTss();
+void FillTssForDoubleFaultHandler( void * fault_handler, UINT32 kernel_stack );
 
 #endif

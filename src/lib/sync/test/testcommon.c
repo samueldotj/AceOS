@@ -5,6 +5,8 @@
 
 int verbose_level=1;
 
+void exit(int status);
+
 static void print_usage(char * exe)
 {
 	printf("Usage : %s /v<n>\n", exe);

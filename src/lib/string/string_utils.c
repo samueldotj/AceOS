@@ -93,14 +93,16 @@ char* str_get_token_info ( char * src, unsigned int token_no, char token_separat
 The buffer should have enough space to fill the token.
 for definition of token see str_get_token_info()
 */
-char* str_get_token ( char * buf, char * src, unsigned int token_no, char token_separator )
+char * str_get_token(char * src, unsigned int token_no, char token_separator, char * buf, int buf_size )
 {
 	int unsigned token_len;
 	char *token = str_get_token_info ( src, token_no, token_separator, &token_len );
+	if ( buf_size < token_len)
+		token_len = buf_size;
 
 	if ( token )
 	{
-		strncpy ( buf, token, token_len );
+		strncpy( buf, token, token_len );
 		buf[token_len] = 0;
 		return buf;
 	}
@@ -309,11 +311,14 @@ char * strrchr ( const char *s, int c )
 
 int strcmp ( const char *s1, const char *s2 )
 {
-	while ( *s1 == *s2 )
+	if( s1==NULL )
+		return -1;
+	if( s2==NULL )
+		return 1;
+	while ( s1 && s2 && *s1 && *s2 && *s1 == *s2 )
 	{
 		if ( *s1 == 0 )
 			return 0;
-
 		s1++;
 
 		s2++;

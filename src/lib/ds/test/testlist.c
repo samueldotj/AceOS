@@ -16,12 +16,6 @@ struct ListTest
 };
 typedef struct ListTest LIST_TEST, * LIST_TEST_PTR;
 
-void _assert(const char *msg, const char *file, int line)
-{
-	printf("%s : %s %d", msg, file, line);
-	exit(1);
-}
-
 int main(int argc, char* argv[])
 {
 	int i=0;

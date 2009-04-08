@@ -4,6 +4,7 @@
 #include "leak_detector_c.h"
 #include "testcommon.h"
 
+int atexit ( void ( * function ) (void) );
 void AllocateMemory(void * va_array[], int count);
 void FreeMemoryFifo(void * va_array[], int count);
 void FreeMemoryLifo(void * va_array[], int count);

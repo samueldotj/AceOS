@@ -8,6 +8,8 @@
 #include <kernel/arch.h>
 #include <kernel/printf.h>
 
+#define MAX_STACK_FRAMES	5
+
 /*! function pointer is used by the ktrace() to write characters 
 */
 void (*ktrace_putc)(void * arg, char ch) = NULL;
@@ -25,6 +27,7 @@ Halts the system after printing the message. Used by assert macro
 void _assert(const char *msg, const char *file, int line)
 {
 	kprintf("Assertion failed at %s:%d::[%s]\n", file, line, msg);
+	PrintStackTrace(MAX_STACK_FRAMES);
 	ArchHalt();
 }
 
@@ -32,6 +35,7 @@ void _assert(const char *msg, const char *file, int line)
 */
 void panic(char * message) 
 {
-	kprintf("panic() : %s", message);
+	kprintf("panic() : %s\n", message);
+	PrintStackTrace(MAX_STACK_FRAMES);
 	ArchHalt();
 }

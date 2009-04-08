@@ -5,13 +5,13 @@
 #ifndef _PID_H_
 #define _PID_H_
 
-typedef struct pid_info PID_INFO, * PID_INFO_PTR;
-
 #include <ace.h>
 #include <ds/list.h>
 #include <ds/avl_tree.h>
-#include <kernel/pm/task.h>
 #include <kernel/wait_event.h>
+#include <kernel/pm/pm_types.h>
+#include <kernel/pm/task.h>
+
 /*! maximum process number allowed*/
 #define MAX_PROCESS_ID			0xFFFF
 
@@ -40,6 +40,11 @@ CACHE pid_cache;				/*! cache for pid info*/
 
 int PidCacheConstructor(void *buffer);
 int PidCacheDestructor(void *buffer);
+
+PID_INFO_PTR InitPid();
+
+PID_INFO_PTR AllocatePidInfo(int ppid);
+void FreePidInfo(PID_INFO_PTR pid_info);
 
 #ifdef __cplusplus
 	}

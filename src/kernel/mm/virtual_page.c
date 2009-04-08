@@ -30,7 +30,6 @@ static int inline AddVirtualPageToVmFreeTree(VIRTUAL_PAGE_PTR vp, BOOLEAN check_
 static void inline RemoveVirtualPageFromVmFreeTree(VIRTUAL_PAGE_PTR vp);
 
 static void AddVirtualPageToActiveLRUList(VIRTUAL_PAGE_PTR vp);
-static void AddVirtualPageToInactiveLRUList(VIRTUAL_PAGE_PTR vp);
 static void RemoveVirtualPageFromLRUList(VIRTUAL_PAGE_PTR vp);
 static COMPARISION_RESULT free_range_compare_fn(BINARY_TREE_PTR node1, BINARY_TREE_PTR node2);
 
@@ -76,8 +75,8 @@ static void InitVirtualPage(VIRTUAL_PAGE_PTR vp, UINT32 physical_address)
 	InitSpinLock( &vp->lock );
 	InitList( &vp->lru_list );
 	
-	InitAvlTreeNode( VP_AVL_TREE(vp), 1 );
-	
+	InitAvlTreeNode( VP_AVL_TREE(vp), TRUE );
+
 	vp->physical_address = physical_address;
 }
 /*! Returns the first virtual page of this free virtual page range.
@@ -139,24 +138,26 @@ static int inline AddVirtualPageToVmFreeTree(VIRTUAL_PAGE_PTR vp, BOOLEAN check_
 			//get the first page
 			p = GetFirstVirtualPage(p);
 			assert( p != NULL );
-			
-			SpinLock(&vm_data.lock);
-			
-			//increase the size
-			p->free_size++;
-			//link to the first page
-			vp->free_first_page = p;
-			
-			//need to balance the tree
-			RemoveNodeFromAvlTree( free_tree, VP_AVL_TREE(p), 1, free_range_compare_fn );
-			InsertNodeIntoAvlTree( free_tree, VP_AVL_TREE(p), 1, free_range_compare_fn );
-			
-			SpinUnlock(&vm_data.lock);
-			return 1;
+			if ( GetVirtualPageFreeTreeFromPage(p)==free_tree  )
+			{
+				SpinLock(&vm_data.lock);
+				
+				//increase the size
+				p->free_size++;
+				//link to the first page
+				vp->free_first_page = p;
+				
+				//need to balance the tree
+				RemoveNodeFromAvlTree( free_tree, VP_AVL_TREE(p), 1, free_range_compare_fn );
+				InsertNodeIntoAvlTree( free_tree, VP_AVL_TREE(p), 1, free_range_compare_fn );
+				
+				SpinUnlock(&vm_data.lock);
+				return 1;	
+			}
 		}
 		/*try to add to the next free range*/
 		p = PHYS_TO_VP( vp->physical_address + PAGE_SIZE );
-		if ( p != NULL && p->free )
+		if ( p != NULL && p->free && GetVirtualPageFreeTreeFromPage(p)==free_tree )
 		{
 			SpinLock(&vm_data.lock);
 			
@@ -314,7 +315,7 @@ try_different_vp_range:
 	}
 	assert ( first_vp->free_size >= pages );
 	
-	result = first_vp + (first_vp->free_size-1) - pages;
+	result = first_vp + first_vp->free_size - pages;
 	free_vp = first_vp + (first_vp->free_size-1);
 	
 	assert ( free_vp != NULL );
@@ -325,10 +326,10 @@ try_different_vp_range:
 		AddVirtualPageToActiveLRUList( free_vp );
 		
 		first_vp->free_size--;
-		
 		/*move to previous vp*/
 		free_vp--;
 	}
+	
 	/*remove the free range from the tree*/
 	RemoveNodeFromAvlTree( free_tree, VP_AVL_TREE(first_vp), 1, free_range_compare_fn );
 	/*if the free range is not fully used add it again to the free tree*/
@@ -345,13 +346,7 @@ try_different_vp_range:
 */
 static void AddVirtualPageToActiveLRUList(VIRTUAL_PAGE_PTR vp)
 {
-}
-/*! Adds the given virtual page to inactive lru list
-	\param vp - virtual page to add
-	\todo add implementation
-*/
-static void AddVirtualPageToInactiveLRUList(VIRTUAL_PAGE_PTR vp)
-{
+	assert(!vp->free);
 }
 /*! Removes the given virtual page from lru list
 	\param vp - virtual page to remove
@@ -372,24 +367,27 @@ UINT32 FreeVirtualPages(VIRTUAL_PAGE_PTR first_vp, int pages)
 	int i;
 	
 	free_tree = GetVirtualPageFreeTreeFromPage( first_vp );
-	
-	SpinLock( &vm_data.lock );
 	vp = first_vp;
 	for(i=0; i< pages; i++)
 	{
+		assert( !vp->free );
+		
 		SpinLock( &vp->lock );
 		
-		if ( vp->free )
-			panic("FreeVirtualPages() page is already free");
+		/*Remove from lru only if the page exists there*/
+		if( vp->ubc )
+			vp->ubc = 0;
+		else
+			RemoveVirtualPageFromLRUList( vp );
 		
-		RemoveVirtualPageFromLRUList( vp );
+		/*Add the page to free tree and set the free bit*/
 		AddVirtualPageToVmFreeTree( vp, TRUE );
 		
-		vp = PHYS_TO_VP( vp->physical_address );
-		
 		SpinUnlock( &vp->lock );
+		
+		/*next virtual page */
+		vp = PHYS_TO_VP( vp->physical_address + PAGE_SIZE );
 	}
-	SpinUnlock( &vm_data.lock );
 	
 	return 0;
 }
@@ -447,7 +445,7 @@ UINT32 ReserveVirtualPages(VIRTUAL_PAGE_PTR first_vp, int pages)
 VIRTUAL_PAGE_PTR PhysicalToVirtualPage(UINT32 physical_address)
 {
 	int i,j;
-	int x=0;
+	int debug=0;
 retry:
 	
 	for(i=0; i<memory_area_count; i++ )
@@ -456,7 +454,7 @@ retry:
 		for(j=0;j<memory_areas[i].physical_memory_regions_count;j++)
 		{
 			pmr = &memory_areas[i].physical_memory_regions[j];
-			if ( x )
+			if ( debug )
 				kprintf("%p - %p : %p\n", pmr->start_physical_address, pmr->end_physical_address, physical_address);
 			if ( physical_address >= pmr->start_physical_address && physical_address < pmr->end_physical_address )
 			{
@@ -467,11 +465,12 @@ retry:
 			}
 		}
 	}
-	if ( x==0 )
+	if ( !debug )
 	{
-		x=1;
+		debug++;
 		goto retry;
 	}
+	panic("PhysicalToVirtualPage not found");
 	return NULL;
 }
 
@@ -530,9 +529,9 @@ static COMPARISION_RESULT free_range_compare_fn(BINARY_TREE_PTR node1, BINARY_TR
 	vp1 = STRUCT_ADDRESS_FROM_MEMBER(STRUCT_ADDRESS_FROM_MEMBER(node1, AVL_TREE, bintree), VIRTUAL_PAGE, free_tree);
 	vp2 = STRUCT_ADDRESS_FROM_MEMBER(STRUCT_ADDRESS_FROM_MEMBER(node2, AVL_TREE, bintree), VIRTUAL_PAGE, free_tree);
 	
-	if ( vp1->free_size < vp2->free_size )
+	if ( vp1->free_size > vp2->free_size )
 		return GREATER_THAN;
-	else if ( vp1->free_size > vp2->free_size )
+	else if ( vp1->free_size < vp2->free_size )
 		return LESS_THAN;
 	else 
 		return EQUAL;

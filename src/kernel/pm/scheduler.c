@@ -10,6 +10,7 @@
 #include <kernel/debug.h>
 #include <kernel/pm/scheduler.h>
 #include <kernel/pm/task.h>
+#include <kernel/pm/thread.h>
 #include <kernel/mm/kmem.h>
 
 #define MAX_SCHED_BONUS 			( (INT8)(10) )
@@ -353,6 +354,7 @@ void ScheduleThread(THREAD_PTR in_thread)
 	UINT8 new_thread_priority;
 	
 	current_thread = GetCurrentThread();
+	
 	/*new thread coming in*/
 	if(in_thread->state == THREAD_STATE_NEW)
 	{

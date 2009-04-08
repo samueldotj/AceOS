@@ -89,10 +89,11 @@ int main(int argc, char* argv[])
 	
 	/*deletion test*/
 	del_number_index--;
+		
 	for(;del_number_index>=0;del_number_index--)
 	{
 		BT_TEST del_node;
-		if ( del_numbers[del_number_index] == duplicate_node->data )
+		if ( duplicate_node && del_numbers[del_number_index] == duplicate_node->data )
 		{
 			duplicate_node->data = -1;
 			continue;
@@ -156,9 +157,9 @@ COMPARISION_RESULT compare_number(struct binary_tree * node1, struct binary_tree
 	n1 = STRUCT_ADDRESS_FROM_MEMBER(node1, BT_TEST, t)->data;
 	n2 = STRUCT_ADDRESS_FROM_MEMBER(node2, BT_TEST, t)->data;
 	
-	if ( n1 < n2 )
+	if ( n1 > n2 )
 		return GREATER_THAN;
-	else if ( n1 > n2 )
+	else if ( n1 < n2 )
 		return LESS_THAN;
 	else 
 		return EQUAL;

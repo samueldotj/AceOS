@@ -8,6 +8,7 @@
 #include <kernel/debug.h>
 #include <kernel/mm/kmem.h>
 #include <kernel/pm/task.h>
+#include <kernel/pm/thread.h>
 
 CACHE thread_cache;
 
@@ -141,8 +142,14 @@ void ResumeThread(THREAD_PTR thread)
 /*! Initializes the booting kernel thread on a processor*/
 void InitBootThread(int boot_processor_id)
 {
-	THREAD_PTR boot_thread = GetCurrentThread(); 
-	PROCESSOR_PTR p = &processor[boot_processor_id];
+	THREAD_PTR boot_thread;
+	THREAD_CONTAINER_PTR thread_container;
+	PROCESSOR_PTR p;
+	
+	boot_thread = GetCurrentThread();
+	p = &processor[boot_processor_id];
+	thread_container = STRUCT_ADDRESS_FROM_MEMBER( boot_thread, THREAD_CONTAINER, thread );
+	thread_container->kernel_stack_pointer = (BYTE *)((VADDR)(&thread_container->kernel_stack))+PAGE_SIZE;
 	
 	InitSpinLock( &boot_thread->lock );
 	boot_thread->state = THREAD_STATE_NEW;
@@ -156,7 +163,7 @@ void InitBootThread(int boot_processor_id)
 	
 	/*For master for processor the following is done twice - once in InitKernelTask() and again here.
 	It is needed for early boot vm support. And no harm in doing it :)*/
-	GetCurrentThread()->task = &kernel_task;
+	boot_thread->task = &kernel_task;
 	
 	ScheduleThread( boot_thread );
 }

@@ -6,6 +6,7 @@
 #include <pthread.h>
 
 int parse_arguments(int argc, char * argv[]);
+void exit(int status);
 
 extern int verbose_level;
 

@@ -22,7 +22,7 @@ driver_c_flags		= kernel_c_flags
 app_c_flags			= '-Wall ' 
 
 kernel_ld_flags 	= '--gc-sections -Wl,-Map,kernel.map -T ../src/kernel/kernel.ld -nostdlib -nostartfiles '
-driver_ld_flags 	= '-r'
+driver_ld_flags 	= '-r -nostdlib -nostartfiles'
 app_ld_flags		= '-Wall ' 
 
 

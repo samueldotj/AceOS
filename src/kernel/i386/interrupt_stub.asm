@@ -7,6 +7,7 @@ extern PageFaultHandler
 extern GeneralProtectionFaultHandler
 extern InterruptHandler
 extern SetIdtGate
+extern SetIdtTaskGate
 global ReturnFromInterruptContext
 
 global SetupInterruptStubs
@@ -62,7 +63,7 @@ ReturnFromInterruptContext:
 	
 	add esp, 12												; Clean up the pushed control registers cr0, cr1, cr2
 	pop eax
-	mov cr3, eax
+	mov cr3, eax											; Reload the page directory - \todo - check if we are using same page directory if yes skip this for performance gain
 	
 	pop gs													; Pop segment registers
 	pop fs
@@ -83,10 +84,23 @@ ReturnFromInterruptContext:
 	push dword %1%2
 	push dword %2
 	
-	
 	call SetIdtGate
+	
 	add esp, 16
 %endmacro
+
+;Install the stub as interrupt gates
+;Parameters
+%macro SetIdtTaskGateMacro 3
+	push dword %3
+	push dword %2
+	push dword %1
+	
+	call SetIdtTaskGate
+	
+	add esp, 12
+%endmacro
+
 
 [SECTION .text]
 [BITS 32]
@@ -98,6 +112,8 @@ ReturnFromInterruptContext:
 		IsrStubMacro GeneralProtectionFaultHandler, i
 	%elif i = 14
 		IsrStubMacro PageFaultHandler, i
+	%elif i = 8
+		;IsrStubMacro DoubleFaultHandler, i
 	%else
 		IsrStubMacro ExceptionHandler, i
 	%endif
@@ -118,6 +134,9 @@ SetupExceptionStubs:
 			SetIdtGateMacro GeneralProtectionFaultHandlerStub, i, IDT_TYPE_INTERRUPT_GATE, KERNEL_PRIVILEGE_LEVEL
 		%elif i = 14
 			SetIdtGateMacro PageFaultHandlerStub, i, IDT_TYPE_INTERRUPT_GATE, KERNEL_PRIVILEGE_LEVEL
+		%elif i = 8
+			SetIdtTaskGateMacro i, (DOUBLE_FAULT_GDT_INDEX-1)*8, KERNEL_PRIVILEGE_LEVEL
+			;SetIdtGateMacro ExceptionHandlerStub, i, IDT_TYPE_INTERRUPT_GATE, KERNEL_PRIVILEGE_LEVEL
 		%else
 			SetIdtGateMacro ExceptionHandlerStub, i, IDT_TYPE_INTERRUPT_GATE, KERNEL_PRIVILEGE_LEVEL
 		%endif

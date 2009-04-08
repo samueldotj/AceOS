@@ -1,0 +1,75 @@
+#!/usr/bin/env python
+#wscript for all test cases.
+
+import os, Task, Options, Configure, Utils, misc
+
+Configure.autoconfig = 1
+
+VERSION				= '3.0.' + os.popen("svn info | grep Revision | cut -f2 -d:").read().strip()
+APPNAME				= 'Ace Test Cases'
+srcdir 				= '.'
+blddir				= '../testcases'
+
+arch				= 'i386'
+
+debug_flags			= '-gdwarf-2 -g3'
+
+nasm_flags 			= ' -w+orphan-labels -f elf'
+
+c_flags				= '-Wall -Wno-format -fno-leading-underscore' 
+
+include_dirs 		= 'include'
+
+def configure(conf):
+	conf.check_tool('gcc nasm')
+
+	if Options.options.arch:
+		arch = Options.options.arch
+	
+	conf.env.append_unique('CCFLAGS', c_flags) ;
+	
+	conf.env.append_unique('NASM_FLAGS', nasm_flags)
+	
+	if Options.options.build_type == 'debug':
+		conf.env.append_unique('CCFLAGS', debug_flags)  
+			
+def build(bld):
+	#build string library
+	string = bld.new_task_gen('cc', 'staticlib', target='string', name='string', install_path=None, includes=include_dirs)
+	string.find_sources_in_dirs('lib/string')
+
+	#build ds library
+	ds = bld.new_task_gen('cc', 'staticlib', target='ds', name='ds', install_path=None, includes=include_dirs)
+	ds.find_sources_in_dirs('lib/ds')
+
+	#build sync library
+	sync = bld.new_task_gen('cc', 'staticlib', target='sync', name='sync', install_path=None, includes=include_dirs)
+	sync.find_sources_in_dirs('lib/sync lib/sync/'+ arch )
+	
+	#build heap library
+	heap = bld.new_task_gen('cc', 'staticlib', target='heap', name='heap', install_path=None, includes=include_dirs, uselib_local='ds sync')
+	heap.find_sources_in_dirs('lib/heap')
+		
+	#Test cases for string
+	bld.new_task_gen('cc', 'program', source='lib/string/test/teststring.c', target='teststring',  install_path=None, includes=include_dirs, uselib_local='string')
+	
+	#Test cases for ds
+	bld.new_task_gen('cc', 'program', source='lib/ds/test/testtree.c lib/ds/test/testcommon.c', target='testtree',  install_path=None, includes=include_dirs, uselib_local='ds')
+	bld.new_task_gen('cc', 'program', source='lib/ds/test/testavl.c lib/ds/test/testcommon.c', target='testavl',  install_path=None, includes=include_dirs, uselib_local='ds')
+	bld.new_task_gen('cc', 'program', source='lib/ds/test/testlist.c lib/ds/test/testcommon.c', target='testlist',  install_path=None, includes=include_dirs, uselib_local='ds')
+	bld.new_task_gen('cc', 'program', source='lib/ds/test/testsort.c lib/ds/test/testcommon.c', target='testsort',  install_path=None, includes=include_dirs, uselib_local='ds')
+	bld.new_task_gen('cc', 'program', source='lib/ds/test/testbits.c lib/ds/test/testcommon.c', target='testbits',  install_path=None, includes=include_dirs, uselib_local='ds')
+	bld.new_task_gen('cc', 'program', source='lib/ds/test/testlrulist.c lib/ds/test/testcommon.c', target='testlrulist',  install_path=None, includes=include_dirs, uselib_local='ds sync')
+	
+	#Test cases for sync library
+	bld.new_task_gen('cc', 'program', source='lib/sync/test/testspin.c lib/sync/test/testcommon.c', target='testspin',  install_path=None, includes=include_dirs, uselib_local='sync')
+	
+	#Test cases for heap
+	bld.new_task_gen('cc', 'program', source='lib/heap/test/testslab.c lib/heap/test/testcommon.c lib/heap/test/leak_detector_c.c', target='testslab',  install_path=None, includes=include_dirs, uselib_local='heap')
+	bld.new_task_gen('cc', 'program', source='lib/heap/test/testheap.c lib/heap/test/testcommon.c lib/heap/test/leak_detector_c.c', target='testheap',  install_path=None, includes=include_dirs, uselib_local='heap')
+	
+	
+
+def set_options(opt):
+	opt.add_option("--arch", action="store", default="i386", help="Hardware architecture to build for.(currently only i386)", dest="arch")
+	opt.add_option("--build", action="store", default="debug", help="Build type - release, debug", dest="build_type")

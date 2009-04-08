@@ -69,7 +69,10 @@ AVL_TREE_PTR InitAvlTreeNode(AVL_TREE_PTR node, int duplicates_allowed)
  */
 AVL_TREE_PTR SearchAvlTree(AVL_TREE_PTR start, AVL_TREE_PTR search_node, void * fnCompare)
 {
-	BINARY_TREE_PTR bt = SearchBinaryTree(&start->bintree, &search_node->bintree, fnCompare);
+	BINARY_TREE_PTR bt;
+	if ( start == NULL )
+		return NULL;
+	bt = SearchBinaryTree(&start->bintree, &search_node->bintree, fnCompare);
 	if ( bt )
 		return STRUCT_ADDRESS_FROM_MEMBER(bt, AVL_TREE, bintree);
 	else
@@ -110,7 +113,7 @@ AVL_TREE_PTR GetAvlTreeNodeParent(AVL_TREE_PTR node)
 int RemoveNodeFromAvlTree(AVL_TREE_PTR *avl_root_ptr, AVL_TREE_PTR node, int duplicates_allowed,  void * fnCompare)
 {
 	AVL_TREE_PTR parent=NULL;
-	BINARY_TREE_PTR bt_parent_ptr, bt_root_ptr, sibling_ptr=NULL;
+	BINARY_TREE_PTR bt_parent_ptr=NULL, bt_root_ptr=NULL, sibling_ptr=NULL;
 	int result, old_height;
 	
 	old_height = node->height;
@@ -136,10 +139,9 @@ int RemoveNodeFromAvlTree(AVL_TREE_PTR *avl_root_ptr, AVL_TREE_PTR node, int dup
 		
 		return 0;
 	}
-	
 	if (!parent) /* parent is null means I just removed root! */
 		return 0;
-	
+
 	/*update the height of this node*/
 	RECALCULATE_HEIGHT(parent);
 	
@@ -259,7 +261,6 @@ static int BalanceAvlTree(AVL_TREE_PTR start_node, AVL_TREE_PTR *root_ptr)
 	if (start_node == *root_ptr) {
 		return 0;
 	}
-
 	parent = AVL_TREE_PARENT_NODE(start_node);
 	/* start_node is now a child and hence it's parent is also balanced continue recursion till root */
 	BalanceAvlTree(parent, root_ptr);

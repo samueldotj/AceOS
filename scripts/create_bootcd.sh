@@ -3,7 +3,6 @@
 BUILD_DIR=$1/src/
 ACE_ROOT=$BUILD_DIR/../../../
 ISO_DIR=$BUILD_DIR/../../iso
-TOOLS_DIR=$BUILD_DIR/../../../toolsbuild/default
 GRUB_BIN=$ACE_ROOT/boot/grub/
 
 #directory clean up and create if needed
@@ -11,10 +10,16 @@ rm -rf $ISO_DIR
 mkdir -p $ISO_DIR
 mkdir -p $ISO_DIR/boot/grub
 
-#create kernel boot module container
-rm -f $ISO_DIR/boot_modules.mod
-$TOOLS_DIR/mkmc -o $ISO_DIR/boot_modules.mod $BUILD_DIR/app/hello.exe $BUILD_DIR/drivers/pci_bus.sys
-gzip $ISO_DIR/boot_modules.mod
+#create boot fs
+rm -f $ISO_DIR/boot_modules.mod.gz
+rm -rf $BUILD_DIR/bootfs
+mkdir -p $BUILD_DIR/bootfs/app
+mkdir -p $BUILD_DIR/bootfs/drivers
+cp $ACE_ROOT/src/kernel/driver_id.txt $BUILD_DIR/bootfs
+cp $BUILD_DIR/app/hello.exe $BUILD_DIR/bootfs/app
+cp $BUILD_DIR/drivers/pci_bus.sys $BUILD_DIR/bootfs/drivers
+cd $BUILD_DIR/bootfs
+tar --gzip -cf $ISO_DIR/boot_modules.mod.gz .
 
 #copy grub
 cp $GRUB_BIN/stage2_eltorito $ISO_DIR/boot/grub

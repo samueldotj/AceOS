@@ -24,6 +24,7 @@ struct virtual_page
 	BYTE
 				free:1,				/*! if set page is free list*/
 				active:1,			/*! if set page is in active LRU list*/
+				ubc:1,				/*! if set page is allocated for file cache*/
 				bad:1,				/*! if set page is bad*/
 				busy:1,				/*! if set page is busy due to IO*/
 				error:1,			/*! if set a page error occurred during last IO*/
@@ -42,12 +43,21 @@ struct virtual_page
 		{
 			LIST				lru_list;			/*! LRU List - active/inactive link*/
  
-			UINT16				copy_on_write;		/*! No of processes sharing this page*/
-			UINT16 				wire_count;			/*! Total wire count*/
-
 			VA_MAP_PTR			va_map_list;		/*! list of VAs associated with this page*/
 		};
+		/*the following structure is used when the page is controlled by ubc*/
+		struct
+		{
+			AVL_TREE			tree;				/*! tree of all pages in a vnode - for faster search*/
+			VNODE_PTR			vnode;				/*! back pointer to vnode - neccessary?*/
+			VADDR				offset;				/*! file offset this page maps - key to the above tree*/
+			BYTE				loaded:1,			/*! set to 1 if the page is loaded from file*/
+								modified:1;			/*! set to 1 if the page is modified after load*/
+		}ubc_info;
 	};
+
+	UINT16		copy_on_write;		/*! No of processes sharing this page*/
+	UINT16 		wire_count;			/*! Total wire count*/
 	
 	UINT32 		physical_address;	/*Physical address this page managing*/
 }__attribute__ ((packed));

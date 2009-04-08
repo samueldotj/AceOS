@@ -9,6 +9,7 @@
 #include <kernel/system_call_handler.h>
 #include <kernel/printf.h>
 #include <kernel/error.h>
+#include <kernel/pm/thread.h>
 #include <kernel/mm/vm.h>
 #include <kernel/pm/task.h>
 
@@ -239,4 +240,5 @@ UINT32 syscall_allocate_virtual_memory(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT3
 		*retval = NULL;
 	return err;
 }
+
 

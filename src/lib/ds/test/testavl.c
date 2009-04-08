@@ -26,7 +26,7 @@ void print_tree_graph(AVL_TREE_PTR node, char * name);
 void print_tree(AVL_TREE_PTR avl_node);
 int * init_numbers(int * total_numbers, int ** del_numbers_ptr, int * total_del_numbers, int allow_duplicates);
 int parse_arguments(int argc, char * argv[]);
-static int EnumerateAvlTreeCallback(AVL_TREE_PTR node);
+static int EnumerateAvlTreeCallback(AVL_TREE_PTR node, void * arg);
 
 extern int verbose_level;
 int main(int argc, char * argv[])
@@ -73,7 +73,7 @@ int main(int argc, char * argv[])
 	print_tree_graph( root_ptr, "initial.dot");
 	
 	printf("\nEnumerating : ");
-	EnumerateAvlTree(root_ptr, EnumerateAvlTreeCallback);
+	EnumerateAvlTree(root_ptr, EnumerateAvlTreeCallback, NULL);
 	printf("\n");
 	if ( verbose_level > 0 ) printf("\nDeleting %d numbers from the tree\n", del_number_index);
 	
@@ -89,7 +89,7 @@ int main(int argc, char * argv[])
 	for(;del_number_index>=0;del_number_index--)
 	{
 		BT_TEST del_node;
-		if ( del_numbers[del_number_index] == duplicate_node->data )
+		if ( duplicate_node && del_numbers[del_number_index] == duplicate_node->data )
 		{
 			duplicate_node->data = -1;
 			continue;
@@ -142,7 +142,7 @@ BT_TEST_PTR InitBT_TestNode(BT_TEST_PTR node, int data)
 	return node;
 }
 
-static int EnumerateAvlTreeCallback(AVL_TREE_PTR avl_node)
+static int EnumerateAvlTreeCallback(AVL_TREE_PTR avl_node, void *arg)
 {
 	printf("%02d, ", STRUCT_ADDRESS_FROM_MEMBER(avl_node, BT_TEST, t)->data );
 	return 0;
@@ -190,9 +190,9 @@ COMPARISION_RESULT compare_number(struct binary_tree * node1, struct binary_tree
 	n1 = STRUCT_ADDRESS_FROM_MEMBER(STRUCT_ADDRESS_FROM_MEMBER(node1, AVL_TREE, bintree), BT_TEST, t)->data;
 	n2 = STRUCT_ADDRESS_FROM_MEMBER(STRUCT_ADDRESS_FROM_MEMBER(node2, AVL_TREE, bintree), BT_TEST, t)->data;
 	
-	if ( n1 < n2 )
+	if ( n1 > n2 )
 		return GREATER_THAN;
-	else if ( n1 > n2 )
+	else if ( n1 < n2 )
 		return LESS_THAN;
 	else 
 		return EQUAL;

@@ -186,18 +186,12 @@ static void RemoveFromCompletelyFreeList(CACHE_PTR cache_ptr, SLAB_PTR slab_ptr)
 */
 static COMPARISION_RESULT slab_inuse_tree_compare(AVL_TREE_PTR node1, AVL_TREE_PTR node2)
 {
-		if ( node1 < node2 )
-		{
+		if ( node1 > node2 )
 			return GREATER_THAN;
-		}
-		else if ( node1 > node2 )
-		{
+		else if ( node1 < node2 )
 			return LESS_THAN;
-		}
 		else
-		{
 			return EQUAL;
-		}
 }
 /*!
  *	\brief				Finds the slab in tree, which contains the given buffer.

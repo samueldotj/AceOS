@@ -4,9 +4,10 @@
 
 #include <ace.h>
 #include <ds/list.h>
+#include <kernel/pit.h>
 #include <kernel/pm/timeout_queue.h>
 #include <kernel/pm/task.h>
-#include <kernel/pit.h>
+#include <kernel/pm/thread.h>
 
 volatile TIMEOUT_QUEUE_PTR	timeout_queue;
 SPIN_LOCK timeout_queue_lock;
@@ -190,14 +191,13 @@ Returns Remaining time from sleep. =0 when slept completely; >0 if interrupted d
 */
 INT32 Sleep(UINT32 timeout)
 {
-	TIMEOUT_QUEUE_PTR my_timeout_queue;
+	TIMEOUT_QUEUE_PTR timeout_queue;
 
-	my_timeout_queue = &(GetCurrentThread()->timeout_queue);
+	timeout_queue = &(GetCurrentThread()->timeout_queue);
+	timeout_queue->sleep_time = MILLISECONDS_TO_TICKS(timeout) + timer_ticks;
 
-	my_timeout_queue->sleep_time = MILLISECONDS_TO_TICKS(timeout) + timer_ticks;
-
-	AddToTimeoutQueue(my_timeout_queue);
+	AddToTimeoutQueue(timeout_queue);
 	PauseThread();
-	//kprintf("Thread %p Woken from sleep: rem time: %d\n", GetCurrentThread(), my_timeout_queue->sleep_time - timer_ticks);
-	return TICKS_TO_MILLISECONDS( (my_timeout_queue->sleep_time - timer_ticks) ); 
+	
+	return TICKS_TO_MILLISECONDS( (timeout_queue->sleep_time - timer_ticks) ); 
 }

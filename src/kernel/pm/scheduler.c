@@ -273,7 +273,7 @@ retry:
 	/*! get a thread from this queue to run */
 	run_thread = pqueue->thread_head;
 	
-	assert(run_thread != NULL);	/*! if bit masks are properly updated, then run_thread should not be null at tis point of time. */
+	assert(run_thread != NULL);	/*! if bit masks are properly updated, then run_thread should not be null*/
 		
 	RemoveThreadFromSchedulerQueue(run_thread);
 	return run_thread;
@@ -288,6 +288,7 @@ static PROCESSOR_PTR SelectProcessorToRun(THREAD_PTR in_thread)
 {
 	int loop;
 	int	hint=0; /*! processor id of an online processor */
+	
 	/*! loop through all the processors and see if any processors are not heavily loaded. */
 	for(loop=0 ; loop < MAX_PROCESSORS ; loop++)
 	{
@@ -385,7 +386,8 @@ void ScheduleThread(THREAD_PTR in_thread)
 		if ( in_thread == current_thread ) /**Current thread is terminating/suspending - find another thread to run*/
 		{
 			new_thread = SelectThreadToRun(current_thread->priority_queue->priority);
-			assert( new_thread != in_thread);
+			/*we should have got different thread atleast idle thread*/
+			assert( new_thread != in_thread );
 			PreemptThread(new_thread);
 			/*not reached*/
 		}
@@ -477,6 +479,6 @@ static void idle_thread_function()
 {
 	while(1)
 	{
-		//kprintf("::Idle Thread::");
+		ArchHalt();
 	}
 }

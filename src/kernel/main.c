@@ -16,10 +16,14 @@
 #include <kernel/mm/kmem.h>
 #include <kernel/mm/vm.h>
 #include <kernel/pm/task.h>
+#include <kernel/pm/thread.h>
 #include <kernel/pm/elf.h>
 #include <kernel/pm/scheduler.h>
 #include <kernel/iom/iom.h>
 #include <kernel/system_call_handler.h>
+#include <kernel/module.h>
+
+EXPORT_SYMBOL (AcpiGetName);
 
 /*! ERROR_CODE to string declaration and function defintions*/
 AS_STRING_DEC(ERROR_CODE, ENUM_LIST_ERROR_CODE)
@@ -52,7 +56,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	/* Read ACPI tables and enable ACPI mode*/
 	if ( InitACPI() != 0 )
 		panic("ACPI Initialization failed.\n");
-
+		
 	/* Initialize architecture depend parts*/
 	InitArchPhase2(mbi);
 	
@@ -88,5 +92,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	
 	CreateTask("/boot/app/hello.exe");
 	
-	kprintf("Kernel initialization complete\n");	
+	kprintf("Kernel initialization complete\n");
+	
+	ExitThread();	
 }

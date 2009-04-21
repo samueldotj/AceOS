@@ -81,9 +81,10 @@ KernelEntry:
 	
 	call cmain
 
-	;endless loop should not be reached.
-	jmp $
-
+	;should not be reached.
+.3:
+	hlt
+	jmp .3
 	
 ;this function is called by secondary CPUs while starting
 SecondaryCPUEntry:
@@ -116,8 +117,10 @@ SecondaryCPUEntry:
 	
 	call SecondaryCpuStart
 	
-	;endless loop should not be reached.
-	jmp $
+	;should not be reached.
+.3:
+	hlt
+	jmp .3
 
 [SECTION .bootdata]
 align PAGE_SIZE

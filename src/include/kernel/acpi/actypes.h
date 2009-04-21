@@ -117,6 +117,8 @@
 #ifndef __ACTYPES_H__
 #define __ACTYPES_H__
 
+#include <kernel/module.h>
+
 /* acpisrc:StructDefs -- for acpisrc conversion */
 
 /*
@@ -344,7 +346,7 @@ typedef ACPI_NATIVE_UINT                ACPI_SIZE;
  * tagged with this macro which can be defined as appropriate for the host.
  */
 #ifndef ACPI_EXPORT_SYMBOL
-#define ACPI_EXPORT_SYMBOL(Symbol)
+#define ACPI_EXPORT_SYMBOL(Symbol)	EXPORT_SYMBOL(Symbol);
 #endif
 
 

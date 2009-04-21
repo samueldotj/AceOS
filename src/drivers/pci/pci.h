@@ -1,7 +1,10 @@
 /*!
-  \file		drivers/pci.h
+  \file		drivers/pci/pci.h
   \brief	PCI bus related structures
 */
+
+#ifndef _PCI_H
+#define _PCI_H
 
 #include <ace.h>
 
@@ -129,3 +132,5 @@ struct pci_configuration_space
 };
 
 int get_pci_class_string(BYTE class_code, BYTE subclass_code, BYTE prog_if_code, char ** class_name, char ** subclass_name, char ** prog_if_name );
+
+#endif

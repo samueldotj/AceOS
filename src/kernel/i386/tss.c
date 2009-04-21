@@ -7,6 +7,7 @@
 #include <kernel/debug.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/pmem.h>
+#include <kernel/mm/virtual_page.h>
 #include <kernel/i386/pmem.h>
 #include <kernel/i386/gdt.h>
 #include <kernel/i386/processor.h>
@@ -66,9 +67,23 @@ void LoadTss()
 }
 
 /*! Setup task gate for double fault handler
-	\param 	kernel_stack - kernel stack to be used by double fault
+	\param 	fault_handler - double fault handler va
 */
-void FillTssForDoubleFaultHandler(void * fault_handler, UINT32 kernel_stack )
+void FillTssForDoubleFaultHandler(void * fault_handler)
 {
-	FillTss( &double_fault_tss, DOUBLE_FAULT_GDT_INDEX, (UINT32)fault_handler, kernel_stack);
+	UINT32 va=0, pa=0;
+	
+	/*allocate va for double fault handler stack*/
+	if ( AllocateVirtualMemory(&kernel_map, &va, 0, PAGE_SIZE, 0, 0, NULL) != ERROR_SUCCESS )
+		panic("Unable to allocate memory for double fault handler stack");
+	
+	/*Create va to pa mapping*/
+	((UINT32*)va)[0]=0;
+	if ( TranslatePaFromVa( (VADDR)va, &pa ) == VA_NOT_EXISTS )
+		panic( "Mapping not exist for double fault hanlder" );
+	
+	/*Remove the page from pager*/
+	LockVirtualPages( PHYS_TO_VP(pa), 1);
+
+	FillTss( &double_fault_tss, DOUBLE_FAULT_GDT_INDEX, (UINT32)fault_handler, va);
 }

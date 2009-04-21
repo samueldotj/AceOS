@@ -73,12 +73,13 @@ void PrintStackTrace(unsigned int max_frames)
 	
     for(frame = 0; frame<max_frames; ++frame)
     {
-        unsigned int * arguments, eip = ebp[1];
+        unsigned int * arguments, eip;
 		int offset;
 		char * func;
-        if( ebp[0] < PAGE_SIZE || eip < PAGE_SIZE)
+        if( (UINT32)ebp < PAGE_SIZE || ebp[0] < PAGE_SIZE || ebp[1] < PAGE_SIZE)
             return;
         
+		eip = ebp[1];
 		/* Unwind to previous stack frame*/
         ebp = (unsigned int *)(ebp[0]);
         arguments = &ebp[2];

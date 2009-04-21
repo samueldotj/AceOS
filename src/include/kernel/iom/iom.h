@@ -12,6 +12,7 @@
 #include <heap/slab_allocator.h>
 #include <kernel/error.h>
 #include <kernel/mm/kmem.h>
+#include <kernel/vfs/vfs.h>
 
 #define DRIVER_NAME_MAX		50
 
@@ -104,7 +105,7 @@ struct driver_object
 	DEVICE_OBJECT_PTR	device_object_head;					/*! Head to list of devices this driver handles*/
 
 	char 				driver_name[DRIVER_NAME_MAX];		/*! Human readable name of the driver*/
-	char *				driver_file_name;					/*! File name of the driver - used to find whether a driver is already loaded - once file system is done it should be removed*/
+	char 				driver_file_name[MAX_FILE_NAME];	/*! File name of the driver - used to find whether a driver is already loaded*/
 	void *				driver_extension;					/*! Driver specific data*/
 
 	DRIVER_FUNCTIONS 	fn;									/*! All the functions supported by the driver*/

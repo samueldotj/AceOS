@@ -1,11 +1,14 @@
 #! /bin/sh
+
+QEMU=`which qemu`
+SCRIPT_PATH=`dirname $0`
+
 if test -z "$QEMU_BIOS_DIR"
 then 
-	echo "Set the QEMU_BIOS_DIR environment variable. This variable should point to QEMU bios and video bios directory"
-	exit
+	QEMU_BIOS_DIR=`dirname $QEMU`
+	if [ $OSTYPE = cygwin ] ; then
+		QEMU_BIOS_DIR=`cygpath -a -w $QEMU_BIOS_DIR`
+	fi
 fi
 
-SCRIPT_PATH=`dirname $0`
-#create_bootcd.sh
 qemu -L "$QEMU_BIOS_DIR" -M pc -cdrom $SCRIPT_PATH/../build/bootcd.iso -boot d -m 32 -smp 1 -localtime -no-kqemu $*
-

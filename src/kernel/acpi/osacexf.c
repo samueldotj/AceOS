@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <ace.h>
+#include <sync/spinlock.h>
 #include <kernel/io.h>
 #include <kernel/interrupt.h>
 #include <kernel/mm/vm.h>
@@ -426,7 +427,8 @@ void *
 AcpiOsAllocate (
     ACPI_SIZE               size)
 {
-    return kmalloc(size, 0);
+	void * ret = kmalloc(size, 0);
+    return ret;
 }
 
 
@@ -521,8 +523,6 @@ AcpiOsWaitSemaphore (
     UINT32              Units,
     UINT16              Timeout)
 {
-
-
     return AE_OK;
 }
 
@@ -545,8 +545,6 @@ AcpiOsSignalSemaphore (
     ACPI_HANDLE         Handle,
     UINT32              Units)
 {
-
-
     return AE_OK;
 }
 
@@ -555,15 +553,18 @@ ACPI_STATUS
 AcpiOsCreateLock (
     ACPI_SPINLOCK           *OutHandle)
 {
-
-    return (AcpiOsCreateSemaphore (1, 1, (ACPI_HANDLE)OutHandle));
+	SPIN_LOCK_PTR spinlock = kmalloc( sizeof(SPIN_LOCK), 0);
+	InitSpinLock(spinlock);
+	
+	*((SPIN_LOCK_PTR *)OutHandle) = spinlock;
+    return AE_OK;
 }
 
 void
 AcpiOsDeleteLock (
     ACPI_SPINLOCK           Handle)
 {
-    AcpiOsDeleteSemaphore (Handle);
+    kfree(Handle);
 }
 
 
@@ -571,7 +572,7 @@ ACPI_CPU_FLAGS
 AcpiOsAcquireLock (
     ACPI_SPINLOCK             Handle)
 {
-    AcpiOsWaitSemaphore (Handle, 1, 0xFFFF);
+    SpinLock(Handle);
     return (0);
 }
 
@@ -581,7 +582,7 @@ AcpiOsReleaseLock (
     ACPI_SPINLOCK           Handle,
     ACPI_CPU_FLAGS          Flags)
 {
-    AcpiOsSignalSemaphore (Handle, 1);
+    SpinUnlock(Handle);
 }
 
 ISR_RETURN_CODE AcpiInterruptHandler(INTERRUPT_INFO_PTR interrupt_info, void * arg)
@@ -1077,5 +1078,6 @@ AcpiOsSignal (
 
     return (AE_OK);
 }
+
 
 

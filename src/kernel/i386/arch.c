@@ -85,8 +85,7 @@ void InitArchPhase2(MULTIBOOT_INFO_PTR mbi)
 {
 	CPUID_INFO cpuid;
 	UINT64 start_time;
-	UINT32 va;
-	
+
 	/*execute cpuid and load the data structure*/
 	LoadCpuIdInfo( &cpuid );
 	memcpy( &processor_i386[cpuid.feature._.apic_id].cpuid, &cpuid, sizeof(CPUID_INFO) );
@@ -123,15 +122,8 @@ void InitArchPhase2(MULTIBOOT_INFO_PTR mbi)
 	/* Initialize real time clock*/
 	InitRtc();
 	
-	/*allocate va for double fault handler stack*/
-	if ( AllocateVirtualMemory(&kernel_map, &va, 0, PAGE_SIZE, 0, 0, NULL) != ERROR_SUCCESS )
-		panic("Unable to allocate memory for double fault handler stack");
-	/*Create va to pa mapping*/
-	((UINT32*)va)[0]=0;
-	/*! \todo - remove the virtual page from pager*/
-
 	/*setup double fault handler tss and gdt entries*/
-	FillTssForDoubleFaultHandler(DoubleFaultHandler, va);
+	FillTssForDoubleFaultHandler(DoubleFaultHandler);
 	
 	/* Load TSS so that we can switch to user mode*/
 	LoadTss();
@@ -182,6 +174,8 @@ void SecondaryCpuStart()
 	StartTimer(SCHEDULER_DEFAULT_QUANTUM, TRUE);
 	
 	kprintf("Secondary CPU %d is started\n", processor_id);
+	
+	ExitThread();
 }
 /*! Create a thread with appropriate real mode code to start a secondary CPU
 	\return Physical address of the stack of the thread. This stack contains real mode code to start.
@@ -206,7 +200,7 @@ static UINT32 CreateSecondaryCPUStartThread()
 		if ( CreatePhysicalMapping(kernel_map.physical_map, va+(i*PAGE_SIZE), VP_TO_PHYS(vp+i), 0) != ERROR_SUCCESS )
 			panic("VA to PA mapping failed\n");
 	}
-		
+	
 	/*copy the 16 bit real mode  code to the kernel stack page*/
 	memcpy( &((THREAD_CONTAINER_PTR)va)->kernel_stack, (void *)&trampoline_data, ((UINT32)&trampoline_end)-((UINT32)&trampoline_data));
 	
@@ -356,10 +350,16 @@ void InitSecondaryProcessors()
 	}
 }
 
-/*! This function should halt the processor after terminating all the processes
-\todo implementation needed
-*/
+/*! Halt the processor until external interrupt comes*/
 void ArchHalt()
+{
+	//asm("hlt");
+}
+
+/*! Take the cpu to offline
+	\todo implementation needed using acpi
+*/
+void ArchShutdown()
 {
 	asm("cli;hlt");
 }

@@ -67,6 +67,6 @@ struct tss{
 typedef volatile struct tss TSS, * TSS_PTR;
 
 void LoadTss();
-void FillTssForDoubleFaultHandler( void * fault_handler, UINT32 kernel_stack );
+void FillTssForDoubleFaultHandler(void * fault_handler);
 
 #endif

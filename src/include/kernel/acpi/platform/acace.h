@@ -126,7 +126,9 @@
 #define ACPI_DEBUG
 #endif
 
-//#define ACPI_NO_ERROR_MESSAGES
+//#define ACPI_DEBUG_OUTPUT
+
+#define ACPI_NO_ERROR_MESSAGES
 
 #ifdef _KERNEL_
 

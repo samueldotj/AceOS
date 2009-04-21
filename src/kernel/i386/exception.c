@@ -12,6 +12,9 @@
 #include <kernel/error.h>
 #include <kernel/pm/elf.h>
 
+/*max depth of page faults inside page fault*/
+#define MAX_SERIAL_PAGE_FAULTS	2
+
 /*	This is a simple string array. It contains the message that corresponds to each and every exception. 
 *	We get the correct message by accessing like:  exception_message[interrupt_number] 
 */
@@ -76,7 +79,7 @@ void ExceptionHandler(REGS_PTR reg)
 	/*now print some useful info from regs structure for debugging*/
 	PRINT_REGS( reg );
 	kprintf("System Halted!\n");
-	ArchHalt();
+	ArchShutdown();
 }
 
 /*! i386 specific page fault handler*/
@@ -85,7 +88,9 @@ void PageFaultHandler(REGS_PTR reg)
 	PF_ERROR_CODE err;
 	static int inside_page_fault;
 	err.all = reg->error_code;
-	if ( inside_page_fault )
+	
+	/*page fault can happen while handling a page fault but not more than MAX_SERIAL_PAGE_FAULTS*/
+	if ( inside_page_fault > MAX_SERIAL_PAGE_FAULTS )
 	{
 		PRINT_REGS(reg);
 		panic("Inside page fault");
@@ -105,7 +110,7 @@ void PageFaultHandler(REGS_PTR reg)
 	
 		PRINT_REGS(reg);
 		panic("Page fault not handled.");
-		ArchHalt();
+		ArchShutdown();
 	}
 	inside_page_fault--;
 }
@@ -123,7 +128,7 @@ void GeneralProtectionFaultHandler(REGS_PTR reg)
 		err.segment_selector_index);
 	
 	PRINT_REGS(reg);
-	ArchHalt();
+	ArchShutdown();
 }
 
 /*! Double fault handler

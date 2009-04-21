@@ -101,7 +101,7 @@ int IrpCacheDestructor( void * buffer)
 void InitIoManager()
 {
 	DRIVER_OBJECT_PTR root_bus;
-	
+
 	if( InitCache(&driver_object_cache, sizeof(DRIVER_OBJECT), DRIVER_OBJECT_CACHE_FREE_SLABS_THRESHOLD, DRIVER_OBJECT_CACHE_MIN_BUFFERS, DRIVER_OBJECT_CACHE_MAX_SLABS, DriverObjectCacheConstructor, DriverObjectCacheDestructor) )
 		panic("InitIoManager - Driver object cache init failed");
 	
@@ -113,17 +113,17 @@ void InitIoManager()
 	
 	/*load root bus driver and call the DriverEntry*/
 	root_bus = LoadRootBusDriver() ;
-	RootBusDriverEntry( root_bus );
 	
 	/*this is the first driver loaded into the kernel and it is never unloaded*/
 	driver_list_head = &root_bus->driver_list;
-	
+
+	RootBusDriverEntry( root_bus );
+
 	/*create device object for root bus*/
 	CreateDevice(root_bus_driver_object, 0, &root_bus_device_object);
 	
 	/*force the io manager to enumerate the buses on root bus*/
 	InvalidateDeviceRelations(root_bus_device_object, DEVICE_RELATIONS_TYPE_BUS_RELATION);
-	
 }
 
 /*! Dummy Major function handler - used to initialize driver object function pointers
@@ -353,16 +353,25 @@ static DRIVER_OBJECT_PTR LoadDriver(char * device_id)
 	LIST_PTR node;
 	
 	err = FindDriverFile(device_id, driver_file_name, sizeof(driver_file_name));
-	ktrace("Driver for id %s : %s\n", device_id, driver_file_name);
-	if ( err != ERROR_SUCCESS )
+	ktrace("Driver for id %s : ", device_id);
+	if ( err == ERROR_SUCCESS )
+		ktrace("%s\n", driver_file_name);
+	else
+	{
+		ktrace("%s\n", ERROR_CODE_AS_STRING(err) );
 		return NULL;
+	}		
 
 	/*check whether the driver is already loaded*/
 	LIST_FOR_EACH(node, driver_list_head)
 	{
 		driver_object = STRUCT_ADDRESS_FROM_MEMBER( node, DRIVER_OBJECT, driver_list );
 		if ( strcmp( driver_file_name, driver_object->driver_file_name )==0 )
+		{
+			ktrace("Driver already loaded %s\n", driver_object->driver_file_name);
 			return driver_object;
+		}
+			
 	}
 	strcat( driver_file_path, driver_file_name );
 	kprintf("Loading %s: ", driver_file_path);
@@ -386,14 +395,14 @@ static DRIVER_OBJECT_PTR LoadDriver(char * device_id)
 		err = ERROR_NOT_ENOUGH_MEMORY;
 		goto error;
 	}
-			
-	driver_object->driver_file_name = driver_file_name;
+	
+	strcpy( driver_object->driver_file_name, driver_file_name);
 	err = DriverEntry( driver_object );
 	if ( err != ERROR_SUCCESS )
 		goto error;
 
 	/*add the driver to the driver list*/
-	AddToListTail( driver_list_head, &driver_object->driver_list );
+	AddToList( driver_list_head, &driver_object->driver_list );
 	kprintf("success\n");
 	return driver_object;
 

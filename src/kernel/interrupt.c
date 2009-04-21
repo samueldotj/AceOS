@@ -72,7 +72,6 @@ void InterruptHandler(REGS_PTR reg)
 	handler = &interrupt_handlers[reg->int_no];
 	interrupt_info.interrupt_number = reg->int_no;
 	/*TODO add code to include other interrupt details also*/
-	
 	if ( handler->isr == NULL )
 	{
 		#ifdef DEBUG_INTERRUPT

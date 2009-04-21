@@ -18,6 +18,8 @@ mkdir -p $BUILD_DIR/bootfs/drivers
 cp $ACE_ROOT/src/kernel/driver_id.txt $BUILD_DIR/bootfs
 cp $BUILD_DIR/app/hello.exe $BUILD_DIR/bootfs/app
 cp $BUILD_DIR/drivers/pci_bus.sys $BUILD_DIR/bootfs/drivers
+cp $BUILD_DIR/drivers/acpi.sys $BUILD_DIR/bootfs/drivers
+cp $BUILD_DIR/drivers/ps2keyboard.sys $BUILD_DIR/bootfs/drivers
 cd $BUILD_DIR/bootfs
 tar --gzip -cf $ISO_DIR/boot_modules.mod.gz .
 

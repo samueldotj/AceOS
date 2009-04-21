@@ -10,10 +10,18 @@ sed ':a;N;$!ba;s/\n//g' < tmp > tmp1
 #add one new line to avoid gcc warning message
 echo "" >> tmp1
 
-#copy the file only if it is different
-cmp tmp1 $1/build.h > tmp
-if [ $? -ne 0 ]
+if [ -e $1/build.h ]
 then
+	#copy the file only if it is different
+	cmp tmp1 $1/build.h > tmp
+	if [ $? -ne 0 ]
+	then
+		mv tmp1 $1/build.h
+	fi
+else
+	#just create the file
 	mv tmp1 $1/build.h
 fi
+
+#remove backup files
 rm -f tmp tmp1

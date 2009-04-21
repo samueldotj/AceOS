@@ -8,6 +8,7 @@
 #include <kernel/io.h>
 #include <kernel/debug.h>
 #include <kernel/iom/iom.h>
+#include <kernel/acpi/acpi.h>
 #include "pci.h"
 
 
@@ -144,6 +145,7 @@ static ERROR_CODE MajorFunctionPnp(DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pIrp
 						}
 					}
 				}
+	
 				/*put the new device relations list*/
 				if ( total_devices_found > 0 )
 				{
@@ -161,10 +163,9 @@ static ERROR_CODE MajorFunctionPnp(DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pIrp
 					i=0;
 					LIST_FOR_EACH(cur_node, &pDeviceObject->driver_object->device_object_head->device_object_list )
 					{
-							dr->objects[i] = STRUCT_ADDRESS_FROM_MEMBER(cur_node, DEVICE_OBJECT, device_object_list);
-							i++;
-							if ( i>=total_devices_found )
-							assert( i<=total_devices_found );
+						assert( i<=total_devices_found );
+						dr->objects[i] = STRUCT_ADDRESS_FROM_MEMBER(cur_node, DEVICE_OBJECT, device_object_list);
+						i++;
 					}
 					
 					/*return success*/
@@ -185,7 +186,7 @@ static ERROR_CODE MajorFunctionPnp(DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pIrp
 					pIrp->io_status.status = ERROR_NOT_ENOUGH_MEMORY;
 					return ERROR_NOT_ENOUGH_MEMORY;
 				}
-				sprintf(pIrp->io_status.information, "PCI_VEN_%d&DEV_%d&SUBSYS_%d&REV_%d", 
+				sprintf(pIrp->io_status.information, "PCI_VEN_%x&DEV_%x&SUBSYS_%d&REV_%d", 
 						pci_dev_ext->pci_conf.vendor_id,  pci_dev_ext->pci_conf.device_id, pci_dev_ext->pci_conf.pci_standard.sub_system_device_id, pci_dev_ext->pci_conf.revision_id);
 				pIrp->io_status.status = ERROR_SUCCESS;				
 			}
@@ -196,6 +197,7 @@ static ERROR_CODE MajorFunctionPnp(DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pIrp
 			}
 			else
 				return ERROR_NOT_SUPPORTED;
+
 			break;
 	}
 	return ERROR_SUCCESS;

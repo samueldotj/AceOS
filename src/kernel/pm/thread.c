@@ -154,6 +154,7 @@ void InitBootThread(int boot_processor_id)
 	InitSpinLock( &boot_thread->lock );
 	boot_thread->state = THREAD_STATE_NEW;
 	
+	boot_thread->reference_count = 1;
 	boot_thread->current_processor = p;
 	boot_thread->bind_cpu = boot_processor_id;
 	

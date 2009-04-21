@@ -36,6 +36,7 @@ void InvalidateAllTlb();
 void FlushCpuCache(BOOLEAN write_back);
 
 void ArchHalt();
+void ArchShutdown();
 
 void MaskInterrupt(BYTE interrupt_number);
 

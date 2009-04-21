@@ -4,6 +4,16 @@ arch = Options.options.arch
 include_dirs = '../include/'
 
 #build pci driver
-pci = bld.new_task_gen('cc', 'program', target='pci_bus', name='pci', install_path=None, includes=include_dirs, uselib='DRIVER' )
-pci.env['program_PATTERN'] = '%s.sys'
-pci.find_sources_in_dirs('pci')
+pci_bus = bld.new_task_gen('cc', 'program', target='pci_bus', name='pci_bus', install_path=None, includes=include_dirs, uselib='DRIVER' )
+pci_bus.env['program_PATTERN'] = '%s.sys'
+pci_bus.find_sources_in_dirs('pci')
+
+#build acpi driver
+acpi_bus = bld.new_task_gen('cc', 'program', target='acpi', name='acpi_bus', install_path=None, includes=include_dirs, uselib='DRIVER' )
+acpi_bus.env['program_PATTERN'] = '%s.sys'
+acpi_bus.find_sources_in_dirs('acpi')
+
+#build keyboard driver
+ps2keyboard = bld.new_task_gen('cc', 'program', target='ps2keyboard', name='ps2keyboard', install_path=None, includes=include_dirs, uselib='DRIVER' )
+ps2keyboard.env['program_PATTERN'] = '%s.sys'
+ps2keyboard.find_sources_in_dirs('ps2keyboard')

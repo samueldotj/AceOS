@@ -16,12 +16,12 @@ debug_flags			= '-gdwarf-2 -g3'
 
 nasm_flags 			= defines + ' -w+orphan-labels -f elf'
 
-kernel_c_flags		= defines + ' -Wall -Wno-multichar -ffreestanding -funsigned-char -fno-leading-underscore -c -fno-stack-protector'
+kernel_c_flags		= defines + ' -Wall -Wno-multichar -ffreestanding -funsigned-char -fno-leading-underscore -c -fno-stack-protector '
 acpi_c_flags		= kernel_c_flags + ' -Wno-format '
 driver_c_flags		= kernel_c_flags
 app_c_flags			= '-Wall ' 
 
-kernel_ld_flags 	= '--gc-sections -Wl,-Map,kernel.map -T ../src/kernel/kernel.ld -nostdlib -nostartfiles '
+kernel_ld_flags 	= '-Wl,-Map,kernel.map -T ../src/kernel/kernel.ld -nostdlib -nostartfiles -Wl,--no-gc-sections '
 driver_ld_flags 	= '-r -nostdlib -nostartfiles'
 app_ld_flags		= '-Wall ' 
 

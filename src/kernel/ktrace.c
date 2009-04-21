@@ -27,15 +27,15 @@ Halts the system after printing the message. Used by assert macro
 void _assert(const char *msg, const char *file, int line)
 {
 	kprintf("Assertion failed at %s:%d::[%s]\n", file, line, msg);
-	PrintStackTrace(MAX_STACK_FRAMES);
-	ArchHalt();
+	panic(NULL);
 }
 
 /*! Halts the system after printing the given message
 */
 void panic(char * message) 
 {
-	kprintf("panic() : %s\n", message);
+	if( message )
+		kprintf("panic() : %s\n", message);
 	PrintStackTrace(MAX_STACK_FRAMES);
-	ArchHalt();
+	ArchShutdown();
 }

@@ -23,13 +23,6 @@ typedef struct keyboard_buffer
 	unsigned char ascii_value;
 }KEYBOARD_BUFFER, *KEYBOARD_BUFFER_PTR;
 
-KEYBOARD_BUFFER kbd_buf[MAX_KEYBOARD_BUFFER_SIZE];
-
-/* These 2 variables are dependent on the size of the macro MAX_KEYBOARD_BUFFER_SIZE */
-int cur_kbd_buf_read_index=0;
-int cur_kbd_buf_write_index=0;
-
-
 static ERROR_CODE AddDevice(DRIVER_OBJECT_PTR drv_obj, DEVICE_OBJECT_PTR parent_dev_obj);
 static ERROR_CODE MajorFunctionPnP(DEVICE_OBJECT_PTR dev_obj, IRP_PTR irp);
 static ERROR_CODE MajorFunctionRead(DEVICE_OBJECT_PTR dev_obj, IRP_PTR irp);

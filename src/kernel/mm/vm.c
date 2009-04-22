@@ -210,7 +210,7 @@ ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR pre
 	if ( vmap->end < start + size )
 		vmap->end = start + size;
 	SpinUnlock(&vmap->lock);
-		
+	
 	if ( vmap == &kernel_map )
 		prot = &protection_kernel_write;
 	else
@@ -221,8 +221,8 @@ ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR pre
 			prot = &protection_user_read;
 	}
 	
-	/*create new vm_unit(if private mapping)*/
-	if ( !unit )
+	/*create new vm_unit if unit is not provided*/
+	if ( unit == NULL )
 	{
 		unit = CreateVmUnit(VM_UNIT_TYPE_ANONYMOUS, VM_UNIT_FLAG_SHARED, size);
 	}
@@ -456,7 +456,9 @@ ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type)
 	CreatePhysicalMapping( virtual_map->physical_map, va, vp->physical_address, protection);
 
 	if( zero_fill )
+	{
 		memset( (void *) PAGE_ALIGN(va), 0, PAGE_SIZE);
+	}
 			
 	return ERROR_SUCCESS;
 }

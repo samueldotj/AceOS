@@ -11,6 +11,12 @@
 #include <kernel/printf.h>
 #include "keyboard.h"
 
+KEYBOARD_BUFFER kbd_buf[MAX_KEYBOARD_BUFFER_SIZE];
+
+/* These 2 variables are dependent on the size of the macro MAX_KEYBOARD_BUFFER_SIZE */
+int cur_kbd_buf_read_index=0;
+int cur_kbd_buf_write_index=0;
+
 /* www.microsoft.com/whdc/archive/scancode.mspx
  * http://www.osdever.net/bkerndev/Docs/keyboard.htm
  */
@@ -259,8 +265,7 @@ static ISR_RETURN_CODE KeyboardInterruptHandler(INTERRUPT_INFO_PTR interrupt_inf
 #define NUM_LOCK_BIT	128
 
 	scancode = _inp(KEYBOARD_CONTROLLER_DATA_PORT);
-	kprintf("scancode %x received from keyboard\n", scancode);
-
+	
 	if(scancode == 0xE0)
 	{
 		key_e0 = 1;
@@ -348,7 +353,6 @@ static ISR_RETURN_CODE KeyboardInterruptHandler(INTERRUPT_INFO_PTR interrupt_inf
 	}
 
 modifier_keys_only:
-	kprintf("modifier keys stored.. no ascii; modifier_keys=%d\n", modifier_keys);
 	return ISR_END_PROCESSING; /* Return if scan code is a modifier key */
 
 find_ascii:
@@ -396,11 +400,10 @@ find_ascii:
 		return ISR_END_PROCESSING;
 
 send_buffer:
-kprintf("writing to buffer\n");
 	/* if ascii_value > 127, then user should check for keycode also. That would show that it's one of NUMERIC keys. */
 	WriteToKeyboardBuffer(scancode_buffer, keycode, ascii_value);
+	kprintf("Wrote to keyboard buffer\n");
 	
-	kprintf("done: scancode=%s, keycode=%d, ascii_value=%d char=%c\n", scancode_buffer, keycode, ascii_value, ascii_value);
 	return ISR_END_PROCESSING; 
 }
 

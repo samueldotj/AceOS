@@ -13,6 +13,8 @@ static ERROR_CODE LoadElfSectionIntoMap(ELF_SECTION_HEADER_PTR section_header, V
 static ERROR_CODE RelocateSection(ELF_SECTION_HEADER_PTR section_header, ELF_SYMBOL_PTR symbol_table, int relocation_section_index, char * string_table, VADDR relocation_entries, VADDR * section_loaded_va);
 static VADDR FindSymbolAddress(ELF_HEADER_PTR file_header, char * symbol_name, VADDR * section_loaded_va);
 static ELF_SYMBOL_PTR FindElfSymbolByName(ELF_SYMBOL_PTR symbol_table, UINT32 symbol_table_size, char * string_table, char * symbol_name);
+static UINT32 GetElfCommonSectionSize(ELF_SYMBOL_PTR symbol_table, UINT32 symbol_table_size);
+static void UpdateElfCommonSectionSymbols(ELF_SYMBOL_PTR symbol_table, UINT32 symbol_table_size, int common_section_index);
 
 #if ARCH == i386
 static void RelocateI386Field(ELF32_RELOCATION_PTR rp, VADDR symbol_value, VADDR base_va, int type);
@@ -30,7 +32,7 @@ ERROR_CODE LoadElfImage(ELF_HEADER_PTR file_header, VIRTUAL_MAP_PTR virtual_map,
 {
 	ELF_SECTION_HEADER_PTR string_section_header = NULL;
 	char * string_table = NULL;
-	VADDR * section_loaded_va = NULL;
+	VADDR * section_loaded_va = NULL;			/*holds array of virtual addresses, where the sections are loaded into the virtual map*/
 	ERROR_CODE err = ERROR_NOT_SUPPORTED;
 	int i;
 	
@@ -48,12 +50,13 @@ ERROR_CODE LoadElfImage(ELF_HEADER_PTR file_header, VIRTUAL_MAP_PTR virtual_map,
 	if ( file_header->e_type == ET_NONE )
 		return ERROR_NOT_SUPPORTED;
 		
-
-	/*section_loaded_va holds address of where the section is loaded into the virtual map*/
-	section_loaded_va  = (VADDR *) kmalloc( sizeof(VADDR) * file_header->e_shnum, 0 );
+	/*  Allocate memory to hold the virtual addresses where sections will be loaded.
+		The last entry is used for common section(SHN_COMMON).
+	*/
+	section_loaded_va  = (VADDR *) kmalloc( sizeof(VADDR) * file_header->e_shnum+1, 0 );
 	if ( section_loaded_va  == NULL )
 		return ERROR_NOT_ENOUGH_MEMORY;
-	for(i=0; i<file_header->e_shnum; i++)
+	for(i=0; i<=file_header->e_shnum; i++)
 		section_loaded_va[i] = NULL;
 
 	/*find string table*/
@@ -173,13 +176,19 @@ static ERROR_CODE LoadElfSegmentIntoMap(ELF_PROGRAM_HEADER_PTR program_header, c
 static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_table, VIRTUAL_MAP_PTR virtual_map, VADDR * section_loaded_va)
 {
 	ELF_SECTION_HEADER_PTR first_section_header, section_header;
+	ELF_SYMBOL_PTR symbol_table=NULL;
+	UINT32 symbol_table_size=0;
 	ERROR_CODE ret = ERROR_SUCCESS;
 	int i;
+	UINT32 common_size = 0;
 	
 	/*start of the section header*/
 	first_section_header = (ELF_SECTION_HEADER_PTR)( (VADDR)file_header + file_header->e_shoff );
 	
-	/*first pass - load all the sections into address space*/
+	/*first pass - 
+		1) load all the sections into address space
+		2) find common section address space
+	*/
 	for(i=0, section_header = first_section_header; i<file_header->e_shnum;i++, section_header = (ELF_SECTION_HEADER_PTR) (((VADDR)section_header) + file_header->e_shentsize))
 	{
 		/*analyze only active sections*/
@@ -188,11 +197,28 @@ static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_tabl
 			section_loaded_va[i] = NULL;
 			continue;
 		}
-		
+		/*symbol table section - get the common section size*/
+		if ( section_header->sh_type == SHT_SYMTAB )
+		{
+			symbol_table = (ELF_SYMBOL_PTR)((char*)file_header + section_header->sh_offset);
+			symbol_table_size = section_header->sh_size;
+			common_size += GetElfCommonSectionSize( symbol_table, symbol_table_size );
+		}
 		ret = LoadElfSectionIntoMap(section_header, (VADDR)file_header+section_header->sh_offset, virtual_map, &section_loaded_va[i]);
 		if ( ret != ERROR_SUCCESS )
 			return ret;
 	}
+	/*if common section is present, allocate memory for it and update all common symbols*/
+	if( common_size != 0 )
+	{
+		/*allocate memory*/
+		ret = AllocateVirtualMemory( virtual_map, &section_loaded_va[file_header->e_shnum], 0, PAGE_ALIGN_UP(common_size), PROT_READ | PROT_WRITE, 0, NULL );
+		if ( ret != ERROR_SUCCESS )
+			return ret;
+		/*Update the symbols*/
+		UpdateElfCommonSectionSymbols(symbol_table, symbol_table_size, file_header->e_shnum);
+	}
+	
 	/*second pass - relocate */
 	for(i=0, section_header = first_section_header; i<file_header->e_shnum;i++, section_header = (ELF_SECTION_HEADER_PTR) (((VADDR)section_header) + file_header->e_shentsize))
 	{
@@ -231,9 +257,9 @@ static ERROR_CODE LoadElfSectionIntoMap(ELF_SECTION_HEADER_PTR section_header, V
 	/*be pessimistic*/
 	* section_loaded_va = NULL;
 	
-	/*allocate virtual address space if the section occupies space during exeuction*/
+	/*allocate virtual address space if the section occupies space during exeuction
 	if( !(section_header->sh_flags & SHF_ALLOC) )
-		return ret;
+		return ret;*/
 			
 	/*update protection*/
 	if (section_header->sh_flags & SHF_WRITE)
@@ -243,18 +269,19 @@ static ERROR_CODE LoadElfSectionIntoMap(ELF_SECTION_HEADER_PTR section_header, V
 	
 	/*hint the VM our preferred virtual address*/
 	*section_loaded_va = section_header->sh_addr;
-	/*copy section data only if the source section has some data to copy*/
-	if ( !(section_header->sh_flags & SHT_NOBITS) && (section_header->sh_size > 0) )
+	
+	/*create a new zero filled section if bss*/
+	if ( section_header->sh_type == SHT_NOBITS )
 	{
-		ret = CopyVirtualAddressRange( GetCurrentVirtualMap(), section_data_offset, virtual_map, section_loaded_va, section_header->sh_size, protection);
-	}
-	else
-	{
-		/*else create a new zero filled section*/
 		VADDR size = section_header->sh_size;
 		if ( size == 0 )
 			size = PAGE_SIZE;
 		ret = AllocateVirtualMemory( virtual_map, section_loaded_va, section_header->sh_addr, size, protection, 0, NULL );
+	}
+	else
+	{
+		/*copy section data only if the source section has some data to copy*/
+		ret = CopyVirtualAddressRange( GetCurrentVirtualMap(), section_data_offset, virtual_map, section_loaded_va, section_header->sh_size, protection);
 	}
 	
 	return ret;
@@ -376,7 +403,68 @@ char * FindKernelSymbolByAddress(VADDR address, int * offset)
 	return NULL;
 }
 
-/*! Fixes the relocation entries by walking all the relocation entries and calling architecture specific fixup routines*/
+/*! Returns common section size by summing up all the symbol's size of type common.
+	\param symbol_table - symbol table to search
+	\param symbol_table_size - size of the symbol table in bytes
+	\return size of the common section
+*/
+static UINT32 GetElfCommonSectionSize(ELF_SYMBOL_PTR symbol_table, UINT32 symbol_table_size)
+{
+	UINT32 result = 0;
+	int i;
+	for(i=0;i<symbol_table_size/sizeof(ELF_SYMBOL) ;i++)
+	{
+		if ( symbol_table[i].st_shndx == SHN_COMMON )
+		{
+		    /* In the case of an SHN_COMMON symbol the st_value field holds alignment constraints.*/
+            UINT32 boundary;
+			boundary = symbol_table[i].st_value - 1;
+
+            /* Calculate the next byte boundary.*/
+            result = ( result + boundary ) & ~boundary;
+            result += symbol_table[i].st_size;
+		}
+	}
+	return result;
+}
+
+/*! Update all symbols of type common section with the following values
+		1) index of common section
+		2) offset
+	\param symbol_table - symbol table to search
+	\param symbol_table_size - size of the symbol table in bytes
+	\param common_section_index - common section index(currently section count+1)
+*/
+static void UpdateElfCommonSectionSymbols(ELF_SYMBOL_PTR symbol_table, UINT32 symbol_table_size, int common_section_index)
+{
+	UINT32 offset = 0;
+	int i;
+	for(i=0;i<symbol_table_size/sizeof(ELF_SYMBOL) ;i++)
+	{
+		if ( symbol_table[i].st_shndx == SHN_COMMON )
+		{
+		    /* In the case of an SHN_COMMON symbol the st_value field holds alignment constraints.*/
+            UINT32 boundary;
+			boundary = symbol_table[i].st_value - 1;
+
+            /* Calculate the next byte boundary.*/
+            offset = ( offset + boundary ) & ~boundary;
+			symbol_table[i].st_shndx = common_section_index;
+			symbol_table[i].st_value = offset;
+            offset += symbol_table[i].st_size;
+		}
+	}
+}
+
+
+/*! Fixes the relocation entries by walking all the relocation entries and calling architecture specific fixup routines
+	\param section_header - Relocation section header
+	\param symbol_table - Symbol table associated with the section
+	\param relocation_section_index - Section to which relocation to be applied
+	\param string_table - String table associated with the section
+	\param relocation_entries - array of relocation entries.
+	\param section_loaded_va - array of virtual addresses where all the sections are loaded
+*/
 static ERROR_CODE RelocateSection(ELF_SECTION_HEADER_PTR section_header, ELF_SYMBOL_PTR symbol_table, int relocation_section_index, char * string_table, VADDR relocation_entries, VADDR * section_loaded_va)
 {
 	int i, total_entries;
@@ -392,8 +480,10 @@ static ERROR_CODE RelocateSection(ELF_SECTION_HEADER_PTR section_header, ELF_SYM
 			type = ELF_R_TYPE(rpa->r_info);
 #if ARCH == i386
 			/*i386 doesnt support relocation_addend format*/
+			KTRACE("section_header->sh_type == SHT_RELA");
 			return ERROR_INVALID_FORMAT;
 #endif
+			assert("Architecture not supported");
 		}
 		else
 		{
@@ -413,15 +503,22 @@ static ERROR_CODE RelocateSection(ELF_SECTION_HEADER_PTR section_header, ELF_SYM
 				if ( symbol  )
 					symbol_value = symbol->st_value;
 				else
+				{
+					KTRACE("Symbol not found %s", &string_table[ symbol_table[sym_index].st_name ] );
 					return ERROR_SYMBOL_NOT_FOUND;
+				}
 			}
 			else
 			{
 				symbol_value = section_loaded_va[symbol_table[sym_index].st_shndx] + symbol_table[sym_index].st_value;
 			}
 #if ARCH == i386
-			if ( section_loaded_va[relocation_section_index] != NULL )
-				RelocateI386Field(rp, symbol_value, section_loaded_va[relocation_section_index], type);
+			if ( section_loaded_va[relocation_section_index] == NULL )
+			{
+				kprintf("relocation_section_index=%d\n", relocation_section_index);
+				panic("section_loaded_va[relocation_section_index] == NULL");
+			}
+			RelocateI386Field(rp, symbol_value, section_loaded_va[relocation_section_index], type);
 #endif
 		}
 	}
@@ -464,10 +561,10 @@ static void RelocateI386Field(ELF32_RELOCATION_PTR rp, VADDR symbol_value, VADDR
 		case R_386_RELATIVE:
 		case R_386_GOTPC:
 		case R_386_GOTOFF:
-			panic("ELF - Unsupported relocation entry type");
+			KTRACE("ELF - Unsupported relocation entry type");
 			break;
 		default:
-			panic("ELF - Unknown relocation entry type");
+			KTRACE("ELF - Unknown relocation entry type");
 	}
 }
 #endif

@@ -39,8 +39,8 @@
 /*! how many elements in the vnode hash table*/
 #define VNODE_HASH_TABLE_SIZE	100
 
-#define VFS_MOUNT_TIME_OUT	50
-#define VFS_TIME_OUT		50
+#define VFS_MOUNT_TIME_OUT	1000
+#define VFS_TIME_OUT		1000
 
 /*! \todo - move these enums to usr visible include directory*/
 typedef enum

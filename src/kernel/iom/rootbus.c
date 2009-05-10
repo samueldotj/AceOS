@@ -1,6 +1,6 @@
 /*!
 	\file	kernel/iom/rootbus.c
-	\brief	Imaginary root bus which connects all legacy(ISA) and local bus(PCI) in the system.
+	\brief	Imaginary root bus - It has only one device - ACPI bus
 */
 #include <ace.h>
 #include <stdlib.h>
@@ -8,7 +8,6 @@
 #include <kernel/debug.h>
 #include <kernel/iom/iom.h>
 
-#define PCI_BUS_NAME	"pci_bus"
 #define ACPI_BUS_NAME	"acpi"
 
 typedef struct rootbus_device_extension
@@ -42,12 +41,12 @@ ERROR_CODE RootBusDriverEntry(DRIVER_OBJECT_PTR pDriverObject)
 static DEVICE_RELATIONS_PTR CreateRootBusDevices(DEVICE_OBJECT_PTR pDeviceObject)
 {
 	DEVICE_RELATIONS_PTR dr;
-	DEVICE_OBJECT_PTR pci_device_object, acpi_device_object;
+	DEVICE_OBJECT_PTR acpi_device_object;
 	ROOTBUS_DEVICE_EXTENSION_PTR ext;
 	ERROR_CODE err;
 	
 	/*allocate memory for device relation struction*/
-	dr = kmalloc( SIZEOF_DEVICE_RELATIONS(2), 0 );
+	dr = kmalloc( SIZEOF_DEVICE_RELATIONS(1), 0 );
 	if ( dr == NULL )
 		panic("Unable to create Root bus devices");
 	
@@ -59,24 +58,13 @@ static DEVICE_RELATIONS_PTR CreateRootBusDevices(DEVICE_OBJECT_PTR pDeviceObject
 	/*put rootbus specific info to device extension structure*/
 	ext = (ROOTBUS_DEVICE_EXTENSION_PTR)acpi_device_object->device_extension;
 	strcpy( ext->name, ACPI_BUS_NAME );
-	/*attach the pci device to root bus device io stack*/
+	/*attach the acpi device to root bus device io stack*/
 	AttachDeviceToDeviceStack(acpi_device_object, pDeviceObject);
 
-	/*create device object for pci bus*/
-	err = CreateDevice( pDeviceObject->driver_object, sizeof(ROOTBUS_DEVICE_EXTENSION), &pci_device_object );
-	if ( err != ERROR_SUCCESS )
-		panic("Unable to create PCI bus device");
-	/*put rootbus specific info to device extension structure*/
-	ext = (ROOTBUS_DEVICE_EXTENSION_PTR)pci_device_object->device_extension;
-	strcpy( ext->name, PCI_BUS_NAME );
-	/*attach the pci device to root bus device io stack*/
-	AttachDeviceToDeviceStack(pci_device_object, pDeviceObject);
-		
 	/*put the device object in the device relations structure*/
-	dr->count = 2;
+	dr->count = 1;
 	dr->objects[0] = acpi_device_object;
-	dr->objects[1] = pci_device_object;
-
+	
 	return dr;
 }
 static ERROR_CODE MajorFunctionPnp(DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pIrp)

@@ -1,8 +1,13 @@
 #device_id 								driver_file_name
 
+#root bus device ids
 acpi									acpi.sys
-ACPI/_SB_.PCI0.ISA_.KBD_				ps2keyboard.sys
-ACPI/_SB_.PCI0.ISA_.MOU_				ps2mouse.sys
 
-pci_bus									pci_bus.sys
-PCI_VEN_10ec&DEV_8029&SUBSYS_0&REV_0	pci_rtl8029.sys
+#pnp device ids
+PNP0A03									pci_bus.sys
+PNP0303									ps2keyboard.sys
+PNP0F13									ps2mouse.sys
+PNP0700									fdd.sys
+
+#pci device ids
+PCI/VEN_10EC&DEV_8029&SUBSYS_0&REV_0	pci_rtl8029.sys

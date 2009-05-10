@@ -44,8 +44,8 @@ ISR_RETURN_CODE LapicTimerHandler(INTERRUPT_INFO_PTR interrupt_info, void * arg)
 	tc->kernel_stack_pointer = (BYTE *) ((UINT32) interrupt_info->regs) - sizeof(UINT32);
 	
 	/*Send EOI to the PIC*/
-	SendEndOfInterrupt( interrupt_info->interrupt_number);
-	
+	SendEndOfInterrupt( interrupt_info->interrupt_number );
+
 	/*Select new thread to run*/
 	ScheduleThread( current_thread );
 	

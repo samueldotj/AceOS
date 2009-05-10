@@ -3,7 +3,6 @@
   \brief	Programmable Interval Timer
 */
 
-
 #ifndef _PIT_H_
 #define _PIT_H_
 

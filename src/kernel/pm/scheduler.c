@@ -103,7 +103,6 @@ static void DecrementSchedulerBonus(PRIORITY_QUEUE_PTR pqueue)
 	}
 	else
 		pqueue->bonus-- ;
-		
 }
 
 /*!
@@ -119,15 +118,21 @@ static void PreemptThread(THREAD_PTR new_thread)
 	  because scheduler has done with it and it wont access any datastructure associated with it after this line*/
 	if ( current_thread->state == THREAD_STATE_TERMINATE )
 	{
+		assert( new_thread != current_thread );
 		FreeThread( current_thread );
 	}
-	else if ( current_thread->state != THREAD_STATE_WAITING )
+	else if ( current_thread->state != THREAD_STATE_WAITING && current_thread != new_thread )
 	{
-		AddThreadToSchedulerQueue(current_thread);
+		assert( new_thread != current_thread );
+		AddThreadToSchedulerQueue( current_thread );
 	}
 	StartTimer(SCHEDULER_DEFAULT_QUANTUM, FALSE);
-	new_thread->state = THREAD_STATE_RUN;
-	SwitchContext( STRUCT_ADDRESS_FROM_MEMBER( new_thread, THREAD_CONTAINER, thread ) );
+	/*if current thread is already running no need for context switch*/
+	if ( current_thread != new_thread )
+	{
+		new_thread->state = THREAD_STATE_RUN;
+		SwitchContext( STRUCT_ADDRESS_FROM_MEMBER( new_thread, THREAD_CONTAINER, thread ) );	
+	}
 }
 
 /*!
@@ -185,9 +190,8 @@ static void RemoveThreadFromSchedulerQueue(THREAD_PTR rem_thread)
 	else
 	{
 		/* If rem_thred was the first element in the queue, then we need to update the head */
-		if( pqueue->thread_head == rem_thread ) 
+		if( pqueue->thread_head == rem_thread )
 			pqueue->thread_head = STRUCT_ADDRESS_FROM_MEMBER( rem_thread->priority_queue_list.next, THREAD, priority_queue_list);
-			
 		RemoveFromList( &rem_thread->priority_queue_list );
 	}
 	
@@ -246,6 +250,8 @@ static THREAD_PTR SelectThreadToRun(int hint)
 	PRIORITY_QUEUE_PTR	pqueue = NULL;
 
 	this_processor = GET_CURRENT_PROCESSOR;
+	if( this_processor->active_ready_queue->mask == 0 && this_processor->dormant_ready_queue->mask == 0 )
+		return GetCurrentThread();
 
 retry:
 	mask = GET_MASK_AFTER_HINT(this_processor->active_ready_queue->mask, hint);
@@ -261,7 +267,7 @@ retry:
 		if ( mask != 0 )
 		{
 			SpinLock( &this_processor->lock );
-			SWAP( this_processor->active_ready_queue, this_processor->dormant_ready_queue, READY_QUEUE_PTR);
+			SWAP( this_processor->active_ready_queue, this_processor->dormant_ready_queue, READY_QUEUE_PTR );
 			SpinUnlock( &this_processor->lock );
 		}
 		
@@ -386,10 +392,9 @@ void ScheduleThread(THREAD_PTR in_thread)
 		if ( in_thread == current_thread ) /**Current thread is terminating/suspending - find another thread to run*/
 		{
 			new_thread = SelectThreadToRun(current_thread->priority_queue->priority);
-			/*we should have got different thread atleast idle thread*/
+			/*we should have got different thread - atleast idle thread*/
 			assert( new_thread != in_thread );
 			PreemptThread(new_thread);
-			/*not reached*/
 		}
 		else
 		{
@@ -402,10 +407,13 @@ void ScheduleThread(THREAD_PTR in_thread)
 	else if(in_thread == current_thread) 
 	{
 		new_thread = SelectThreadToRun(current_thread->priority_queue->priority);
-		/*! Since the current priority queue got full quota to run, we should DEPROMOTE it. */
-		DecrementSchedulerBonus(current_thread->priority_queue); /*! This will try to decrement the bonus. But if we are the lowest, then decrease the priority of the thread. */
-		PreemptThread(new_thread);
-		/*not reached*/
+		/*! if there is no thread, we might get the same thread - example if only idle thread is running it will come here*/
+		if ( new_thread != current_thread )
+		{
+			/*! Since the current priority queue got full quota to run, we should DEPROMOTE it. */
+			DecrementSchedulerBonus(current_thread->priority_queue); /*! This will try to decrement the bonus. But if we are the lowest, then decrease the priority of the thread. */
+			PreemptThread(new_thread);	
+		}
 	}
 	else
 	{

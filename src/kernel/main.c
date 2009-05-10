@@ -94,5 +94,5 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	
 	kprintf("Kernel initialization complete\n");
 	
-	ExitThread();	
+	ExitThread();
 }

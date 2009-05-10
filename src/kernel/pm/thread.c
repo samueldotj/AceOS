@@ -152,7 +152,7 @@ void InitBootThread(int boot_processor_id)
 	thread_container->kernel_stack_pointer = (BYTE *)((VADDR)(&thread_container->kernel_stack))+PAGE_SIZE;
 	
 	InitSpinLock( &boot_thread->lock );
-	boot_thread->state = THREAD_STATE_NEW;
+	boot_thread->state = THREAD_STATE_RUN;
 	
 	boot_thread->reference_count = 1;
 	boot_thread->current_processor = p;
@@ -166,7 +166,6 @@ void InitBootThread(int boot_processor_id)
 	It is needed for early boot vm support. And no harm in doing it :)*/
 	boot_thread->task = &kernel_task;
 	
-	ScheduleThread( boot_thread );
 }
 
 /*! Internal function used to initialize the thread structure*/

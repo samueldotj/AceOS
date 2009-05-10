@@ -124,7 +124,10 @@ static int kmem_page_protect(void * va, int size, int protection)
  */
 void * kmalloc(int size, UINT32 flag)
 {
-	void * ret = AllocateFromHeap(size);
+	void * ret;
+	assert( size > 0 );
+	
+	ret = AllocateFromHeap(size);
 	if ( ret==NULL && (flag & KMEM_NO_FAIL) )
 	{
 		kprintf("AllocateFromHeap(%d) failed.\n", size);

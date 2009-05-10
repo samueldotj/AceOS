@@ -235,11 +235,11 @@ void InvalidateDeviceRelations(DEVICE_OBJECT_PTR device_object, DEVICE_RELATION_
 		if ( irp->io_status.status != ERROR_SUCCESS )
 			goto done;
 		dr = (DEVICE_RELATIONS_PTR)irp->io_status.information;
-		/**/
+		/*loop through the list of devices call drivers of them to add newly found/created devices*/
 		for(i=0; i<dr->count; i++)
 		{
 			/*\todo - if the device is not new - continue*/
-			
+
 			/*send query id irp for each new device to the driver*/
 			ReuseIrp( irp, ERROR_NOT_SUPPORTED );
 			FillIoStack( irp->current_stack_location, IRP_MJ_PNP, IRP_MN_QUERY_ID, dr->objects[i], NULL, NULL );
@@ -247,7 +247,8 @@ void InvalidateDeviceRelations(DEVICE_OBJECT_PTR device_object, DEVICE_RELATION_
 			CallDriver( dr->objects[i] , irp);
 			if( irp->io_status.status == ERROR_SUCCESS )
 			{
-				DRIVER_OBJECT_PTR driver_object = LoadDriver(irp->io_status.information);
+				DRIVER_OBJECT_PTR driver_object;
+				driver_object = LoadDriver(irp->io_status.information);
 				if ( driver_object != NULL )
 				{
 					driver_object->fn.AddDevice( driver_object, dr->objects[i] );
@@ -413,6 +414,7 @@ error:
 }
 
 #define SKIP_WHITE_SPACES	while( i<file_size && isspace(va[i]) ) i++;
+							
 
 /*! Finds suitable driver for the given id and returns its full path in the given buffer
 	\param device_id - device identification string
@@ -451,8 +453,8 @@ static ERROR_CODE FindDriverFile(char * device_id, char * buffer, int buf_length
 	{
 		char driver_device_id[100];
 		SKIP_WHITE_SPACES;
-		
-		/*skip comments*/
+
+		/*if the line not starting with comment character process it*/
 		if( va[i]!='#' )
 		{
 			int j=0;

@@ -353,7 +353,7 @@ void InitSecondaryProcessors()
 /*! Halt the processor until external interrupt comes*/
 void ArchHalt()
 {
-	//asm("hlt");
+	asm("hlt");
 }
 
 /*! Take the cpu to offline

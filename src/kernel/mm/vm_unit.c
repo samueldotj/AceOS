@@ -15,9 +15,12 @@
 */
 void InitVmUnit(VM_UNIT_PTR unit, VM_UNIT_TYPE type, VM_UNIT_FLAG flag, UINT32 size)
 {
-	UINT32 total_vtop = size / PAGE_SIZE;
+	UINT32 total_vtop;
 	assert( unit != NULL );
 
+	/*total virtual pages mapped by this unit*/
+	total_vtop = (size / PAGE_SIZE) + (size%PAGE_SIZE?1:0) ;
+	
 	InitSpinLock( &unit->lock );
 	unit->reference_count = 0;
 	

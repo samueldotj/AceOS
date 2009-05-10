@@ -186,7 +186,7 @@ static ERROR_CODE MajorFunctionPnp(DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pIrp
 					pIrp->io_status.status = ERROR_NOT_ENOUGH_MEMORY;
 					return ERROR_NOT_ENOUGH_MEMORY;
 				}
-				sprintf(pIrp->io_status.information, "PCI_VEN_%x&DEV_%x&SUBSYS_%d&REV_%d", 
+				sprintf(pIrp->io_status.information, "PCI/VEN_%X&DEV_%X&SUBSYS_%d&REV_%d", 
 						pci_dev_ext->pci_conf.vendor_id,  pci_dev_ext->pci_conf.device_id, pci_dev_ext->pci_conf.pci_standard.sub_system_device_id, pci_dev_ext->pci_conf.revision_id);
 				pIrp->io_status.status = ERROR_SUCCESS;				
 			}

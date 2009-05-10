@@ -393,7 +393,7 @@ ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type)
 	UINT32 protection = access_type;
 	VIRTUAL_PAGE_PTR vp = NULL;
 	int zero_fill = FALSE;
-	
+
 	virtual_map = GetCurrentVirtualMap();
 	if ( virtual_map == NULL )
 		return ERROR_NOT_FOUND;
@@ -412,7 +412,7 @@ ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type)
 		kprintf("Kernel memory fault - va = %p virtual_map = %p\n", va, virtual_map);
 		return ERROR_NOT_FOUND;	
 	}
-	
+	assert( va >= vd->start && va <= vd->end );
 	vtop_index = ((va - vd->start) / PAGE_SIZE) + (vd->offset_in_unit/PAGE_SIZE);
 	assert( vtop_index <= (vd->unit->size/PAGE_SIZE) );
 	

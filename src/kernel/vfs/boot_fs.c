@@ -38,17 +38,27 @@ static void * bootfs_tar_va=NULL;
 */
 void InitBootFs()
 {
+	ERROR_CODE ret;
+	
 	InitMessageQueue( &boot_fs_message_queue );
 
 	/*Create a receiver thread*/
 	CreateThread( &kernel_task, BootFsMessageReceiver, SCHED_CLASS_HIGH, TRUE );
 
 	/*register and mount boot file system*/
-	if ( RegisterFileSystem( BOOT_FS_NAME, &boot_fs_message_queue ) != ERROR_SUCCESS )
+	ret = RegisterFileSystem( BOOT_FS_NAME, &boot_fs_message_queue );
+	if ( ret != ERROR_SUCCESS )
+	{
+		kprintf("%s\n", ERROR_CODE_AS_STRING(ret) );
 		panic( "boot_fs registeration failed" );
-
-	if ( MountFileSystem( BOOT_FS_NAME, BOOT_FS_MOUNT_DEVICE, BOOT_FS_MOUNT_PATH ) != ERROR_SUCCESS )
+	}
+		
+	ret = MountFileSystem( BOOT_FS_NAME, BOOT_FS_MOUNT_DEVICE, BOOT_FS_MOUNT_PATH );
+	if ( ret != ERROR_SUCCESS )
+	{
+		kprintf("%s\n", ERROR_CODE_AS_STRING(ret) );
 		panic( "boot_fs mount failed" );
+	}		
 		
 	bootfs_tar_va = (void *)kernel_reserve_range.module_va_start;
 	bootfs_total_directory_entries = GetDirectoryEntryCountInTar(bootfs_tar_va);	

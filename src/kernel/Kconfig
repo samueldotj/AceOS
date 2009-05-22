@@ -1,0 +1,281 @@
+#
+# For a description of the syntax of this configuration file,
+# see Documentation/kbuild/kconfig-language.txt.
+#
+
+mainmenu "Kernel Configuration"
+
+config X86
+	bool
+	default y
+	help
+	  "X86 32bit Kernel."
+
+menu "Core"
+	config SMP
+		bool "Symmetric multiprocessing support"
+		help
+			Enables symmetric multiprocessing support.
+			Without this only boot processor will be detected and used in a 
+			multiprocessor machine.
+	
+	config MAX_PROCESSORS
+		int "Max processor to support"
+		range 2 1024
+		depends on SMP
+		default 64
+		help
+			Maximum processor to support in SMP
+			
+	config MAX_MEMORY_AREAS
+		int "Maximum NUMA memory nodes"
+		range 2 1024
+		default 32
+	
+	config MAX_PHYSICAL_REGIONS
+		int "Maximum physical memory regions inside a NUMA"
+		range 1 1024
+		default 16
+		
+	config KMEM_RESERVED_MEM_PERCENTAGE
+		int "Reserved kernel memory"
+		range 1 100
+		default 5
+		help
+			A percentage of memory reserved for kernel during boot
+			
+	config KERNEL_STACK_PAGES
+		int "Kernel stack size in pages"
+		range 1 3
+		default 1
+		help
+			Number of pages for kernel stack
+	
+	config USER_STACK_PAGES
+		int "User stack size in pages"
+		range 2 100
+		default 2
+		help
+			Number of pages for user stack
+
+	config TIMER_FREQUENCY
+		int
+		range 1 100000
+		default 100
+		prompt "Timer Frequency"
+		help
+			Change this if you know what you are doing
+	
+	config SCHEDULER_DEFAULT_QUANTUM
+		int
+		range 100 100000
+		default 1000
+		prompt "Scheduler default quantum"
+		help
+			small value - increased responsiveness
+			large value - increased productivity
+			your choice!
+	
+	config MAX_IOAPIC
+		int 
+		range 2 64
+		depends on SMP
+		default 2
+		prompt "Max IOAPIC support"
+	
+endmenu
+menu "Debug"
+	config KMEM_DEBUG
+		bool
+		prompt "Enable kernel memory debugging"
+		default true
+		
+	config MAX_STACK_FRAMES
+		int 
+		range 1 20
+		prompt "Max stack frames"
+		default 5
+		help 
+			Max stack frames to display during a panic.
+			Due to limitation of the stack walker giving a larger value might cause 
+			a double fault during panic.
+			Range is 1 to 100
+			
+	config ENABLE_KERNEL_TRACE
+		bool
+		prompt "Enable kernel trace"
+		default false
+		help
+			Enables kernel traceing, any ktrace or KTRACE messages will be 
+			output to appropriate devices
+			
+	config KTRACE_PRINT_PARALLEL
+		bool
+		prompt "Output ktrace messages to printer"
+		default false
+		depends on ENABLE_KERNEL_TRACE
+	config KTRACE_PRINT_SERIAL
+		bool
+		prompt "Output ktrace messages to serial port"
+		default true
+		depends on ENABLE_KERNEL_TRACE
+	config KTRACE_PRINT_VGA
+		bool
+		prompt "Output ktrace messages to monitor"
+		default false
+		depends on ENABLE_KERNEL_TRACE
+endmenu
+
+menu "Driver"
+	config DRIVER_NAME_MAX
+		int
+		range 10 100
+		default 50
+		prompt "Driver name size"
+		help
+			Maximum characters in a driver name
+		
+endmenu
+
+menu "Cache"
+	config TASK_CACHE_MIN_SLABS
+		int 
+		range 1 10000
+		default 10
+		prompt "Task cache minimum slabs"
+		help
+			Minimum number of buffer(tasks) to keep in task cache.
+
+	config TASK_CACHE_MAX_SLABS
+		int 
+		range 1 10000
+		default 100
+		prompt "Task cache maximum slabs"
+		help
+			Maximum number of buffer(tasks) to keep in task cache.
+	
+	config TASK_CACHE_FREE_SLABS_THRESHOLD
+		int 
+		range 1 10000
+		default 100
+		prompt "Task cache free slab threshold"
+		help
+			Threshold used to freeup extra memory back to VM from task cache.
+			Make sure this value is less than TASK_CACHE_MAX_SLABS and 
+			greater than TASK_CACHE_MIN_SLABS
+
+	config THREAD_CACHE_MIN_SLABS
+		int 
+		range 1 10000
+		default 10
+		prompt "Thread cache minimum slabs"
+		help
+			Minimum number of buffer to keep in the cache.
+
+	config THREAD_CACHE_MAX_SLABS
+		int 
+		range 1 10000
+		default 100
+		prompt "Thread cache maximum slabs"
+		help
+			Maximum number of buffer to keep in the cache.
+	
+	config THREAD_CACHE_FREE_SLABS_THRESHOLD
+		int 
+		range 1 10000
+		default 100
+		prompt "Thread cache free slab threshold"
+		help
+			Threshold used to freeup extra memory back to VM from thread cache.
+			Make sure this value is less than THREAD_CACHE_MAX_SLABS and 
+			greater than THREAD_CACHE_MIN_SLABS
+			
+	config SYSTEM_CALL_CACHE_MIN_SLABS
+		int 
+		range 1 10000
+		default 10
+		prompt "System call cache minimum slabs"
+		help
+			Minimum number of buffer to keep in the cache.
+
+	config SYSTEM_CALL_CACHE_MAX_SLABS
+		int 
+		range 1 10000
+		default 100
+		prompt "System call cache maximum slabs"
+		help
+			Maximum number of buffer to keep in the cache.
+	
+	config SYSTEM_CALL_CACHE_FREE_SLABS_THRESHOLD
+		int 
+		range 1 10000
+		default 100
+		prompt "System call cache free slab threshold"
+		help
+			Threshold used to freeup extra memory back to VM from thread cache.
+			Make sure this value is less than SYSTEM_CALL_CACHE_MAX_SLABS and 
+			greater than SYSTEM_CALL_CACHE_MIN_SLABS
+endmenu
+
+menu "Virtual File System"
+	config MAX_OPEN_FILE
+		int
+		range 10 1024
+		default 25
+		prompt "Maximum open file per process"
+		help
+			Maximum allowed open file ids per process
+			
+	config VFS_MOUNT_TIME_OUT
+		int 
+		range 0 10000
+		default 1024
+		prompt "Mount timeout"
+		help
+			Mount operation timeout value. 0 means no timeout
+			
+	config VFS_TIME_OUT
+		int 
+		range 0 10000
+		default 1024
+		prompt "VFS timeout"
+		help
+			Generic VFS operation timeout value. 0 means no timeout
+	
+	config FILE_SYSTEM_NAME
+		int 
+		range 10 50
+		default 20
+		prompt "File system name length"
+		help
+			Maximum string length for short file system name
+		
+	config MAX_MOUNT_NAME
+		int 
+		range 10 50
+		default 20
+		prompt "Mount name length"
+		help
+			Maximum length of a mount name
+endmenu
+	
+menu "Kernel Parameter"
+	config KERNEL_PARAMETER_NAME_MAX
+		int 
+		range 20 50
+		default 30
+		prompt "Kernel parameter name size"
+		help 
+			Maximum characters in a kernel parameter name.
+			
+	config KERNEL_PARAMETER_VALUE_MAX
+		int 
+		range 20 100
+		default 50
+		prompt "Kernel parameter value characters size"
+		help 
+			Maximum characters in a kernel parameter value.
+
+endmenu
+
+	

@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+#wscript for kconfig
+
+import os, Task, Options, Configure, Utils, misc
+
+Configure.autoconfig = 1
+
+VERSION				= '1.0'
+APPNAME				= 'Ace Kernel Configuration'
+srcdir 				= '.'
+blddir				= 'build'
+
+debug_flags			= '-gdwarf-2 -g3'
+c_flags				= '-Wall -Wno-format -fno-leading-underscore' 
+include_dirs 		= '.'
+
+def configure(conf):
+	conf.check_tool('gcc')
+
+	conf.env.append_unique('CCFLAGS', c_flags) ;
+	conf.env.append_unique('CCFLAGS', debug_flags)  
+			
+def build(bld):
+	lxdialog = bld.new_task_gen('cc', 'program', target='lxdialog', install_path=None, includes=include_dirs, lib = ['ncurses'] )
+	lxdialog.find_sources_in_dirs('lxdialog')
+	lxdialog.env['program_PATTERN'] = '%s.exe'
+	menuconfig = bld.new_task_gen('cc', 'program', source='zconf.tab.c mconf.c', target='menuconfig', install_path=None, includes=include_dirs)

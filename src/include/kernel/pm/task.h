@@ -37,7 +37,15 @@ struct task
 
 	MESSAGE_QUEUE		message_queue[MESSAGE_QUEUES_PER_TASK];				/*! Pointer to message queue containing IPC messages */
 	
-	PROCESS_FILE_INFO	process_file_info;
+	PROCESS_FILE_INFO	process_file_info;									/*! open file info */
+	
+	char *				kva_command_line;									/*! kernel virtual address of command line*/
+	char *				uva_command_line;									/*! user virtual address of command line - once user va is created kva will be freed*/
+	
+	char *				kva_environment;									/*! kernel virtual address of process environment*/
+	char *				uva_environment;									/*! user virtual address of environment - once user va is created kva will be freed*/
+	
+	char * 				user_scratch;										/*! temporary memory to copy kernel content to user*/
 };
 
 extern CACHE task_cache;
@@ -51,7 +59,7 @@ int TaskCacheConstructor(void * buffer);
 int TaskCacheDestructor(void * buffer);
 
 void InitKernelTask();
-TASK_PTR CreateTask(char * exe_file_path);
+TASK_PTR CreateTask(char * exe_file_path, char * command_line, char * environment);
 inline TASK_PTR GetCurrentTask();
 
 TASK_PTR PidToTask(int pid);

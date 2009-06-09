@@ -224,6 +224,8 @@ ERROR_CODE ReadDirectory(char * directory_path, FILE_STAT_PARAM_PTR buffer, int 
 ERROR_CODE OpenFile(char * file_path, VFS_ACCESS_TYPE access, VFS_OPEN_FLAG open_flag, int * file_id);
 ERROR_CODE CloseFile(int file_id);
 
+ERROR_CODE GetVfsMessage(MESSAGE_QUEUE_PTR message_queue, UINT32 wait_time, MESSAGE_TYPE_PTR type, IPC_ARG_TYPE_PTR arg1, IPC_ARG_TYPE_PTR arg2, IPC_ARG_TYPE_PTR arg3, IPC_ARG_TYPE_PTR arg4, IPC_ARG_TYPE_PTR arg5, IPC_ARG_TYPE_PTR arg6);
+
 #ifdef __cplusplus
 	}
 #endif

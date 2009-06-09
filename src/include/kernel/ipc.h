@@ -23,7 +23,7 @@ typedef enum message_type
 	MESSAGE_TYPE_REFERENCE,
 	MESSAGE_TYPE_SHARE,
 	MESSAGE_TYPE_SHARE_PA
-}MESSAGE_TYPE;
+}MESSAGE_TYPE, * MESSAGE_TYPE_PTR;
 
 typedef enum
 {
@@ -36,14 +36,18 @@ typedef enum
 	IPC_ARG_COUNT
 }IPC_ARG_INDEX;
 
-#define IPC_ARG_ADDRESS 	IPC_ARG_INDEX_5
-#define IPC_ARG_LENGTH	 	IPC_ARG_INDEX_6
+/*! index of address argument in the IPC message*/
+#define IPC_ADDRESS_ARG_INDEX 	IPC_ARG_INDEX_5
+/*! index of length argument in the IPC message*/
+#define IPC_LENGTH_ARG_INDEX 	IPC_ARG_INDEX_6
 
-#define ipc_arg_address	((void *)arg5)
-#define ipc_arg_length	((long)arg6)
+/*! alias for IPC address argument*/
+#define IPR_ARGUMENT_ADDRESS	((void *)arg5)
+/*! alias for IPC length argument*/
+#define IPC_ARGUMENT_LENGTH		((long)arg6)
 
 typedef void * IPC_ARG_TYPE;
-
+typedef IPC_ARG_TYPE * IPC_ARG_TYPE_PTR;
 
 typedef struct message_buffer
 {

@@ -149,11 +149,7 @@ static ERROR_CODE LoadElfSegmentIntoMap(ELF_PROGRAM_HEADER_PTR program_header, c
 	/*if the segment is loadable - map it into the address space*/
 	if ( program_header->p_type == PT_LOAD )
 	{
-		ret = CopyVirtualAddressRange( GetCurrentVirtualMap(), (VADDR)segment_start, virtual_map, &preferred_va, program_header->p_filesz, protection );
-		if ( program_header->p_filesz < program_header->p_memsz )
-		{
-			/* \todo - fill the remaining space with zero*/
-		}
+		ret = CopyVirtualAddressRange( GetCurrentVirtualMap(), (VADDR)segment_start, program_header->p_filesz, virtual_map, &preferred_va, program_header->p_memsz, protection );
 	}
 	else
 	{
@@ -281,7 +277,7 @@ static ERROR_CODE LoadElfSectionIntoMap(ELF_SECTION_HEADER_PTR section_header, V
 	else
 	{
 		/*copy section data only if the source section has some data to copy*/
-		ret = CopyVirtualAddressRange( GetCurrentVirtualMap(), section_data_offset, virtual_map, section_loaded_va, section_header->sh_size, protection);
+		ret = CopyVirtualAddressRange( GetCurrentVirtualMap(), section_data_offset, section_header->sh_size, virtual_map, section_loaded_va, section_header->sh_size, protection);
 	}
 	
 	return ret;

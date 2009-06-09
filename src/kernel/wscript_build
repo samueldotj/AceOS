@@ -7,7 +7,7 @@ if arch == 'i386':
 else:
 	arch_source_dirs = ''
 	
-source_dirs			= '. mm pm ipc vfs iom pit rtc ' + arch_source_dirs 
+source_dirs			= '. mm pm ipc vfs iom pit rtc syscall ' + arch_source_dirs 
 acpi_source_dirs	= 'acpi acpi/events acpi/hardware acpi/interpreter/dispatcher acpi/interpreter/executer acpi/interpreter/parser acpi/namespace acpi/resources acpi/tables acpi/utilities '
 
 include_dirs		= '../include/'

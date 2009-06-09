@@ -12,7 +12,8 @@
 #include <kernel/pm/task.h>
 #include <kernel/pm/thread.h>
 
-UINT32 max_message_queue_length=100;	/* System wide tunable to control the size of message queue in message_queue structure */
+/*! System wide tunable to control the size of message queue in message_queue structure */
+UINT32 max_message_queue_length=100;	
 
 static void RemoveFromMessageQueue(MESSAGE_QUEUE_PTR message_queue);
 static void AddToMessageQueue(MESSAGE_QUEUE_PTR message_queue, MESSAGE_BUFFER_PTR buf);
@@ -231,6 +232,7 @@ ERROR_CODE WaitForReply(MESSAGE_TYPE type, IPC_ARG_TYPE arg1, IPC_ARG_TYPE arg2,
 	wait_event = AddToEventQueue( &current_thread->ipc_reply_event );
 	if ( WaitForEvent(wait_event, timeout ) == 0 )
 		return ERROR_TIMEOUT;
+
 	if ( current_thread->ipc_reply_message.type != type )
 		return ERROR_INVALID_FORMAT;
 		
@@ -253,8 +255,9 @@ void SkipMessage(MESSAGE_QUEUE_PTR msg_queue)
  */
 ERROR_CODE GetNextMessageInfo(MESSAGE_QUEUE_PTR message_queue, MESSAGE_TYPE *type, UINT32 *length, int wait_time)
 {
-	ERROR_CODE ret=ERROR_SUCCESS;
-
+	ERROR_CODE ret = ERROR_SUCCESS;
+	MESSAGE_BUFFER_PTR mb = NULL;
+	
 	assert(message_queue != NULL);
 
 	SpinLock( &(message_queue->lock) );
@@ -270,15 +273,17 @@ ERROR_CODE GetNextMessageInfo(MESSAGE_QUEUE_PTR message_queue, MESSAGE_TYPE *typ
 		}
 			
 	}
+	/*wait might timedout or somebody might have taken message before we took the spin lock*/
 	if( ret!=ERROR_SUCCESS || message_queue->buf_count == 0)
 	{
 		ret = ERROR_NOT_FOUND;
 		goto done;
 	}
-	
-	*type = message_queue->msg_queue->type;
-	if ( message_queue->msg_queue->type == MESSAGE_TYPE_REFERENCE && length )
-		*length = (int)message_queue->msg_queue->args[IPC_ARG_LENGTH];
+
+	mb = message_queue->msg_queue;
+	*type = mb->type;
+	if ( mb->type == MESSAGE_TYPE_REFERENCE )
+		*length = (int)mb->args[IPC_LENGTH_ARG_INDEX];
 
 done:
 	SpinUnlock( &(message_queue->lock) );
@@ -314,40 +319,40 @@ static inline ERROR_CODE ArgsToMessageBuffer(TASK_PTR target_task, MESSAGE_BUFFE
 			break;
 		/*Allocate kernel buffer of length argument 5 and copy the contents pointed by argument 6 to it*/
 		case MESSAGE_TYPE_REFERENCE:
-			if(ipc_arg_address == NULL || ipc_arg_length < 0 || ipc_arg_length > PAGE_SIZE)
+			if(IPR_ARGUMENT_ADDRESS == NULL || IPC_ARGUMENT_LENGTH < 0 || IPC_ARGUMENT_LENGTH > PAGE_SIZE)
 				return ERROR_INVALID_PARAMETER;
 
-			msg_buf->args[IPC_ARG_ADDRESS] = kmalloc(ipc_arg_length, 0);
-			if ( msg_buf->args[IPC_ARG_ADDRESS] == NULL )
+			msg_buf->args[IPC_ADDRESS_ARG_INDEX] = kmalloc(IPC_ARGUMENT_LENGTH, 0);
+			if ( msg_buf->args[IPC_ADDRESS_ARG_INDEX] == NULL )
 				return ERROR_NOT_ENOUGH_MEMORY;
 
-			memcpy(msg_buf->args[IPC_ARG_ADDRESS], ipc_arg_address, ipc_arg_length);
-			msg_buf->args[IPC_ARG_LENGTH] = (IPC_ARG_TYPE)ipc_arg_length;
+			memcpy(msg_buf->args[IPC_ADDRESS_ARG_INDEX], IPR_ARGUMENT_ADDRESS, IPC_ARGUMENT_LENGTH);
+			msg_buf->args[IPC_LENGTH_ARG_INDEX] = (IPC_ARG_TYPE)IPC_ARGUMENT_LENGTH;
 
 			break;
 		/*share the virtual address pointed by arg5 of length arg6 to target task*/
 		case MESSAGE_TYPE_SHARE:
-			if(ipc_arg_address == NULL || !IS_PAGE_ALIGNED((long)ipc_arg_address) || ipc_arg_length <= 0 || !IS_PAGE_ALIGNED(ipc_arg_length))
+			if(IPR_ARGUMENT_ADDRESS == NULL || !IS_PAGE_ALIGNED((long)IPR_ARGUMENT_ADDRESS) || IPC_ARGUMENT_LENGTH <= 0 || !IS_PAGE_ALIGNED(IPC_ARGUMENT_LENGTH))
 				return ERROR_INVALID_PARAMETER;
-			copy_va = (VADDR)ipc_arg_address;
-			ret = CopyVirtualAddressRange( GetCurrentVirtualMap(), (VADDR)ipc_arg_address, target_task->virtual_map, &copy_va, ipc_arg_length, PROT_READ );
+			copy_va = (VADDR)IPR_ARGUMENT_ADDRESS;
+			ret = CopyVirtualAddressRange( GetCurrentVirtualMap(), (VADDR)IPR_ARGUMENT_ADDRESS, IPC_ARGUMENT_LENGTH, target_task->virtual_map, &copy_va, IPC_ARGUMENT_LENGTH, PROT_READ );
 			if( ret != ERROR_SUCCESS )
 				return ret;
 			
 			/*copy the result*/
 			msg_buf->args[IPC_ARG_INDEX_5] = (IPC_ARG_TYPE)copy_va;
-			msg_buf->args[IPC_ARG_INDEX_6] = (IPC_ARG_TYPE)ipc_arg_length;
+			msg_buf->args[IPC_ARG_INDEX_6] = (IPC_ARG_TYPE)IPC_ARGUMENT_LENGTH;
 			
 			type = MESSAGE_TYPE_REFERENCE;
 			break;
 		/*internal message to share the virtual page*/
 		case MESSAGE_TYPE_SHARE_PA:
-			assert( ipc_arg_address != NULL && ipc_arg_length == PAGE_SIZE);
-			copy_va = MapPhysicalMemory(target_task->virtual_map, (VADDR)ipc_arg_address, ipc_arg_length);
+			assert( IPR_ARGUMENT_ADDRESS != NULL && IPC_ARGUMENT_LENGTH == PAGE_SIZE);
+			copy_va = MapPhysicalMemory(target_task->virtual_map, (VADDR)IPR_ARGUMENT_ADDRESS, IPC_ARGUMENT_LENGTH);
 			if ( copy_va == NULL )
 				return NULL;
 			msg_buf->args[IPC_ARG_INDEX_5] = (IPC_ARG_TYPE)copy_va;
-			msg_buf->args[IPC_ARG_INDEX_6] = (IPC_ARG_TYPE)ipc_arg_length;
+			msg_buf->args[IPC_ARG_INDEX_6] = (IPC_ARG_TYPE)IPC_ARGUMENT_LENGTH;
 			
 			type = MESSAGE_TYPE_VALUE;
 			break;
@@ -401,15 +406,18 @@ static inline ERROR_CODE MessageBufferToArgs(MESSAGE_BUFFER_PTR msg_buf, IPC_ARG
 			break;
 		case MESSAGE_TYPE_REFERENCE:
 			/*sanity check*/
-			if( ipc_arg_length <= 0 || ipc_arg_length > PAGE_SIZE )
+			if( IPC_ARGUMENT_LENGTH <= 0 || IPC_ARGUMENT_LENGTH > PAGE_SIZE )
+			{
+				KTRACE("IPC_ARGUMENT_LENGTH %d\n", IPC_ARGUMENT_LENGTH);
 				return ERROR_INVALID_PARAMETER;
+			}
 			/*copy the entire sender buffer if reciver buffer is big enough else copy only the size of receiver buffer*/
-			copy_size = (int)msg_buf->args[IPC_ARG_LENGTH];
-			if ( copy_size > ipc_arg_length )
-				copy_size = ipc_arg_length;
+			copy_size = (int)msg_buf->args[IPC_LENGTH_ARG_INDEX];
+			if ( copy_size > IPC_ARGUMENT_LENGTH )
+				copy_size = IPC_ARGUMENT_LENGTH;
 				
-			memcpy(ipc_arg_address, msg_buf->args[IPC_ARG_ADDRESS], copy_size);
-			kfree(msg_buf->args[IPC_ARG_ADDRESS]);
+			memcpy(IPR_ARGUMENT_ADDRESS, msg_buf->args[IPC_ADDRESS_ARG_INDEX], copy_size);
+			kfree(msg_buf->args[IPC_ADDRESS_ARG_INDEX]);
 			break;
 	}
 	
@@ -439,22 +447,29 @@ static ERROR_CODE WaitOnMessageQueue(MESSAGE_QUEUE_PTR message_queue, int wait_t
 		wait_time = 0;
 
 	ret_time = WaitForEvent(my_wait_event, wait_time);
-	//SpinLock( &(message_queue->lock) ); /* take the lock again because we have returned from blocked state */
-
+	
 	if(ret_time == 0) /* no event fired and we timeout out */
 		ret = ERROR_TIMEOUT;
-
-	assert(my_wait_event->fired == 1);
+	else
+	{
+		assert( my_wait_event->fired == 1);
+			/*if the caller supplied type variable, fill it*/
+		if ( type )
+		{
+			MESSAGE_BUFFER_PTR buf;
+			/* take the lock again because we have returned from blocked state */
+			SpinLock( &message_queue->wait_event_msg_queue_lock  ); 
+			buf = message_queue->msg_queue;
+			if( buf )
+				*type = buf->type;
+			else
+				ret = ERROR_NOT_FOUND;
+			
+			SpinUnlock( &message_queue->wait_event_msg_queue_lock );
+		}
+	}
 
 	kfree(my_wait_event);
-	
-	/*if the caller supplied type variable, fill it*/
-	if ( type )
-	{
-		MESSAGE_BUFFER_PTR buf = message_queue->msg_queue;
-		if( buf )
-			*type = buf->type;
-	}
 	
 	return ret;
 }

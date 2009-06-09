@@ -23,6 +23,9 @@
     #define KTRACE( ... ) 
 #endif
 
+#define KPRINTF( ... )	\
+			kprintf("%s:%d: ", __PRETTY_FUNCTION__ , __LINE__ ); \
+			kprintf( __VA_ARGS__ );
 
 #ifdef __cplusplus
 	extern "C" {

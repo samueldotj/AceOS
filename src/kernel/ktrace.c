@@ -8,7 +8,7 @@
 #include <kernel/arch.h>
 #include <kernel/printf.h>
 
-#define MAX_STACK_FRAMES	5
+#define MAX_STACK_FRAMES	10
 
 /*! function pointer is used by the ktrace() to write characters 
 */

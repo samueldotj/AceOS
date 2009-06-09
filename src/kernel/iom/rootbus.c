@@ -51,7 +51,7 @@ static DEVICE_RELATIONS_PTR CreateRootBusDevices(DEVICE_OBJECT_PTR pDeviceObject
 		panic("Unable to create Root bus devices");
 	
 	/*create device object for acpi bus*/
-	err = CreateDevice( pDeviceObject->driver_object, sizeof(ROOTBUS_DEVICE_EXTENSION), &acpi_device_object );
+	err = CreateDevice( pDeviceObject->driver_object, sizeof(ROOTBUS_DEVICE_EXTENSION), &acpi_device_object, ACPI_BUS_NAME );
 	if ( err != ERROR_SUCCESS )
 		panic("Unable to create ACPI bus device");
 	

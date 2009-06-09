@@ -15,12 +15,16 @@
 #include <kernel/pm/scheduler.h>
 #include <kernel/vfs/vfs.h>
 
+/*! User friendly name of the boot fs*/
 #define BOOT_FS_NAME			"boot fs"
+/*! virtual device name - can be null*/
 #define BOOT_FS_MOUNT_DEVICE	"boot_device"
+/*! Where to mount boot fs*/
 #define BOOT_FS_MOUNT_PATH		"/boot"
 
 #define BOOT_FS_TIME_OUT		5
 
+/*! messages passed to boot fs is queued up here - It will be processed by boot fs thread*/
 MESSAGE_QUEUE boot_fs_message_queue;
 
 static void BootFsMessageReceiver();
@@ -45,58 +49,29 @@ void InitBootFs()
 	/*Create a receiver thread*/
 	CreateThread( &kernel_task, BootFsMessageReceiver, SCHED_CLASS_HIGH, TRUE );
 
-	/*register and mount boot file system*/
+	/*register boot file system*/
 	ret = RegisterFileSystem( BOOT_FS_NAME, &boot_fs_message_queue );
 	if ( ret != ERROR_SUCCESS )
 	{
 		kprintf("%s\n", ERROR_CODE_AS_STRING(ret) );
 		panic( "boot_fs registeration failed" );
 	}
-		
+	/*mount boot fs on a virtual device*/
 	ret = MountFileSystem( BOOT_FS_NAME, BOOT_FS_MOUNT_DEVICE, BOOT_FS_MOUNT_PATH );
 	if ( ret != ERROR_SUCCESS )
 	{
 		kprintf("%s\n", ERROR_CODE_AS_STRING(ret) );
 		panic( "boot_fs mount failed" );
-	}		
-		
+	}
+	
+	/*initialize the boot fs meta data*/
 	bootfs_tar_va = (void *)kernel_reserve_range.module_va_start;
 	bootfs_total_directory_entries = GetDirectoryEntryCountInTar(bootfs_tar_va);	
 }
 
-static inline ERROR_CODE GetVfsMessage(MESSAGE_TYPE * type, IPC_ARG_TYPE * arg1, IPC_ARG_TYPE * arg2, IPC_ARG_TYPE * arg3, IPC_ARG_TYPE * arg4, IPC_ARG_TYPE * arg5, IPC_ARG_TYPE * arg6)
-{
-	ERROR_CODE err;
-	char * buf;
-	UINT32 length = 0;
-	while(1)
-	{
-		err = GetNextMessageInfo( &boot_fs_message_queue, type, &length, 0 );
-		if ( err == ERROR_SUCCESS )
-			break;
-	}
-		
-	if ( *type == MESSAGE_TYPE_REFERENCE )
-	{
-		buf = kmalloc(length, 0);
-		if ( buf == NULL )
-			return ERROR_NOT_ENOUGH_MEMORY;
-		err = ReceiveMessageCore( &boot_fs_message_queue, arg1, arg2, arg3, arg4, buf, (IPC_ARG_TYPE)length, BOOT_FS_TIME_OUT );
-		if ( err == ERROR_SUCCESS )
-		{
-			*(char **)ipc_arg_address = buf;
-			*(long *)ipc_arg_length = length;
-		}
-	}
-	else if ( *type == MESSAGE_TYPE_VALUE || *type == MESSAGE_TYPE_SHARE )
-		err = ReceiveMessageCore( &boot_fs_message_queue, arg1, arg2, arg3, arg4, arg5, arg6, BOOT_FS_TIME_OUT );
-	else/*skip the message*/
-		err = ReceiveMessageCore( &boot_fs_message_queue, NULL, NULL, NULL, NULL, NULL, NULL, 0 );
-		
-	return err;
-}
-
-/*! Processes VFS message from VFS server*/
+/*! Boot fs thread
+ * Processes VFS requests from VFS server and fulfills the requests
+ */
 static void BootFsMessageReceiver()
 {
 	ERROR_CODE err;
@@ -105,16 +80,22 @@ static void BootFsMessageReceiver()
 
 	while ( 1 )
 	{
-		err = GetVfsMessage( &type, &arg1, &arg2, &arg3, &arg4, &arg5, &arg6 );
-		
+		err = GetVfsMessage( &boot_fs_message_queue, BOOT_FS_TIME_OUT, &type, &arg1, &arg2, &arg3, &arg4, &arg5, &arg6 );
 		if ( err == ERROR_SUCCESS )
 			ProcessVfsMessage( type, (VFS_IPC)arg1, arg2, arg3, arg4, arg5, arg6 );
 		else
 			kprintf( "bootfs IPC message receive error : %d\n", err );
+		
+		/*!\todo - process unregister/shutdown request and exit this thread*/
 	}
 	kprintf( "Exiting bootfs\n" );
 }
 
+/*! Processes a VFS message and take neccessary action(reply to the VFS)
+ * \param message_type - message queue message type - value/reference/shared etc
+ * \param vfs_id - VFS message type - mount/unmount/read/write etc
+ * \param arg2-6 - Arguments to the message
+ * */
 static void ProcessVfsMessage( MESSAGE_TYPE message_type, VFS_IPC vfs_id, IPC_ARG_TYPE arg2, IPC_ARG_TYPE arg3, IPC_ARG_TYPE arg4, IPC_ARG_TYPE arg5, IPC_ARG_TYPE arg6 )
 {
 	FILE_STAT_PARAM_PTR de;
@@ -124,9 +105,9 @@ static void ProcessVfsMessage( MESSAGE_TYPE message_type, VFS_IPC vfs_id, IPC_AR
 	{
 		case VFS_IPC_MOUNT:
 			assert( message_type== MESSAGE_TYPE_REFERENCE );
-			assert( ipc_arg_address != NULL );
+			assert( IPR_ARGUMENT_ADDRESS != NULL );
 			/*bootfs supports mounting only from boot device*/
-			if ( strcmp(ipc_arg_address, BOOT_FS_MOUNT_DEVICE) == 0 )
+			if ( strcmp(IPR_ARGUMENT_ADDRESS, BOOT_FS_MOUNT_DEVICE) == 0 )
 				ReplyToLastMessage( MESSAGE_TYPE_VALUE, (IPC_ARG_TYPE)VFS_RETURN_CODE_SUCCESS, NULL, NULL, NULL, NULL, NULL );
 			else
 				ReplyToLastMessage( MESSAGE_TYPE_VALUE, (IPC_ARG_TYPE)VFS_RETURN_CODE_INVALID_PARAMETER, NULL, NULL, NULL, NULL, NULL  );
@@ -137,7 +118,7 @@ static void ProcessVfsMessage( MESSAGE_TYPE message_type, VFS_IPC vfs_id, IPC_AR
 			break;
 		case VFS_IPC_GET_DIR_ENTRIES:
 			assert( message_type == MESSAGE_TYPE_REFERENCE );
-			de_param = (DIRECTORY_ENTRY_PARAM_PTR )ipc_arg_address;
+			de_param = (DIRECTORY_ENTRY_PARAM_PTR )IPR_ARGUMENT_ADDRESS;
 			de = GetDirectoryEntries( arg2, -1, NULL, de_param->max_entries, &total_entries);
 			if( total_entries > 0 )
 				ReplyToLastMessage( MESSAGE_TYPE_REFERENCE, (IPC_ARG_TYPE)VFS_RETURN_CODE_SUCCESS, (IPC_ARG_TYPE)total_entries, NULL, NULL, de, (IPC_ARG_TYPE) (sizeof(FILE_STAT_PARAM)*total_entries));
@@ -146,7 +127,7 @@ static void ProcessVfsMessage( MESSAGE_TYPE message_type, VFS_IPC vfs_id, IPC_AR
 			break;
 		case VFS_IPC_GET_FILE_STAT_PATH:
 			assert( message_type == MESSAGE_TYPE_REFERENCE );
-			de = GetDirectoryEntries( arg2, -1, ipc_arg_address, 1, NULL );
+			de = GetDirectoryEntries( arg2, -1, IPR_ARGUMENT_ADDRESS, 1, NULL );
 			if( de )
 				ReplyToLastMessage( MESSAGE_TYPE_REFERENCE, (IPC_ARG_TYPE)VFS_RETURN_CODE_SUCCESS, (IPC_ARG_TYPE)1, NULL, NULL, de, (IPC_ARG_TYPE) sizeof(FILE_STAT_PARAM));
 			else
@@ -161,7 +142,7 @@ static void ProcessVfsMessage( MESSAGE_TYPE message_type, VFS_IPC vfs_id, IPC_AR
 				ReplyToLastMessage( MESSAGE_TYPE_VALUE, (IPC_ARG_TYPE)VFS_RETURN_CODE_NOT_FOUND, NULL, NULL, NULL, NULL, NULL  );
 			break;
 		case VFS_IPC_MAP_FILE_PAGE:
-			if ( MapTarFile( (long)arg3, (long)arg4, ipc_arg_address, ipc_arg_length ) == ERROR_SUCCESS )
+			if ( MapTarFile( (long)arg3, (long)arg4, IPR_ARGUMENT_ADDRESS, IPC_ARGUMENT_LENGTH ) == ERROR_SUCCESS )
 				ReplyToLastMessage( MESSAGE_TYPE_VALUE, (IPC_ARG_TYPE)VFS_RETURN_CODE_SUCCESS, NULL, NULL, NULL, NULL, NULL  );
 			else
 				ReplyToLastMessage( MESSAGE_TYPE_VALUE, (IPC_ARG_TYPE)VFS_RETURN_CODE_NOT_FOUND, NULL, NULL, NULL, NULL, NULL  );
@@ -199,35 +180,47 @@ static FILE_STAT_PARAM_PTR GetDirectoryEntries(void * fs_data, int inode, char *
 		return NULL;
 	
 	if ( !GetDirectoryEntriesInTar(bootfs_tar_va, file_name, inode, result, total_directory_entries) )
+	{
+		kfree( result );
 		return NULL;
-		
+	}
+				
 	if ( total_entries )
 		* total_entries = total_directory_entries;
 	
 	return result;
 }
 
+/*! Memory map a tar file
+ * \param inode - index in the tar file
+ * \param offset - offset in the content
+ * \param va - user va to map
+ * \param size - size of the mapping
+ */
 static ERROR_CODE MapTarFile(long inode, long offset, void * va, long size)
 {
 	FILE_STAT_PARAM_PTR fsp;
 	void * fs_data;
 
-	fsp = GetDirectoryEntries(0, inode, NULL, 1, NULL);
-	if( fsp == NULL )
-		return ERROR_NOT_FOUND;
-	fs_data = fsp->fs_data;
-	assert ( fsp->fs_data != NULL );
-	
 	assert( IS_PAGE_ALIGNED(offset) );
 	assert( IS_PAGE_ALIGNED(va) );
 	assert( IS_PAGE_ALIGNED(size) );
+
+	/*get the directory entry associated with the inode*/
+	fsp = GetDirectoryEntries(0, inode, NULL, 1, NULL);
+	if( fsp == NULL )
+		return ERROR_NOT_FOUND;
+	
+	/*file data starting address*/
+	fs_data = fsp->fs_data;
+	assert ( fsp->fs_data != NULL );
 	
 	if( offset+size > PAGE_ALIGN_UP(fsp->file_size) )
 	{
 		return ERROR_INVALID_PARAMETER;
 	}
-		
-		
+	
+	/*!copy the data*/
 	memcpy(va, (void *)((long)fs_data)+offset, size );
 	
 	return ERROR_SUCCESS;

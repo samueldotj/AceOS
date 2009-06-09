@@ -412,8 +412,8 @@ void ScheduleThread(THREAD_PTR in_thread)
 		{
 			/*! Since the current priority queue got full quota to run, we should DEPROMOTE it. */
 			DecrementSchedulerBonus(current_thread->priority_queue); /*! This will try to decrement the bonus. But if we are the lowest, then decrease the priority of the thread. */
-			PreemptThread(new_thread);	
 		}
+		PreemptThread(new_thread);
 	}
 	else
 	{

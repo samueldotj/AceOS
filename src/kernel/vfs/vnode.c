@@ -133,7 +133,6 @@ ERROR_CODE GetVnode(DIRECTORY_ENTRY_PTR de, VNODE_PTR * result)
 		vnode->modified_time = fsp.modified_time;
 		vnode->mounted_fs = mount;
 		AddVnodeToHashTable( vnode );
-
 	}
 	ReferenceVnode(vnode, de);
 	de->vnode = vnode;

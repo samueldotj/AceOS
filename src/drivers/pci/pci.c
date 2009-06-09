@@ -17,8 +17,8 @@
 #define	MAX_PCI_FUNCTION_PER_DEVICE	8
 
 #if ARCH==i386
-	#define PCI_CONFIG_ADDRESS	0xCF8
-	#define PCI_CONFIG_DATA		0xCFC
+	#define PCI_CONFIG_ADDRESS		0xCF8
+	#define PCI_CONFIG_DATA			0xCFC
 #endif
 
 typedef struct pci_bus_device_extension PCI_BUS_DEVICE_EXTENSION, * PCI_BUS_DEVICE_EXTENSION_PTR;
@@ -98,7 +98,7 @@ static ERROR_CODE AddDevice(DRIVER_OBJECT_PTR pDriverObject, DEVICE_OBJECT_PTR p
 {
 	DEVICE_OBJECT_PTR device_object;
 	ERROR_CODE err;
-	err = CreateDevice(pDriverObject, sizeof(PCI_BUS_DEVICE_EXTENSION), &device_object);
+	err = CreateDevice(pDriverObject, sizeof(PCI_BUS_DEVICE_EXTENSION), &device_object, NULL);
 	if( err != ERROR_SUCCESS )
 		return err;
 	InvalidateDeviceRelations(device_object, DEVICE_RELATIONS_TYPE_BUS_RELATION);
@@ -134,7 +134,7 @@ static ERROR_CODE MajorFunctionPnp(DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pIrp
 								char *class_name, *subclass_name, *prog_if_name;
 								get_pci_class_string(pci_conf.base_class_code, pci_conf.sub_class_code, pci_conf.programming_interface, &class_name, &subclass_name, &prog_if_name );
 								//kprintf("%x %x %s %s %s\n", pci_conf.vendor_id, pci_conf.device_id,  class_name, subclass_name, prog_if_name );
-								if ( CreateDevice(pDeviceObject->driver_object, sizeof(PCI_BUS_DEVICE_EXTENSION), &child_device_object) == ERROR_SUCCESS )
+								if ( CreateDevice(pDeviceObject->driver_object, sizeof(PCI_BUS_DEVICE_EXTENSION), &child_device_object, NULL) == ERROR_SUCCESS )
 								{
 									PCI_BUS_DEVICE_EXTENSION_PTR device_ext=child_device_object->device_extension;
 									memcpy(&device_ext->pci_conf, &pci_conf, sizeof(PCI_CONFIGURATION_SPACE) );

@@ -96,7 +96,7 @@ FILE_SYSTEM_PTR GetFileSystem(char * name)
 		FILE_SYSTEM_PTR fs = STRUCT_ADDRESS_FROM_MEMBER(n, FILE_SYSTEM, list);
 		if ( strcmp(fs->name, name) == 0 )
 		{
-			result = fs_control.registered_file_systems;
+			result = fs;
 			goto done;
 		}
 	}
@@ -178,8 +178,8 @@ ERROR_CODE MountFileSystem(char * fs_name, char * device, char * mount_path )
 	if ( fs_result != VFS_RETURN_CODE_SUCCESS)
 		return ERROR_INVALID_PARAMETER;
 
+	/*\todo - replace kmalloc with cache*/
 	mount = kmalloc( sizeof(MOUNTED_FILE_SYSTEM), KMEM_NO_FAIL );
-	
 	/*Initialize the structure values*/
 	strcpy(mount->mount_name, mount_path);
 	strcpy(mount->mount_device, device);
@@ -193,7 +193,7 @@ ERROR_CODE MountFileSystem(char * fs_name, char * device, char * mount_path )
 		fs_control.mounted_file_system_head = mount;
 	else
 		AddToList( &fs_control.mounted_file_system_head->list, &mount->list );
-	
+		
 	SpinUnlock( &fs_control.lock );
 		
 	fs->count++;	
@@ -210,7 +210,6 @@ MOUNTED_FILE_SYSTEM_PTR GetMount(char * mount_path)
 	char mount_name[MAX_MOUNT_NAME];
 	
 	assert(mount_path != NULL);
-	
 	SpinLock( &fs_control.lock );
 	
 	/*! If no filesystem mounted return */
@@ -379,24 +378,29 @@ ERROR_CODE ReadDirectory(char * directory_path, FILE_STAT_PARAM_PTR buffer, int 
 	assert( total_entries );
 	
 	* total_entries = 0;
+	memset(buffer, 0, sizeof(FILE_STAT_PARAM)*max_entries);
 	/*if the user requested for root directory listing just read all mounted fs and return*/
 	if( strcmp(directory_path, "/") == 0 )
 	{
-		int i=1;
+		int i=0;
 		LIST_PTR list;
-		memset(buffer, 0, sizeof(FILE_STAT_PARAM)*max_entries);
-		if ( fs_control.mounted_file_system_head != NULL )
-			strcpy(buffer[0].name, fs_control.mounted_file_system_head->mount_name);
 		
-		LIST_FOR_EACH(list, &fs_control.mounted_file_system_head->list )
+		/*after boot this condition is always true - because we will have atleast bootfs and devfs mounted devices*/
+		if ( fs_control.mounted_file_system_head != NULL )
 		{
-			MOUNTED_FILE_SYSTEM_PTR mount = STRUCT_ADDRESS_FROM_MEMBER( list, MOUNTED_FILE_SYSTEM, list );
-			i++;
-			strcpy(buffer[i].name, mount->mount_name);
-			if(i>=max_entries)
-				break;
+			/*copy the head of the list*/
+			strcpy(buffer[i].name, fs_control.mounted_file_system_head->mount_name);
+			/*copy all nodes in the list*/
+			LIST_FOR_EACH(list, &fs_control.mounted_file_system_head->list )
+			{
+				MOUNTED_FILE_SYSTEM_PTR mount = STRUCT_ADDRESS_FROM_MEMBER( list, MOUNTED_FILE_SYSTEM, list );
+				i++;
+				strcpy(buffer[i].name, mount->mount_name);
+				if(i>=max_entries)
+					break;
+			}
+			* total_entries = i+1;
 		}
-		* total_entries = i;
 	}
 	else
 	{
@@ -466,7 +470,7 @@ static inline ERROR_CODE FileIdToOpenFileInfo(int file_id, PROCESS_FILE_INFO_PTR
 	assert( pf_info != NULL );
 	assert( op != NULL );
 	
-	if( file_id > MAX_OPEN_FILE )
+	if( file_id<0 || file_id > MAX_OPEN_FILE )
 		return ERROR_INVALID_PARAMETER;
 	
 	current_task = GetCurrentTask();
@@ -479,4 +483,55 @@ static inline ERROR_CODE FileIdToOpenFileInfo(int file_id, PROCESS_FILE_INFO_PTR
 	*op = &(*pf_info)->open_file_info[file_id];
 	
 	return ERROR_SUCCESS;
+}
+
+/*! Helper function to receive a VFS message - Used by file systems
+ *  It blocks until a message arrives in the message queue and fills the given parameters based on the message
+ * \param message_queue - message queue on which to wait to receive a message
+ * \param wait_time - timeout value or receive operation.
+ * \param type - output param - message type that is received
+ * \param arg1 - arg6 - ouput params - message parameters
+ * \note It dynamically allocates memory to receive MESSAGE_TYPE_REFERENCE messages, these messages can be freed by calling FreeVfsMessage()
+ */
+ERROR_CODE GetVfsMessage(MESSAGE_QUEUE_PTR message_queue, UINT32 wait_time, MESSAGE_TYPE_PTR type, IPC_ARG_TYPE_PTR arg1, IPC_ARG_TYPE_PTR arg2, IPC_ARG_TYPE_PTR arg3, IPC_ARG_TYPE_PTR arg4, IPC_ARG_TYPE_PTR arg5, IPC_ARG_TYPE_PTR arg6)
+{
+	ERROR_CODE err;
+	char * buf;
+	UINT32 length = 0;
+	
+	/*may be this loop can be removed?*/
+	while(1)
+	{
+		err = GetNextMessageInfo( message_queue, type, &length, 0 );
+		if ( err == ERROR_SUCCESS )
+			break;
+	}
+	/*if the message type is by reference then allocate memory and receive the message*/
+	if ( *type == MESSAGE_TYPE_REFERENCE )
+	{
+		buf = kmalloc(length, 0);
+		if ( buf == NULL )
+			return ERROR_NOT_ENOUGH_MEMORY;
+		err = ReceiveMessageCore( message_queue, arg1, arg2, arg3, arg4, buf, (IPC_ARG_TYPE)length, wait_time );
+		if ( err == ERROR_SUCCESS )
+		{
+			*(char **)IPR_ARGUMENT_ADDRESS = buf;
+			*(long *)IPC_ARGUMENT_LENGTH = length;
+		}
+	}
+	else if ( *type == MESSAGE_TYPE_VALUE || *type == MESSAGE_TYPE_SHARE ) 
+		err = ReceiveMessageCore( message_queue, arg1, arg2, arg3, arg4, arg5, arg6, wait_time );
+	else/*skip the message*/
+		err = ReceiveMessageCore( message_queue, NULL, NULL, NULL, NULL, NULL, NULL, wait_time );
+		
+	return err;
+}
+/*! Helper functions to free a message previously received using GetVfsMessage - Used by file systems */
+void FreeVfsMessage(MESSAGE_TYPE * type, IPC_ARG_TYPE * arg1, IPC_ARG_TYPE * arg2, IPC_ARG_TYPE * arg3, IPC_ARG_TYPE * arg4, IPC_ARG_TYPE * arg5, IPC_ARG_TYPE * arg6)
+{
+	if ( *type == MESSAGE_TYPE_REFERENCE )
+	{
+		/*free the memory*/
+		kfree( *(char **)IPR_ARGUMENT_ADDRESS );
+	}
 }

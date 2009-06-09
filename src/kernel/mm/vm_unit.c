@@ -31,6 +31,7 @@ void InitVmUnit(VM_UNIT_PTR unit, VM_UNIT_TYPE type, VM_UNIT_FLAG flag, UINT32 s
 	
 	InitSpinLock(&unit->vtop_lock);
 	unit->vtop_array = (VM_VTOP_PTR)kmalloc( sizeof(VM_VTOP) * total_vtop, KMEM_NO_FAIL ) ;
+	
 	/*\todo we should provide a way in kmalloc to zero fill returned memory*/
 	memset(unit->vtop_array, 0, sizeof(VM_VTOP) * total_vtop);
 	unit->page_count = 0;

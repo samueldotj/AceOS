@@ -14,8 +14,10 @@
 #include <kernel/mm/kmem.h>
 #include <kernel/vfs/vfs.h>
 
+/*! maximum characters in driver name including spaces*/
 #define DRIVER_NAME_MAX		50
 
+/*! total size in bytes to hold given number of device's device relation object*/
 #define SIZEOF_DEVICE_RELATIONS(number_of_pdos)		(sizeof(DEVICE_RELATIONS) + ((number_of_pdos) * sizeof(DEVICE_OBJECT)) )
 
 typedef enum
@@ -220,7 +222,6 @@ struct device_relations{
     DEVICE_OBJECT_PTR objects[0];
 };
 
-
 extern DEVICE_OBJECT_PTR root_bus_device_object;
 extern DRIVER_OBJECT_PTR root_bus_driver_object;
 
@@ -228,17 +229,21 @@ extern CACHE driver_object_cache;
 extern CACHE device_object_cache;
 
 void InitIoManager();
-ERROR_CODE CreateDevice(DRIVER_OBJECT_PTR driver_object, UINT32 device_extension_size, DEVICE_OBJECT_PTR * device_object);
+
+ERROR_CODE CreateDevice(DRIVER_OBJECT_PTR driver_object, UINT32 device_extension_size, DEVICE_OBJECT_PTR * device_object, char * device_name);
 DEVICE_OBJECT_PTR AttachDeviceToDeviceStack(DEVICE_OBJECT_PTR source_device, DEVICE_OBJECT_PTR target_device);
+void InvalidateDeviceRelations(DEVICE_OBJECT_PTR device_object, DEVICE_RELATION_TYPE type);
+
 IO_STACK_LOCATION_PTR GetNextIrpStackLocation(IRP_PTR Irp);
 IO_STACK_LOCATION_PTR GetCurrentIrpStackLocation(IRP_PTR Irp);
-void InvalidateDeviceRelations(DEVICE_OBJECT_PTR device_object, DEVICE_RELATION_TYPE type);
+inline void FillIoStack(IO_STACK_LOCATION_PTR io_stack, BYTE major_function, BYTE minor_function, DEVICE_OBJECT_PTR device_object, IO_COMPLETION_ROUTINE completion_routine, void * context);
+
 IRP_PTR AllocateIrp(BYTE stack_size);
 void ReuseIrp(IRP_PTR irp, ERROR_CODE error_code);
 void FreeIrp(IRP_PTR irp);
 ERROR_CODE CallDriver(DEVICE_OBJECT_PTR device_object, IRP_PTR irp);
-inline void FillIoStack(IO_STACK_LOCATION_PTR io_stack, BYTE major_function, BYTE minor_function, DEVICE_OBJECT_PTR device_object, IO_COMPLETION_ROUTINE completion_routine, void * context);
 
 DRIVER_OBJECT_PTR LoadRootBusDriver();
 ERROR_CODE RootBusDriverEntry(DRIVER_OBJECT_PTR pDriverObject);
+
 #endif

@@ -29,11 +29,12 @@ void InitKernelTask()
 }
 
 /*! Create a task by loading a executable file
-	\param exe_file_path - executable file path
-	\return on success pointer to the task
-			on failure null
+* \param exe_file_path - executable file path
+* \param command_line - command line string
+* \return on success pointer to the task
+*			on failure null
 */
-TASK_PTR CreateTask(char * exe_file_path)
+TASK_PTR CreateTask(char * exe_file_path, char * command_line, char * environment)
 {
 	TASK_PTR task;
 	UINT32 err, start_address;
@@ -52,6 +53,19 @@ TASK_PTR CreateTask(char * exe_file_path)
 	}
 	task->pid_info = AllocatePidInfo( GetCurrentTask()->pid_info->pid );
 	
+	/*allocate kernel memory for command line*/
+	if ( command_line )
+	{
+		task->kva_command_line = kmalloc(strlen(command_line)+1, 0);
+		strcpy(task->kva_command_line, command_line);
+	}
+	/*allocate kernel memory for environment*/
+	if ( environment )
+	{
+		task->kva_environment = kmalloc(strlen(environment)+1, 0);
+		strcpy(task->kva_environment, environment);
+	}
+		
 	memset( &task->process_file_info, 0, sizeof(task->process_file_info) );
 
 	err = OpenFile(exe_file_path, VFS_ACCESS_TYPE_READ, OPEN_EXISTING, &file_id);

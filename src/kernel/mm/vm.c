@@ -253,37 +253,73 @@ ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32
 }
 
 /*! This function maps va to pa mapping in one virtual address space to another virtual address space
+ * \param src_vmap - Source virtual map from which mapping should be copied.
+ * \param src_va - Virtual address to be copied(better it is page aligned)
+ * \param src_size - Total size to copy
+ * \param dest_vmap - Destination virtual map to which mapping should be copied.
+ * \param dest_preferred_va - preferred starting virtual address in the the destination map
+ * \param dest_size - Size of the new allocation in destination map. It can be greater than src_size in that case, the remaining space will be zeroed. 
+ * \param protection - protection for the new mapping
 */
-ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, VIRTUAL_MAP_PTR dest_vmap, VADDR *dest_preferred_va, UINT32 dest_size, UINT32 protection)
+ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, UINT32 src_size, VIRTUAL_MAP_PTR dest_vmap, VADDR *dest_preferred_va, UINT32 dest_size, UINT32 protection)
 {
 	VM_DESCRIPTOR_PTR src_vd, dest_vd;
 	VM_UNIT_PTR unit=NULL;
 	VADDR va, unit_offset, va_difference;
 	ERROR_CODE ret;
+	VADDR org_src_size, org_dest_size, size;
+	
+	assert( src_size <= dest_size );
+	
+	/*preserve the passed sizes*/
+	org_src_size = src_size;
+	org_dest_size = dest_size;
 	
 	/*adjust starting and ending of the va range for page alignment*/
 	va_difference = src_va - PAGE_ALIGN(src_va);
 	src_va = PAGE_ALIGN(src_va);
+	src_size = PAGE_ALIGN_UP(src_size+va_difference);
 	dest_size = PAGE_ALIGN_UP(dest_size+va_difference);
 	
 	/*get vm descriptor of source*/
-	src_vd = GetVmDescriptor(src_vmap, src_va, PAGE_SIZE);
+	src_vd = GetVmDescriptor(src_vmap, src_va, 1);
 	if ( src_vd== NULL ) 
 		return ERROR_NOT_FOUND;
 	unit = src_vd->unit;
 	unit_offset = src_vd->offset_in_unit + src_va - src_vd->start;
-	assert( unit!=NULL && unit_offset < unit->size );
+	assert( unit!=NULL );
+	if ( unit_offset > unit->size || (unit->size - unit_offset) < src_size )
+		return ERROR_INVALID_PARAMETER;
 	
 	/*allocate virtaul address range and map the same vm unit*/
-	ret = AllocateVirtualMemory(dest_vmap, &va, *dest_preferred_va, dest_size, protection, 0, unit);
+	ret = AllocateVirtualMemory(dest_vmap, &va, *dest_preferred_va, src_size, protection, 0, unit);
 	if ( ret != ERROR_SUCCESS )
 		return ret;
 	
+		
 	/*set the offset in descriptor of the newly allocated va*/
-	dest_vd = GetVmDescriptor(dest_vmap, va, PAGE_SIZE);
+	dest_vd = GetVmDescriptor(dest_vmap, va, src_size);
 	assert( dest_vd != NULL );
 	dest_vd->offset_in_unit = unit_offset;
-		
+	dest_vd->end = dest_vd->start + va_difference + org_src_size;
+	
+	/*do we need a zerofilling section after the mapping?*/
+	if ( dest_size > src_size  )
+	{
+		VADDR second_va;
+		size = dest_size - src_size;
+		assert( size > 0 );
+		/*we cant use the same unit as backing object - allocate virtaul address range with ZEROFILL unit*/
+		ret = AllocateVirtualMemory(dest_vmap, &second_va, PAGE_ALIGN_UP(va+src_size), size, protection, 0, NULL);
+		if ( ret != ERROR_SUCCESS )
+		{
+			FreeVirtualMemory(dest_vmap, va, src_size, 0);
+			return ret;
+		}
+		/*\todo replace this assert with approriate return failure code*/
+		assert( va+src_size == second_va );
+	}
+	
 	/*although we cant protect the caller using the entire page, we should return where the actual data starts*/
 	*dest_preferred_va = va + va_difference;
 
@@ -393,12 +429,20 @@ ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type)
 	UINT32 protection = access_type;
 	VIRTUAL_PAGE_PTR vp = NULL;
 	int zero_fill = FALSE;
-
+	VADDR aligned_va;
+	THREAD_PTR thread = GetCurrentThread();
+	
 	virtual_map = GetCurrentVirtualMap();
 	if ( virtual_map == NULL )
+	{
+		kprintf("Virtual map is NULL for current thread %p\n", thread );
 		return ERROR_NOT_FOUND;
-	
-	vd = GetVmDescriptor(virtual_map, va, PAGE_SIZE);
+	}
+
+	aligned_va = PAGE_ALIGN(va);
+
+retry:
+	vd = GetVmDescriptor(virtual_map, aligned_va, 1);
 	if ( vd == NULL  )
 	{
 		/*! if the faulting va is from userland kill the process*/
@@ -408,8 +452,15 @@ ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type)
 			/*\todo - kill the process*/
 			return ERROR_NOT_FOUND;
 		}
-		/*! if the faulting va is kernel va and the kernel map doesnt have descriptor panic*/
+		/*user map wont have kmem descriptors - so try with kernel_map once before panicking*/
+		if ( virtual_map != &kernel_map )
+		{
+			virtual_map = &kernel_map;
+			ktrace("Kernel memory fault - va = %p virtual_map = %p, retrying..\n", va, virtual_map);
+			goto retry;
+		}
 		kprintf("Kernel memory fault - va = %p virtual_map = %p\n", va, virtual_map);
+		/*! if the faulting va is kernel va and the kernel map doesnt have descriptor panic*/
 		return ERROR_NOT_FOUND;	
 	}
 	assert( va >= vd->start && va <= vd->end );
@@ -457,8 +508,16 @@ ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type)
 
 	if( zero_fill )
 	{
-		memset( (void *) PAGE_ALIGN(va), 0, PAGE_SIZE);
+		/*zero fill a anon page*/
+		memset( (void *) aligned_va, 0, PAGE_SIZE);
 	}
-			
+	else if ( aligned_va+PAGE_SIZE > vd->end )
+	{
+		/*zero fill remaining in a page*/
+		VADDR diff;
+		diff = (aligned_va+PAGE_SIZE) - vd->end;
+		memset( (void *)vd->end, 0, diff);
+	}
+	
 	return ERROR_SUCCESS;
 }

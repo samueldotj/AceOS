@@ -88,9 +88,20 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	InitIoManager();
 	
 	/* Installl system call handler */
-	SetupSystemCallHandler();
+	SetupSystemCallHandler();	
 	
-	CreateTask("/boot/app/hello.exe");
+	ERROR_CODE ret;
+	FILE_STAT_PARAM buffer[10];
+	int i, total_entries=0;
+	ret = ReadDirectory("/device", buffer, 10, &total_entries);
+	kprintf("Total entries %d %s\n", total_entries, ERROR_CODE_AS_STRING(ret));
+	for(i=0;i<total_entries;i++)
+	{
+		kprintf( "%d) [%s]\n", i, buffer[i].name );
+	}
+	
+	CreateTask("/boot/app/hello.exe", "hello.exe", "TEST=TS");
+	//CreateTask("/boot/app/bash", "bash -i test1", "TEST=TSsss NOTHING=WELE EEKEKEK=EEEE ees=33");
 	
 	kprintf("Kernel initialization complete\n");
 	

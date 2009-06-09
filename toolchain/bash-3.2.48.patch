@@ -1,0 +1,23 @@
+Files bash-3.2.48/include/.shtty.h.swp and ../bash-3.2.48/include/.shtty.h.swp differ
+diff -rupN bash-3.2.48/support/config.sub ../bash-3.2.48/support/config.sub
+--- bash-3.2.48/support/config.sub	2003-09-10 18:46:12.000000000 +0530
++++ ../bash-3.2.48/support/config.sub	2009-04-08 21:43:52.000000000 +0530
+@@ -205,6 +205,9 @@ case $os in
+ 	-lynx*)
+ 		os=-lynxos
+ 		;;
++	-aceos*)
++		os=-aceos
++		;;
+ 	-ptx*)
+ 		basic_machine=`echo $1 | sed -e 's/86-.*/86-sequent/'`
+ 		;;
+@@ -1115,7 +1118,7 @@ case $os in
+ 	      | -storm-chaos* | -tops10* | -tenex* | -tops20* | -its* \
+ 	      | -os2* | -vos* | -palmos* | -uclinux* | -nucleus* \
+ 	      | -morphos* | -superux* | -rtmk* | -rtmk-nova* | -windiss* \
+-	      | -powermax* | -dnix*)
++	      | -powermax* | -dnix* | -aceos*)
+ 	# Remember, each alternative MUST END IN *, to match a version number.
+ 		;;
+ 	-qnx*)

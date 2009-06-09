@@ -62,7 +62,6 @@ THREAD_CONTAINER_PTR CreateThread(TASK_PTR task, void * start_address, SCHEDULER
 			KTRACE("User stack allocation failed");
 			return NULL;
 		}
-		user_stack = user_stack + USER_STACK_SIZE; /*stack grows from top to bottom*/
 	}
 	else
 		user_stack = NULL;
@@ -139,6 +138,7 @@ void ResumeThread(THREAD_PTR thread)
 	
 	ScheduleThread(thread);
 }
+
 /*! Initializes the booting kernel thread on a processor*/
 void InitBootThread(int boot_processor_id)
 {

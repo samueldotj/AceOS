@@ -28,7 +28,7 @@ static ERROR_CODE AddDevice(DRIVER_OBJECT_PTR pDriverObject, DEVICE_OBJECT_PTR p
 {
 	DEVICE_OBJECT_PTR device_object;
 	ERROR_CODE err;
-	err = CreateDevice(pDriverObject, sizeof(ACPI_BUS_DEVICE_EXTENSION), &device_object);
+	err = CreateDevice(pDriverObject, sizeof(ACPI_BUS_DEVICE_EXTENSION), &device_object, NULL);
 	if( err != ERROR_SUCCESS )
 		return err;
 	InvalidateDeviceRelations(device_object, DEVICE_RELATIONS_TYPE_BUS_RELATION);
@@ -67,7 +67,7 @@ ACPI_STATUS AcpiGetDeviceCallback(ACPI_HANDLE ObjHandle, UINT32 NestingLevel, vo
 	if ( ret == AE_OK && dev_info_ptr->Valid & ACPI_VALID_HID )
 	{
 		DEVICE_OBJECT_PTR child_device_object;
-		if ( CreateDevice(arg->device_object->driver_object, sizeof(ACPI_BUS_DEVICE_EXTENSION), &child_device_object) == ERROR_SUCCESS )
+		if ( CreateDevice(arg->device_object->driver_object, sizeof(ACPI_BUS_DEVICE_EXTENSION), &child_device_object, NULL) == ERROR_SUCCESS )
 		{
 			ACPI_BUS_DEVICE_EXTENSION_PTR device_ext=child_device_object->device_extension;
 			device_ext->handle = ObjHandle;

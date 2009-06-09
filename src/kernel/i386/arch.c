@@ -121,7 +121,7 @@ void InitArchPhase2(MULTIBOOT_INFO_PTR mbi)
 	
 	/* Initialize real time clock*/
 	InitRtc();
-	
+		
 	/*setup double fault handler tss and gdt entries*/
 	FillTssForDoubleFaultHandler(DoubleFaultHandler);
 	

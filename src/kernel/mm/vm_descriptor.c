@@ -151,8 +151,8 @@ VM_DESCRIPTOR_PTR GetVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size)
 	VM_DESCRIPTOR search_descriptor;
 	AVL_TREE_PTR ret;
 	
-	search_descriptor.start = PAGE_ALIGN(va);
-	search_descriptor.end = PAGE_ALIGN_UP(search_descriptor.start + size);
+	search_descriptor.start = va;
+	search_descriptor.end = search_descriptor.start + size;
 	ret = SearchAvlTree(vmap->descriptors, &(search_descriptor.tree_node), compare_vm_descriptor_with_va);
 	if ( ret )
 		vm_descriptor = STRUCT_ADDRESS_FROM_MEMBER( ret, VM_DESCRIPTOR, tree_node );
@@ -242,7 +242,7 @@ static COMPARISION_RESULT compare_vm_descriptor_with_va(struct binary_tree * nod
 	
 	d1 = STRUCT_ADDRESS_FROM_MEMBER(node1, VM_DESCRIPTOR, tree_node.bintree);
 	d2 = STRUCT_ADDRESS_FROM_MEMBER(node2, VM_DESCRIPTOR, tree_node.bintree);
-
+	
 	if( d1->start <= d2->start && d1->end >= d2->end )
 		return EQUAL;
 

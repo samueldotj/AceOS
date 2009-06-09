@@ -56,7 +56,7 @@ void FillThreadContext(THREAD_CONTAINER_PTR thread_container, void * start_addre
 	{
 		regs->cs = USER_CODE_SELECTOR | USER_PRIVILEGE_LEVEL;
 		regs->ds = regs->es = regs->gs = regs->fs = regs->ss = USER_DATA_SELECTOR | USER_PRIVILEGE_LEVEL;
-		regs->useresp = user_stack;
+		regs->useresp = user_stack + USER_STACK_SIZE; /*stack grows from top to bottom*/
 	}
 		
 	regs->eip = (UINT32)start_address;

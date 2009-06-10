@@ -383,7 +383,7 @@ static void InitKernelPageDirectory()
 			EnterKernelPageTableEntry(va, physical_address);
 			physical_address += PAGE_SIZE;
 			va += PAGE_SIZE;
-		}while( physical_address <= end_physical_address );
+		}while( physical_address < end_physical_address );
 	}
 
 	/*map virtual page array*/
@@ -404,7 +404,7 @@ static void InitKernelPageDirectory()
 				EnterKernelPageTableEntry( va, physical_address);
 				physical_address += PAGE_SIZE;
 				va += PAGE_SIZE;
-			}while( physical_address <= ( end_address ) );
+			}while( physical_address < ( end_address ) );
 		}
 	}
 	

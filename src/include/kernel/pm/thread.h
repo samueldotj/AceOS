@@ -52,6 +52,8 @@ struct thread
 	UINT8					time_slice;				/*! Time quantum for which the thread can be run */
 	PRIORITY_QUEUE_PTR		priority_queue;			/*! Pointer to priority queue in either of active or dormant ready queue */
 	SCHEDULER_CLASS_LEVELS	priority;				/*! External priority assigned by the user. This is used to select one of the scheduler classes */
+	
+	WAIT_EVENT_PTR			thread_event;			/*! Wait for this thread to finish*/
 
 	/* Timeout queue */
 	TIMEOUT_QUEUE			timeout_queue;
@@ -63,6 +65,8 @@ struct thread
 	THREAD_PTR				ipc_reply_to_thread;	/*! Last message came from which thread(ie to which thread i have to reply)*/
 	WAIT_EVENT_PTR			ipc_reply_event;		/*! Waitevent to wait to receive message(reply)*/
 	MESSAGE_BUFFER			ipc_reply_message;		/*! buffer to receive reply data*/
+	
+	void *					arch_data;				/*! architecture depended data*/
 };
 
 /*
@@ -74,13 +78,13 @@ Thread's execution context in kernel mode
 	------- Page Align
 	Kernel Stack
 */
-typedef struct thread_container
+struct thread_container
 {
 	THREAD		thread;							__attribute__ ((aligned ( PAGE_SIZE )))
 	BYTE *		kernel_stack_pointer;
 	BYTE 		guard_page[PAGE_SIZE] 			__attribute__ ((aligned ( PAGE_SIZE )));
 	BYTE		kernel_stack[KERNEL_STACK_SIZE] __attribute__ ((aligned ( PAGE_SIZE )));
-}THREAD_CONTAINER, * THREAD_CONTAINER_PTR;
+};
 
 extern CACHE thread_cache;
 
@@ -94,7 +98,7 @@ int ThreadCacheDestructor(void *buffer);
 inline BYTE * GetKernelStackPointer();
 THREAD_PTR GetCurrentThread();
 
-THREAD_CONTAINER_PTR CreateThread(TASK_PTR task, void * start_address, SCHEDULER_PRIORITY_LEVELS priority_class, BYTE is_kernel_thread);
+THREAD_CONTAINER_PTR CreateThread(TASK_PTR task, void * start_address, SCHEDULER_PRIORITY_LEVELS priority_class, BYTE is_kernel_thread, VADDR arch_arg);
 void ExitThread();
 void FreeThread(THREAD_PTR thread );
 void PauseThread();
@@ -102,8 +106,10 @@ void ResumeThread(THREAD_PTR thread);
 
 void InitBootThread(int boot_processor_id);
 
-void FillThreadContext(THREAD_CONTAINER_PTR thread_container, void * start_address, BYTE is_kernel_thread, VADDR user_stack);
+void FillThreadContext(THREAD_CONTAINER_PTR thread_container, void * start_address, BYTE is_kernel_thread, VADDR user_stack, VADDR arch_arg);
 void SwitchContext(THREAD_CONTAINER_PTR thread_container);
+
+ERROR_CODE WaitForThread(THREAD_PTR thread, int wait_time);
 
 #ifdef __cplusplus
 	}

@@ -27,12 +27,14 @@ THREAD_PTR GetCurrentThread()
 	\param task - parent of this thread
 	\param start_address - starting functions address
 	\param priority_class - thread's priority class 
+	\param is_kernel_thread - if set creates kernel mode thread else user mode thread
+	\param arch_arg - argument for architecture depended layer
 */
-THREAD_CONTAINER_PTR CreateThread(TASK_PTR task, void * start_address, SCHEDULER_PRIORITY_LEVELS priority_class, BYTE is_kernel_thread)
+THREAD_CONTAINER_PTR CreateThread(TASK_PTR task, void * start_address, SCHEDULER_PRIORITY_LEVELS priority_class, BYTE is_kernel_thread, VADDR arch_arg)
 {
 	THREAD_CONTAINER_PTR thread_container;
 	VADDR user_stack;
-	
+		
 	assert( task != NULL );
 	
 	if ( (thread_container = AllocateBuffer( &thread_cache, CACHE_ALLOC_SLEEP) ) == NULL )
@@ -54,20 +56,23 @@ THREAD_CONTAINER_PTR CreateThread(TASK_PTR task, void * start_address, SCHEDULER
 	}
 	SpinUnlock( &task->lock );
 	
-	/*if user mode thread then create user stack*/
-	if ( !is_kernel_thread )
+	/*kernel mode threads wont have user mode stack*/
+	if ( is_kernel_thread )
 	{
+		user_stack = NULL;
+	}
+	else
+	{
+		/*create user stack*/
 		if ( AllocateVirtualMemory( task->virtual_map, &user_stack, 0, USER_STACK_SIZE, PROT_WRITE|PROT_READ, 0, NULL ) != ERROR_SUCCESS )
 		{
 			KTRACE("User stack allocation failed");
 			return NULL;
 		}
 	}
-	else
-		user_stack = NULL;
-			
+	
 	/*architecture depended things*/
-	FillThreadContext(thread_container, start_address, is_kernel_thread, user_stack);
+	FillThreadContext(thread_container, start_address, is_kernel_thread, user_stack, arch_arg);
 	
 	/*add to the scheduler*/
 	thread_container->thread.priority = priority_class;
@@ -82,6 +87,7 @@ THREAD_CONTAINER_PTR CreateThread(TASK_PTR task, void * start_address, SCHEDULER
 void ExitThread()
 {
 	THREAD_PTR cur_thread = GetCurrentThread();
+	assert(cur_thread->reference_count>0);
 	
 	SpinLock( &cur_thread->lock );
 	cur_thread->state = THREAD_STATE_TERMINATE;
@@ -89,19 +95,28 @@ void ExitThread()
 	
 	ScheduleThread(cur_thread);
 }
+
 /*! Frees the datastructures used by the thread
 	\param thread - thread to be freed
+	This function will be called by scheduler when it detects a thread should be removed from queue and stops the thread
 */
 void FreeThread(THREAD_PTR thread)
 {
-	thread->reference_count--;
-	assert(thread->reference_count>=0);
+	assert(thread && thread->reference_count>=0);
 	
+	SpinLock( &thread->lock );
+	thread->reference_count--;
+	SpinUnlock( &thread->lock );
 	if ( thread->reference_count == 0 )
 	{
 		FreeBuffer( STRUCT_ADDRESS_FROM_MEMBER( thread, THREAD_CONTAINER, thread ), &thread_cache );
 	}
+	else
+	{
+		WakeUpEvent( &thread->thread_event, WAIT_EVENT_WAKE_UP_ALL );
+	}
 }
+
 /*! Suspends the current thread's execution
 */
 void PauseThread()
@@ -167,6 +182,39 @@ void InitBootThread(int boot_processor_id)
 	boot_thread->task = &kernel_task;
 	
 }
+
+/*! Waits for the thread event to fire
+ *	\param thread 		Thread which should be monitored
+ *	\param wait_time	How long monitoring can happen
+ *  \note This function will increment the thread reference count, it is the responsibility of the caller to decrement it after done with the thread structure by calling FreeThread()
+ */
+ERROR_CODE WaitForThread(THREAD_PTR thread, int wait_time)
+{
+	ERROR_CODE ret = ERROR_SUCCESS;
+	WAIT_EVENT_PTR	my_wait_event;
+	UINT32 ret_time;
+	
+	/* Wait for this message queue */
+	SpinLock( &thread->lock );
+	thread->reference_count++;
+	my_wait_event = AddToEventQueue( &thread->thread_event );
+	SpinUnlock( &thread->lock );
+
+	if(wait_time == MESSAGE_QUEUE_NO_WAIT)
+		wait_time = 0;
+
+	ret_time = WaitForEvent(my_wait_event, wait_time);
+
+	if(ret_time == 0) /* no event fired and we timeout out */
+		ret = ERROR_TIMEOUT;
+
+	assert(my_wait_event->fired == 1);
+
+	kfree(my_wait_event);
+	
+	return ret;
+}
+
 
 /*! Internal function used to initialize the thread structure*/
 int ThreadCacheConstructor( void *buffer)

@@ -7,6 +7,7 @@
 
 typedef struct task TASK, * TASK_PTR;
 typedef struct thread THREAD, * THREAD_PTR;
+typedef struct thread_container THREAD_CONTAINER, * THREAD_CONTAINER_PTR;
 typedef struct pid_info PID_INFO, * PID_INFO_PTR;
 
 typedef struct wait_event WAIT_EVENT, *WAIT_EVENT_PTR;

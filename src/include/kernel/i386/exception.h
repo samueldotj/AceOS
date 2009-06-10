@@ -21,6 +21,18 @@ struct regs
 
 typedef struct regs REGS, *REGS_PTR;
 
+/*! virtual 86 mode stack frame after a exception/interrupt*/
+struct regs_v86
+{
+	REGS	reg;									/*! regular context saved by exception/interrupt handlers*/
+	struct 
+	{
+		UINT32 es, ds, fs, gs;
+	}v86;											/*! segment registers also pushed by the x86 processors automatically*/
+}__attribute__((packed));
+
+typedef struct regs_v86 REGS_V86, * REGS_V86_PTR;
+
 /*! i386 specific Page fault error code*/
 typedef union pf_error_code
 {
@@ -54,5 +66,6 @@ typedef union gpf_error_code
 void SetupExceptionHandlers();
 void ExceptionHandler(REGS_PTR reg);
 void DoubleFaultHandler();
+int GeneralProtectionFaultHandlerForV86Mode(REGS_V86_PTR reg);
 
 #endif

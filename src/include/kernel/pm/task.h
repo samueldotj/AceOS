@@ -14,6 +14,7 @@
 #include <kernel/vfs/vfs.h>
 #include <kernel/mm/kmem.h>
 #include <kernel/pm/pm_types.h>
+#include <kernel/pm/thread.h>
 
 /*\todo remove these macros and put it as tunable*/
 #define TASK_CACHE_FREE_SLABS_THRESHOLD		100 
@@ -48,6 +49,20 @@ struct task
 	char * 				user_scratch;										/*! temporary memory to copy kernel content to user*/
 };
 
+typedef enum 
+{
+	IMAGE_TYPE_ELF_FILE,													/*! Load an image from a file and the file is of type ELF*/
+	IMAGE_TYPE_BIN_FILE,													/*! Load an image from a file and the file is of type plain binary*/
+	IMAGE_TYPE_BIN_PROGRAM													/*! Load an image from memory and it is of type plain binary*/
+}IMAGE_TYPE;
+
+typedef enum
+{
+	TASK_CREATION_FLAG_NONE,												/*! Normal - no special flag*/
+	TASK_CREATION_FLAG_NO_THREAD,											/*! Dont create a thread*/
+	TASK_CREATION_FLAG_SUSPEND_THREAD										/*! Create a thread in suspended mode*/
+}TASK_CREATION_FLAG;
+
 extern CACHE task_cache;
 extern TASK kernel_task;
 
@@ -59,7 +74,7 @@ int TaskCacheConstructor(void * buffer);
 int TaskCacheDestructor(void * buffer);
 
 void InitKernelTask();
-TASK_PTR CreateTask(char * exe_file_path, char * command_line, char * environment);
+TASK_PTR CreateTask(char * exe_file_path, IMAGE_TYPE image_type, UINT32 creation_flag, VADDR * entry_point, char * command_line, char * environment);
 inline TASK_PTR GetCurrentTask();
 
 TASK_PTR PidToTask(int pid);

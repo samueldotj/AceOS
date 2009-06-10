@@ -12,7 +12,7 @@
 #include <ace.h>
 
 typedef struct processor *PROCESSOR_PTR;
-#include <kernel/pm/task.h>
+#include <kernel/pm/pm_types.h>
 #include <kernel/pm/scheduler.h>
 
 #ifdef CONFIG_SMP

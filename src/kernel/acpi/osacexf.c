@@ -379,7 +379,7 @@ AcpiOsMapMemory (
     ACPI_PHYSICAL_ADDRESS   where,
     ACPI_SIZE               length)
 {
-	VADDR va = MapPhysicalMemory( &kernel_map, where, length );
+	VADDR va = MapPhysicalMemory( &kernel_map, where, length, 0, PROT_READ | PROT_WRITE );
 	if ( va )
 	    return (ACPI_TO_POINTER ((ACPI_NATIVE_UINT) (va + where-PAGE_ALIGN(where)) ));
 	else

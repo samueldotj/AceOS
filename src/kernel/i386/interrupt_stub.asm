@@ -59,16 +59,16 @@ global %1Stub%2
 %endmacro
 
 ReturnFromInterruptContext:	
-	pop eax		
+	add esp, 16												; Clean up the pushed control registers cr0, cr1, cr2
 	
-	add esp, 12												; Clean up the pushed control registers cr0, cr1, cr2
-	pop eax
-	mov cr3, eax											; Reload the page directory - \todo - check if we are using same page directory if yes skip this for performance gain
+	pop eax													; Reload the page directory
+	mov cr3, eax											; \todo - check if we are using same page directory if yes skip this for performance gain
 	
 	pop gs													; Pop segment registers
 	pop fs
 	pop es
 	pop ds
+	
 	popa													; Pop general purpose registers
 	
 	add esp, 8												; Pop interrupt number and error code

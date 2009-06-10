@@ -5,6 +5,7 @@
 #include <string.h>
 #include <ds/bits.h>
 #include <ds/avl_tree.h>
+#include <kernel/debug.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/pmem.h>
 #include <kernel/mm/kmem.h>
@@ -151,8 +152,10 @@ VM_DESCRIPTOR_PTR GetVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size)
 	VM_DESCRIPTOR search_descriptor;
 	AVL_TREE_PTR ret;
 	
+	assert(size >=1 );
+	
 	search_descriptor.start = va;
-	search_descriptor.end = search_descriptor.start + size;
+	search_descriptor.end = search_descriptor.start + size-1;
 	ret = SearchAvlTree(vmap->descriptors, &(search_descriptor.tree_node), compare_vm_descriptor_with_va);
 	if ( ret )
 		vm_descriptor = STRUCT_ADDRESS_FROM_MEMBER( ret, VM_DESCRIPTOR, tree_node );
@@ -191,8 +194,8 @@ static int enumerate_descriptor_callback(AVL_TREE_PTR node, void * arg)
 	
 	va_start = PAGE_ALIGN(a->preferred_start);
 	va_end = PAGE_ALIGN_UP(a->preferred_start+a->size);
-	size = PAGE_ALIGN_UP(a->size);
-	
+	size = PAGE_ALIGN_UP(a->size)-1;
+	a->previous_descriptor_va_end = PAGE_ALIGN_UP(a->previous_descriptor_va_end);
 	/*check whether the hole has "preferred" start and required size*/
 	if ( RANGE_WITH_IN_RANGE( a->previous_descriptor_va_end, descriptor->start, va_start, va_end ) )
 	{
@@ -202,12 +205,12 @@ static int enumerate_descriptor_callback(AVL_TREE_PTR node, void * arg)
 		return 1;
 	}
 	/*atleast the hole has required size?*/
-	else if ( (a->previous_descriptor_va_end - descriptor->start) > size )
+	else if ( (descriptor->start - a->previous_descriptor_va_end) > size )
 	{
 		a->result = a->previous_descriptor_va_end;
 		/*break the enumeration if we passed preferred va range*/
-		//if ( descriptor->end < a->preferred_start )
-		//	return 1;
+		if ( descriptor->end > a->preferred_start )
+			return 1;
 	}
 	
 	a->previous_descriptor_va_start = descriptor->start;
@@ -228,9 +231,9 @@ static COMPARISION_RESULT compare_vm_descriptor(struct binary_tree * node1, stru
 
 	assert( d1->start != d2->start );
 	if ( d1->start > d2->start )
-		return GREATER_THAN;
+		return LESS_THAN;		
 	else 
-		return LESS_THAN;
+		return GREATER_THAN;
 }
 
 /*! Searches the vm descriptor AVL tree for a particular VA range*/
@@ -247,9 +250,10 @@ static COMPARISION_RESULT compare_vm_descriptor_with_va(struct binary_tree * nod
 		return EQUAL;
 
 	if ( d1->start > d2->start )
-		return GREATER_THAN;
-	else 
 		return LESS_THAN;
+	else
+		return GREATER_THAN;
+		
 }
 /*! Internal function used to initialize the vm descriptor structure*/
 int VmDescriptorCacheConstructor(void * buffer)

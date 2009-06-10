@@ -22,6 +22,7 @@
 #include <kernel/iom/iom.h>
 #include <kernel/system_call_handler.h>
 #include <kernel/module.h>
+#include <kernel/i386/i386.h>
 
 EXPORT_SYMBOL (AcpiGetName);
 
@@ -90,17 +91,10 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	/* Installl system call handler */
 	SetupSystemCallHandler();	
 	
-	ERROR_CODE ret;
-	FILE_STAT_PARAM buffer[10];
-	int i, total_entries=0;
-	ret = ReadDirectory("/device", buffer, 10, &total_entries);
-	kprintf("Total entries %d %s\n", total_entries, ERROR_CODE_AS_STRING(ret));
-	for(i=0;i<total_entries;i++)
-	{
-		kprintf( "%d) [%s]\n", i, buffer[i].name );
-	}
+	InitGraphicsConsole();
+		
+	//CreateTask("/boot/app/hello.exe", IMAGE_TYPE_ELF_FILE, TASK_CREATION_FLAG_NONE, NULL, "hello.exe", "TEST=TS");
 	
-	CreateTask("/boot/app/hello.exe", "hello.exe", "TEST=TS");
 	//CreateTask("/boot/app/bash", "bash -i test1", "TEST=TSsss NOTHING=WELE EEKEKEK=EEEE ees=33");
 	
 	kprintf("Kernel initialization complete\n");

@@ -474,7 +474,7 @@ void InitScheduler()
 		THREAD_CONTAINER_PTR tc;
 		 
 		/*create idle thread for this processor*/
-		if ( (tc = CreateThread(&kernel_task, idle_thread_function, SCHED_CLASS_LOW, TRUE) ) == NULL )
+		if ( (tc = CreateThread(&kernel_task, idle_thread_function, SCHED_CLASS_LOW, TRUE, NULL) ) == NULL )
 			panic("Idle thread creation failed");
 		
 		processor[i].idle_thread = &tc->thread;

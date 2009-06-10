@@ -99,8 +99,8 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 		}
 		else
 		{
-			kprintf("VA %p PA %p Existing PA %p\n", va, pa, mapped_pte->page_pfn<<PAGE_SHIFT);
-			panic("Trying to map over a existing map\n");
+			KPRINTF("VA %p PA %p Existing PA %p\n", va, pa, mapped_pte->page_pfn<<PAGE_SHIFT);
+			panic("Trying to map over an existing map");
 		}
 	}
 	else
@@ -165,7 +165,6 @@ ERROR_CODE MapVirtualAddressRange(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 size,
 	\param pmap - physical map from the which the mapping should be removed
 	\param va - for which virtual address the mapping should be invalidated
 	\return ERROR_CODE
-	\todo TLB invalidation
 	\note physical map's lock should be taken by the caller
 */
 ERROR_CODE RemovePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va)

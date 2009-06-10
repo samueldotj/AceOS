@@ -45,6 +45,8 @@ void StopTimer();
 
 void PrintStackTrace(unsigned int max_frames);
 
+int InitGraphicsConsole();
+
 extern UINT16 master_processor_id;
 extern UINT32 cpu_frequency;
 

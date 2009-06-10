@@ -8,10 +8,7 @@
 #include <kernel/mm/vm.h>
 #include <kernel/mm/pmem.h>
 #include <kernel/mm/virtual_page.h>
-#include <kernel/i386/pmem.h>
-#include <kernel/i386/gdt.h>
-#include <kernel/i386/processor.h>
-#include <kernel/i386/tss.h>
+#include <kernel/i386/i386.h>
 
 /*! task state segment for double fault handling.
 	Double faults are usually happens due to stack corruption, if interrupt gate is used to handle double fault then stack corruption will result in a triple fault causing processor reset.
@@ -47,12 +44,12 @@ static void FillTss(TSS_PTR tss, int gdt_index, UINT32 start_address, UINT32 ker
 	tss->ds = tss->es = tss->fs = tss->gs = KERNEL_DATA_SELECTOR;
 	tss->ss = tss->ss0 = tss->ss1 = tss->ss2 = KERNEL_DATA_SELECTOR;
 	tss->esp = kernel_stack+PAGE_SIZE;
-	tss->eflags = 0x202;
+	tss->eflags = EFLAG_VALUE;
 	if ( TranslatePaFromVa( (VADDR)kernel_map.physical_map->page_directory, (VADDR *)&tss->cr3 ) == VA_NOT_EXISTS )
 		panic( "kernel page table not present" );
 
 	/* set to point beyond the TSS limit */
-	tss->iomap = ( UINT16 ) sizeof( TSS )-1;
+	tss->iomap = (UINT16) sizeof( TSS )+1;
 }
  
 /*! Loads tss register for the current cpu*/

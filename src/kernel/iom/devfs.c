@@ -75,7 +75,7 @@ void InitDevFs()
 	InitMessageQueue( &device_fs_message_queue );
 
 	/*Create a receiver thread*/
-	CreateThread( &kernel_task, DevFsMessageReceiver, SCHED_CLASS_HIGH, TRUE );
+	CreateThread( &kernel_task, DevFsMessageReceiver, SCHED_CLASS_HIGH, TRUE, NULL );
 
 	/*register device file system*/
 	ret = RegisterFileSystem( DEV_FS_NAME, &device_fs_message_queue );

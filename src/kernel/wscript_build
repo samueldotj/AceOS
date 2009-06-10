@@ -3,7 +3,7 @@
 arch = Options.options.arch
 
 if arch == 'i386':
-	arch_source_dirs = 'i386 i386/debug i386/mm i386/pic i386/pm '
+	arch_source_dirs = 'i386 i386/debug i386/mm i386/pic i386/pm i386/vesa'
 else:
 	arch_source_dirs = ''
 	

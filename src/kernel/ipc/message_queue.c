@@ -348,7 +348,7 @@ static inline ERROR_CODE ArgsToMessageBuffer(TASK_PTR target_task, MESSAGE_BUFFE
 		/*internal message to share the virtual page*/
 		case MESSAGE_TYPE_SHARE_PA:
 			assert( IPR_ARGUMENT_ADDRESS != NULL && IPC_ARGUMENT_LENGTH == PAGE_SIZE);
-			copy_va = MapPhysicalMemory(target_task->virtual_map, (VADDR)IPR_ARGUMENT_ADDRESS, IPC_ARGUMENT_LENGTH);
+			copy_va = MapPhysicalMemory(target_task->virtual_map, (VADDR)IPR_ARGUMENT_ADDRESS, IPC_ARGUMENT_LENGTH, 0, PROT_READ | PROT_WRITE);
 			if ( copy_va == NULL )
 				return NULL;
 			msg_buf->args[IPC_ARG_INDEX_5] = (IPC_ARG_TYPE)copy_va;

@@ -21,7 +21,7 @@
 	#define KERNEL_MAP_START_VA			(0xC0000000)
 	#define KERNEL_MAP_END_VA			((UINT32)-1)
 	
-	#define USER_MAP_START_VA			(1024*1024)
+	#define USER_MAP_START_VA			(PAGE_SIZE)
 	#define USER_MAP_END_VA				(KERNEL_MAP_START_VA-1)
 		
 #endif
@@ -213,7 +213,7 @@ ERROR_CODE MapViewOfFile(int file_id, VADDR * va, UINT32 protection, UINT32 file
 
 ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, UINT32 src_size, VIRTUAL_MAP_PTR dest_vmap, VADDR *dest_preferred_va, UINT32 dest_size, UINT32 protection);
 
-VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size);
+VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size, VADDR preferred_va, UINT32 protection);
 
 VIRTUAL_MAP_PTR GetCurrentVirtualMap();
 ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type);

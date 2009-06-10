@@ -34,8 +34,12 @@ void _assert(const char *msg, const char *file, int line)
 */
 void panic(char * message) 
 {
+	static int panic=0;
+	panic++;
 	if( message )
 		kprintf("panic() : %s\n", message);
-	PrintStackTrace(MAX_STACK_FRAMES);
+	/*!avoid stack trace if we are already panicing*/
+	if( panic <=1 )
+		PrintStackTrace(MAX_STACK_FRAMES);
 	ArchShutdown();
 }

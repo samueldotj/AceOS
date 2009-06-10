@@ -47,7 +47,7 @@ void InitBootFs()
 	InitMessageQueue( &boot_fs_message_queue );
 
 	/*Create a receiver thread*/
-	CreateThread( &kernel_task, BootFsMessageReceiver, SCHED_CLASS_HIGH, TRUE );
+	CreateThread( &kernel_task, BootFsMessageReceiver, SCHED_CLASS_HIGH, TRUE, NULL );
 
 	/*register boot file system*/
 	ret = RegisterFileSystem( BOOT_FS_NAME, &boot_fs_message_queue );

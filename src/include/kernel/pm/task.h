@@ -45,8 +45,6 @@ struct task
 	
 	char *				kva_environment;									/*! kernel virtual address of process environment*/
 	char *				uva_environment;									/*! user virtual address of environment - once user va is created kva will be freed*/
-	
-	char * 				user_scratch;										/*! temporary memory to copy kernel content to user*/
 };
 
 typedef enum 

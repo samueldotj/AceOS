@@ -41,29 +41,47 @@ ERROR_CODE RootBusDriverEntry(DRIVER_OBJECT_PTR pDriverObject)
 static DEVICE_RELATIONS_PTR CreateRootBusDevices(DEVICE_OBJECT_PTR pDeviceObject)
 {
 	DEVICE_RELATIONS_PTR dr;
-	DEVICE_OBJECT_PTR acpi_device_object;
+	DEVICE_OBJECT_PTR acpi_device_object, console_device_object;
 	ROOTBUS_DEVICE_EXTENSION_PTR ext;
 	ERROR_CODE err;
 	
 	/*allocate memory for device relation struction*/
-	dr = kmalloc( SIZEOF_DEVICE_RELATIONS(1), 0 );
+	dr = kmalloc( SIZEOF_DEVICE_RELATIONS(2), 0 );
 	if ( dr == NULL )
+	{
 		panic("Unable to create Root bus devices");
+	}
 	
 	/*create device object for acpi bus*/
-	err = CreateDevice( pDeviceObject->driver_object, sizeof(ROOTBUS_DEVICE_EXTENSION), &acpi_device_object, ACPI_BUS_NAME );
+	err = CreateDevice( pDeviceObject->driver_object, sizeof(ROOTBUS_DEVICE_EXTENSION), &acpi_device_object, ACPI_BUS_NAME, DO_BUFFERED_IO );
 	if ( err != ERROR_SUCCESS )
+	{
 		panic("Unable to create ACPI bus device");
+	}
 	
 	/*put rootbus specific info to device extension structure*/
 	ext = (ROOTBUS_DEVICE_EXTENSION_PTR)acpi_device_object->device_extension;
 	strcpy( ext->name, ACPI_BUS_NAME );
 	/*attach the acpi device to root bus device io stack*/
 	AttachDeviceToDeviceStack(acpi_device_object, pDeviceObject);
+	
+	/*create device object for acpi bus*/
+	err = CreateDevice( pDeviceObject->driver_object, sizeof(ROOTBUS_DEVICE_EXTENSION), &console_device_object, "console_root", DO_BUFFERED_IO );
+	if ( err != ERROR_SUCCESS )
+	{
+		panic("Unable to create console device");
+	}
+	
+	/*put rootbus specific info to device extension structure*/
+	ext = (ROOTBUS_DEVICE_EXTENSION_PTR)console_device_object->device_extension;
+	strcpy( ext->name, "console" );
+	/*attach the console device to root bus device io stack*/
+	AttachDeviceToDeviceStack(console_device_object, pDeviceObject);
 
 	/*put the device object in the device relations structure*/
-	dr->count = 1;
+	dr->count = 2;
 	dr->objects[0] = acpi_device_object;
+	dr->objects[1] = console_device_object;
 	
 	return dr;
 }
@@ -80,7 +98,9 @@ static ERROR_CODE MajorFunctionPnp(DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pIrp
 			{
 				/*create real bus drivers only once(local buses cant be unplugged)*/
 				if ( pIrp->io_status.information == NULL )
+				{
 					pIrp->io_status.information = CreateRootBusDevices(pDeviceObject);
+				}
 				pIrp->io_status.status = ERROR_SUCCESS;
 			}
 			else

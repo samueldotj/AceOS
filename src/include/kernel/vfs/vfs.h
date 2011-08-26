@@ -52,8 +52,8 @@ typedef enum
 	VFS_IPC_GET_FILE_STAT_PATH,		/*Ask FS to return file info for given filename. 	fs_data 			NULL				NULL				file path			sizeof(file_path)	*/
 	VFS_IPC_GET_FILE_STAT_INODE,	/*Ask FS to return file info for given vnode.		fs_data 			inode				NULL				NULL				NULL				*/
 	VFS_IPC_GET_DIR_ENTRIES,		/*Ask FS to return dire entries for given dir.		fs_data 			NULL				NULL				dir entry param		sizeof(dir entry param)*/
-	VFS_IPC_READ_FILE,
-	VFS_IPC_WRITE_FILE,
+	VFS_IPC_READ_FILE,				/*Ask FS to read a file content.					fs_data 			inode				offset				buffer				size				*/
+	VFS_IPC_WRITE_FILE,				/*Ask FS to read a file content.					fs_data 			inode				offset				buffer				size				*/
 	VFS_IPC_MAP_FILE_PAGE,			/*Ask FS to copy file conteent at given va			fs_data				inode				file offset			virtual address 	length of data to copy*/
 	VFS_IPC_DELETE_FILE,
 	VFS_IPC_MOVE,
@@ -140,7 +140,7 @@ struct process_file_info
 	UINT32					umask;							/*! default permission for new file - set by umask call*/
 	VNODE_PTR				working_directory;				/*! current working directory*/
 	OPEN_FILE_INFO			open_file_info[MAX_OPEN_FILE];	/*! max files per process*/
-	char					bitmap[MAX_OPEN_FILE/8];		/*! bitmap to maintain free open file info*/
+	char					bitmap[MAX_OPEN_FILE/BITS_PER_BYTE];/*! bitmap to maintain free open file info*/
 };
 
 /*! FS fills this datastructures and returns to VFS during VFS_FILE_STAT ipc*/
@@ -216,13 +216,12 @@ ERROR_CODE MountFileSystem(char * fs_name, char * device, char * mount_path );
 ERROR_CODE UnmountFileSystem(char * mount_path);
 MOUNTED_FILE_SYSTEM_PTR GetMount(char * mount_path);
 
-ERROR_CODE OpenFile(char * file_path, VFS_ACCESS_TYPE access, VFS_OPEN_FLAG open_flag, int * file_id);
-ERROR_CODE GetFileSize(int file_id, long * result);
-ERROR_CODE CloseFile(int file_id);
+ERROR_CODE OpenFile(TASK_PTR task, char * file_path, VFS_ACCESS_TYPE access, VFS_OPEN_FLAG open_flag, int * file_id);
+ERROR_CODE GetFileSize(TASK_PTR task, int file_id, long * result);
+ERROR_CODE CloseFile(TASK_PTR task, int file_id);
 
 ERROR_CODE ReadDirectory(char * directory_path, FILE_STAT_PARAM_PTR buffer, int max_entries, int * total_entries);
-ERROR_CODE OpenFile(char * file_path, VFS_ACCESS_TYPE access, VFS_OPEN_FLAG open_flag, int * file_id);
-ERROR_CODE CloseFile(int file_id);
+ERROR_CODE ReadWriteFile(int file_id, long count, void * buffer, int is_write, UINT32 * result);
 
 ERROR_CODE GetVfsMessage(MESSAGE_QUEUE_PTR message_queue, UINT32 wait_time, MESSAGE_TYPE_PTR type, IPC_ARG_TYPE_PTR arg1, IPC_ARG_TYPE_PTR arg2, IPC_ARG_TYPE_PTR arg3, IPC_ARG_TYPE_PTR arg4, IPC_ARG_TYPE_PTR arg5, IPC_ARG_TYPE_PTR arg6);
 

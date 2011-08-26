@@ -20,6 +20,8 @@
 #define UART_DIVISOR_LATCH_LOW  0
 #define UART_DIVISOR_LATCH_HIGH 1
 
+#define UART_RW_TIMEOUT			100
+
 #define MAX_SERIAL_PORTS		4
 int LegacySerialPorts[MAX_SERIAL_PORTS]={0x3F8, 0x2F8, 0x3E8, 0x2E8};
 
@@ -67,7 +69,10 @@ void InitSerialPort(UINT16 wIOBase, UINT32 wBaudRate, BYTE DataBits, BYTE Parity
 /*! Receives and returns a character from the given serial port*/
 char SerialReadCharacter(UINT16 wIOBase)
 {
-	while (1)
+	UINT32 timeout;
+	
+	timeout = 0;
+	while (timeout < UART_RW_TIMEOUT)
 	{
 		/*read line status register*/
 		BYTE in = _inp( wIOBase + UART_LSR );
@@ -76,13 +81,18 @@ char SerialReadCharacter(UINT16 wIOBase)
 		{
 			return _inp( wIOBase );
 		}
+		timeout++;
 	}
+	return 0;
 }
 
 /*! Sends the given character to the given serial port*/
 void SerialWriteCharacter(UINT16 wIOBase, char ch)
 {
-	while (1)
+	UINT32 timeout;
+	
+	timeout = 0;
+	while (timeout < UART_RW_TIMEOUT)
 	{
 		/*read line status register*/
 		BYTE in = _inp( wIOBase + UART_LSR );
@@ -92,5 +102,6 @@ void SerialWriteCharacter(UINT16 wIOBase, char ch)
 			_outp( wIOBase, ch );
 			return;
 		}
+		timeout++;
 	}
 }

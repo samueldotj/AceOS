@@ -67,6 +67,8 @@ struct thread
 	MESSAGE_BUFFER			ipc_reply_message;		/*! buffer to receive reply data*/
 	
 	void *					arch_data;				/*! architecture depended data*/
+	
+	char * 					user_scratch;				/*! temporary user-mode mapped address to copy kernel content to user*/
 };
 
 /*

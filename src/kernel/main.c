@@ -91,11 +91,11 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	/* Installl system call handler */
 	SetupSystemCallHandler();	
 	
-	InitGraphicsConsole();
+	//InitGraphicsConsole();
 		
 	//CreateTask("/boot/app/hello.exe", IMAGE_TYPE_ELF_FILE, TASK_CREATION_FLAG_NONE, NULL, "hello.exe", "TEST=TS");
 	
-	//CreateTask("/boot/app/bash", "bash -i test1", "TEST=TSsss NOTHING=WELE EEKEKEK=EEEE ees=33");
+	CreateTask("/boot/app/bash", IMAGE_TYPE_ELF_FILE, TASK_CREATION_FLAG_NONE, NULL,  "bash -i", "ees=33");
 	
 	kprintf("Kernel initialization complete\n");
 	

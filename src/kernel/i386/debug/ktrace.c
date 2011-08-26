@@ -8,9 +8,10 @@
 #include <kernel/i386/serial.h>
 #include <kernel/i386/parallel.h>
 #include <kernel/i386/vga_text.h>
+#include <kernel/mm/pmem.h>
 #include <kernel/pm/elf.h>
 
-#define KTRACE_PRINT_PARALLEL
+//#define KTRACE_PRINT_PARALLEL
 #define KTRACE_PRINT_SERIAL
 //#define KTRACE_PRINT_VGA
 
@@ -76,9 +77,12 @@ void PrintStackTrace(unsigned int max_frames)
         unsigned int * arguments, eip;
 		int offset;
 		char * func;
-        if( (UINT32)ebp < PAGE_SIZE || ebp[0] < PAGE_SIZE || ebp[1] < PAGE_SIZE)
+        if( (UINT32)ebp < PAGE_SIZE || ebp[0] < PAGE_SIZE || ebp[1] < PAGE_SIZE) {
             return;
-        
+		}
+        if ( TranslatePaFromVa(ebp[0], NULL) == VA_NOT_EXISTS) {
+			return;
+		}
 		eip = ebp[1];
 		/* Unwind to previous stack frame*/
         ebp = (unsigned int *)(ebp[0]);

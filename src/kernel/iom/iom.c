@@ -6,23 +6,24 @@
 #include <string.h>
 #include <ctype.h>
 #include <kernel/debug.h>
+#include <kernel/mm/vm.h>
 #include <kernel/mm/kmem.h>
 #include <kernel/pm/elf.h>
 #include <kernel/iom/iom.h>
 #include <kernel/vfs/vfs.h>
 #include <kernel/iom/devfs.h>
 
-#define DEVICE_OBJECT_CACHE_FREE_SLABS_THRESHOLD	10
-#define DEVICE_OBJECT_CACHE_MIN_BUFFERS				10
-#define DEVICE_OBJECT_CACHE_MAX_SLABS				10
+#define DEVICE_OBJECT_CACHE_FREE_SLABS_THRESHOLD	50
+#define DEVICE_OBJECT_CACHE_MIN_BUFFERS				50
+#define DEVICE_OBJECT_CACHE_MAX_SLABS				1000
 
-#define DRIVER_OBJECT_CACHE_FREE_SLABS_THRESHOLD	5
-#define DRIVER_OBJECT_CACHE_MIN_BUFFERS				5
-#define DRIVER_OBJECT_CACHE_MAX_SLABS				5
+#define DRIVER_OBJECT_CACHE_FREE_SLABS_THRESHOLD	10
+#define DRIVER_OBJECT_CACHE_MIN_BUFFERS				10
+#define DRIVER_OBJECT_CACHE_MAX_SLABS				100
 
 #define IRP_CACHE_FREE_SLABS_THRESHOLD				50
 #define IRP_CACHE_MIN_BUFFERS						50
-#define IRP_CACHE_MAX_SLABS							50
+#define IRP_CACHE_MAX_SLABS							1000
 
 /*! List of drivers loaded into the kernel address space */
 LIST_PTR driver_list_head = NULL;
@@ -66,15 +67,14 @@ void InitIoManager()
 	
 	/*load root bus driver and call the DriverEntry*/
 	root_bus = LoadRootBusDriver() ;
-	
+
 	/*this is the first driver loaded into the kernel and it is never unloaded*/
 	driver_list_head = &root_bus->driver_list;
-
 	RootBusDriverEntry( root_bus );
 
 	/*create device object for root bus*/
-	CreateDevice(root_bus_driver_object, 0, &root_bus_device_object, NULL);
-	
+	CreateDevice(root_bus_driver_object, 0, &root_bus_device_object, NULL, DO_BUFFERED_IO);
+
 	/*force the io manager to enumerate the buses on root bus*/
 	InvalidateDeviceRelations(root_bus_device_object, DEVICE_RELATIONS_TYPE_BUS_RELATION);
 }
@@ -98,7 +98,7 @@ static ERROR_CODE DummyMajorFunction(DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pI
 	\param device_object - pointer to device object - io manager updates this pointer with the newly created device object
 	\param device_name - optional - device file name - it will be placed under /device/xxxx - applications use this file to communicate with the driver
 */
-ERROR_CODE CreateDevice(DRIVER_OBJECT_PTR driver_object, UINT32 device_extension_size, DEVICE_OBJECT_PTR * device_object, char * device_name)
+ERROR_CODE CreateDevice(DRIVER_OBJECT_PTR driver_object, UINT32 device_extension_size, DEVICE_OBJECT_PTR * device_object, char * device_name, UINT32 flag)
 {
 	DEVICE_OBJECT_PTR dob;
 	assert( device_object != NULL );
@@ -122,9 +122,16 @@ ERROR_CODE CreateDevice(DRIVER_OBJECT_PTR driver_object, UINT32 device_extension
 		ERROR_CODE ret;
 		ret = CreateDeviceNode(device_name, dob);
 		/*\todo - do we need to care about CreateDeviceNode return status?*/
-	}		
+	}
+	
+	/*\todo - validate the flag*/
+	dob->flags = flag;
 	
 	*device_object = dob;
+	
+	/*force the io manager to enumerate child devices */
+	//InvalidateDeviceRelations(dob, DEVICE_RELATIONS_TYPE_BUS_RELATION);
+	
 	return ERROR_SUCCESS;
 }
 
@@ -170,7 +177,7 @@ void InvalidateDeviceRelations(DEVICE_OBJECT_PTR device_object, DEVICE_RELATION_
 	if( type == DEVICE_RELATIONS_TYPE_BUS_RELATION )
 	{
 		/*todo - build existing device relations*/
-		
+
 		/*send query relation irp to the driver*/
 		irp = AllocateIrp( device_object->stack_count );
 		FillIoStack( irp->current_stack_location, IRP_MJ_PNP, IRP_MN_QUERY_DEVICE_RELATIONS, device_object, NULL, NULL);
@@ -183,7 +190,6 @@ void InvalidateDeviceRelations(DEVICE_OBJECT_PTR device_object, DEVICE_RELATION_
 		for(i=0; i<dr->count; i++)
 		{
 			/*\todo - if the device is not new - continue*/
-
 			/*send query id irp for each new device to the driver*/
 			ReuseIrp( irp, ERROR_NOT_SUPPORTED );
 			FillIoStack( irp->current_stack_location, IRP_MJ_PNP, IRP_MN_QUERY_ID, dr->objects[i], NULL, NULL );
@@ -200,12 +206,36 @@ void InvalidateDeviceRelations(DEVICE_OBJECT_PTR device_object, DEVICE_RELATION_
 				/*free driver id*/
 				kfree( irp->io_status.information );
 			}
+			else
+			{
+				KTRACE("BUS_QUERY_DEVICE_ID failed\n");
+			}
 		}
 		/*free the device relation struture*/
 		kfree( dr );
 	}
 done:
 	FreeIrp(irp);
+}
+
+/*! Set a completion routine a lower level driver completes the IRP
+ * \param irp
+ * \param completion_routine - routine to call
+ * \param context - argument to pass to the completion routine
+ * \param invoke_on_success - call on success
+ * \param invoke_on_error - call on error
+ * \param invoke_on_cancel - call on cancel
+ * */
+ERROR_CODE SetIrpCompletionRoutine(IRP_PTR irp, IO_COMPLETION_ROUTINE completion_routine, void * context, IRP_COMPLETION_INVOKE invoke_on)
+{
+	assert( irp != NULL );
+	assert( irp->current_stack_location != NULL );
+	
+	irp->current_stack_location->completion_routine = completion_routine;
+	irp->current_stack_location->context = context;
+	irp->current_stack_location->invoke_on = invoke_on;
+	
+	return ERROR_SUCCESS;
 }
 
 /*! Dispatches a call to driver based on the given Irp
@@ -217,7 +247,9 @@ ERROR_CODE CallDriver(DEVICE_OBJECT_PTR device_object, IRP_PTR irp)
 	assert( device_object != NULL );
 	assert( irp != NULL );
 	
+	//KTRACE("CallDriver %p %s %s\n", device_object, device_object->driver_object->driver_name, FindKernelSymbolByAddress( device_object->driver_object->fn.MajorFunctions[irp->current_stack_location->major_function], NULL) );
 	device_object->driver_object->fn.MajorFunctions[irp->current_stack_location->major_function](device_object, irp);
+
 	return ERROR_SUCCESS;
 }
 

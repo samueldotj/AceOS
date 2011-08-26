@@ -50,6 +50,8 @@ typedef struct devfs_direntry_param
 	int						current_index;	/*! current index into file_stat param array*/
 	int						max_entries;	/*! max entries in the file_stat param*/
 	
+	char *					file_name;		/*! file name to search*/
+	
 	int						result;			/*! result of the enum operation*/
 }DEVFS_DIRENTRY_PARAM, * DEVFS_DIRENTRY_PARAM_PTR;
 
@@ -70,7 +72,9 @@ void InitDevFs()
 	
 	/*initialize cache object of devfs*/
 	if( InitCache(&devfs_cache, sizeof(DEVFS_METADATA), DEVFS_CACHE_FREE_SLABS_THRESHOLD, DEVFS_CACHE_MIN_BUFFERS, DEVFS_CACHE_MAX_SLABS, DevFsCacheConstructor, DevFsCacheDestructor) )
+	{
 		panic("InitDevFs - cache init failed");	
+	}
 	
 	InitMessageQueue( &device_fs_message_queue );
 
@@ -106,13 +110,16 @@ static void DevFsMessageReceiver()
 	{
 		err = GetVfsMessage(&device_fs_message_queue, DEV_FS_TIME_OUT, &type, &arg1, &arg2, &arg3, &arg4, &arg5, &arg6 );
 		if ( err == ERROR_SUCCESS )
+		{
 			ProcessVfsMessage( type, (VFS_IPC)arg1, arg2, arg3, arg4, arg5, arg6 );
+		}
 		else
-			kprintf( "devfs IPC message receive error : %d\n", err );
-		
+		{
+			KTRACE( "devfs IPC message receive error : %d\n", err );
+		}
 		/*!\todo - process unregister/shutdown request and exit this thread*/
 	}
-	kprintf( "Exiting devfs\n" );
+	KTRACE( "Exiting devfs\n" );
 }
 
 /*! Processes a VFS message and take neccessary action(reply to the VFS)
@@ -125,6 +132,8 @@ static void ProcessVfsMessage( MESSAGE_TYPE message_type, VFS_IPC vfs_id, IPC_AR
 	FILE_STAT_PARAM_PTR de;
 	int total_entries=0;
 	DIRECTORY_ENTRY_PARAM_PTR de_param;
+	ERROR_CODE ret;
+	int is_write=0, result_count=0;
 	
 	switch ( vfs_id )
 	{
@@ -159,8 +168,17 @@ static void ProcessVfsMessage( MESSAGE_TYPE message_type, VFS_IPC vfs_id, IPC_AR
 			break;
 
 		case VFS_IPC_GET_FILE_STAT_INODE:
-		case VFS_IPC_READ_FILE:
+			break;
 		case VFS_IPC_WRITE_FILE:
+			is_write = 1;
+		case VFS_IPC_READ_FILE:
+			assert( message_type == MESSAGE_TYPE_VALUE );
+			ret = ReadWriteDevice( (DEVICE_OBJECT_PTR) arg2, arg5, (long)arg4, (long)arg6, is_write, &result_count, NULL, NULL);
+			if( ret == ERROR_SUCCESS )
+				ReplyToLastMessage( MESSAGE_TYPE_VALUE, (IPC_ARG_TYPE)VFS_RETURN_CODE_SUCCESS, (IPC_ARG_TYPE)result_count, NULL, NULL, NULL, NULL  );
+			else
+				ReplyToLastMessage( MESSAGE_TYPE_VALUE, (IPC_ARG_TYPE)VFS_RETURN_CODE_NOT_FOUND, NULL, NULL, NULL, NULL, NULL  );
+			break;
 		case VFS_IPC_MAP_FILE_PAGE:
 		case VFS_IPC_DELETE_FILE:
 		case VFS_IPC_MOVE:
@@ -169,6 +187,104 @@ static void ProcessVfsMessage( MESSAGE_TYPE message_type, VFS_IPC vfs_id, IPC_AR
 			ReplyToLastMessage( MESSAGE_TYPE_VALUE, (IPC_ARG_TYPE)VFS_RETURN_CODE_INVALID_PARAMETER, NULL, NULL, NULL, NULL, NULL  );
 			break;
 	}
+}
+
+/*! Completion routine to perform a synchronous operation
+ * */
+UINT32 ReadWriteDeviceCompletionRoutine(DEVICE_OBJECT_PTR device_object, IRP_PTR irp, void * context)
+{
+	assert(context != NULL );
+	WakeUpEvent( context, WAIT_EVENT_WAKE_UP_ALL);
+	return 0;
+}
+
+/*! Read/write devfs file
+ * \param device_object - device object of the /dev/xxx file
+ * \param user_buffer - buffer
+ * \param length - number of bytes to read/write
+ * \param offset - offset in the file
+ * \param is_write - if non-zero writes(copy from buffer to device) else read (from device to buffer)
+ * \param result_count - output - total number of bytes read/written
+ * \param completion_rountine - if non-zero performs a asynchronous operations and calls the given completion routine once the IRP is finished
+ * \param completion_rountine_context - argument to pass to the completion_rountine
+ * */
+ERROR_CODE ReadWriteDevice(DEVICE_OBJECT_PTR device_object, void * user_buffer, long offset, long length, int is_write, int * result_count, IO_COMPLETION_ROUTINE completion_rountine, void * completion_rountine_context)
+{
+	IRP_PTR irp;
+	IRP_MJ op;
+	WAIT_EVENT_PTR wait_event, wait_queue=NULL;
+	ERROR_CODE ret = ERROR_SUCCESS;
+	
+	assert( device_object != NULL );
+	assert( result_count != NULL );
+	
+	if ( is_write )
+		op = IRP_MJ_WRITE;
+	else
+		op = IRP_MJ_READ;
+	
+	/*allocate a irp and fill the values*/
+	irp = AllocateIrp( device_object->stack_count );
+	FillIoStack( irp->current_stack_location, op, 0, device_object, NULL, NULL);
+	irp->current_stack_location->parameters.read_write.byte_offset = offset;
+	irp->current_stack_location->parameters.read_write.length = length;
+	/*setup the buffers based on buffering mode*/
+	if( device_object->flags & DO_BUFFERED_IO )
+	{
+		irp->system_buffer = kmalloc(length, 0);
+		if( irp->system_buffer==NULL )
+		{
+			ret = ERROR_NOT_ENOUGH_MEMORY;
+			goto done;
+		}
+		/*if it is a write copy from user buffer*/
+		if( is_write )
+		{
+			ret = CopyFromUserSpace( user_buffer, irp->system_buffer, length );
+			if ( ret != ERROR_SUCCESS )
+				goto done;
+		}
+	}
+	else
+		panic("Only buffered IO is supported for now!");
+	
+	/*if the caller didnt give a completion routine, perform a sync operation*/
+	if( completion_rountine == NULL )
+	{
+		/*create a completion event and wait for it, this event will be triggered by the completion_rountine */
+		wait_event = AddToEventQueue( &wait_queue );
+		SetIrpCompletionRoutine( irp, ReadWriteDeviceCompletionRoutine, wait_event, IRP_COMPLETION_INVOKE_ON_SUCCESS | IRP_COMPLETION_INVOKE_ON_ERROR | IRP_COMPLETION_INVOKE_ON_CANCEL );
+	}
+	else
+		SetIrpCompletionRoutine( irp, completion_rountine, completion_rountine_context, IRP_COMPLETION_INVOKE_ON_SUCCESS | IRP_COMPLETION_INVOKE_ON_ERROR | IRP_COMPLETION_INVOKE_ON_CANCEL );
+	
+	/*call the driver*/
+	CallDriver(device_object, irp);
+	/*\todo - what about pending?*/
+	if ( irp->io_status.status != ERROR_SUCCESS )
+	{
+		ret = irp->io_status.status;
+		goto done;
+	}
+		
+	/*wait for the event*/
+	if( completion_rountine == NULL )
+	{
+		WaitForEvent(wait_event, 0);
+	}
+		
+	/*number of bytes read/written*/
+	*result_count = (int)irp->io_status.information;
+	
+	/*if buffered mode and read operation then copy back the data to user*/
+	if( device_object->flags & DO_BUFFERED_IO && !is_write )
+	{
+		ret = CopyToUserSpace( user_buffer, irp->system_buffer, *result_count );
+	}
+	
+done:
+	FreeIrp( irp );
+	return ret;
 }
 
 /*! Creates a special device file under /device
@@ -220,9 +336,10 @@ static FILE_STAT_PARAM_PTR GetDirectoryEntries(void * fs_data, int inode, char *
 	result = kmalloc( sizeof(FILE_STAT_PARAM)*total_directory_entries, 0 );
 	if ( result == NULL )
 		return NULL;
-		
+	
 	param.file_stat = result;
 	param.max_entries = max_entries;
+	param.file_name = file_name;
 	EnumerateAvlTree(devfs_root, enumerate_devfs_tree_callback, &param);
 	
 	/*if no entry is reterived free the memory and return null*/
@@ -270,12 +387,18 @@ int enumerate_devfs_tree_callback(AVL_TREE_PTR node, void * arg)
 
 	assert( param->current_index < param->max_entries );
 	
+	/*if file name is not matching continue enumeration*/
+	if( param->file_name && strcmp(param->file_name, dm->name)!=0 )
+	{
+		return 0;
+	}
+		
 	fstat_param = &param->file_stat[ param->current_index ];
 	param->current_index++;
 	
 	/*fill the entry*/
 	strcpy( fstat_param->name, dm->name );
-	fstat_param->inode = 0;
+	fstat_param->inode = (UINT32)dm->device;
 	fstat_param->file_size = 0;
 	fstat_param->mode = 0;
 	fstat_param->fs_data = dm->device;	
@@ -287,7 +410,6 @@ int enumerate_devfs_tree_callback(AVL_TREE_PTR node, void * arg)
 	/*continue enumeration*/
 	return 0;
 }
-
 
 /*! Internal function used to initialize the devfs metadata structure*/
 int DevFsCacheConstructor( void *buffer)

@@ -29,7 +29,7 @@ UINT32 syscall_utimes(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
 UINT32 syscall_ptrace(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
 {
 	KTRACE("%p %p %p %p\n", sys_call_args->args[0], sys_call_args->args[1], sys_call_args->args[2], sys_call_args->args[3]);
-	* retval = -1;
+	* retval = 0;
 	return 0;
 }
 UINT32 syscall_alarm(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
@@ -148,7 +148,11 @@ UINT32 syscall_nanosleep(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
 }
 UINT32 syscall_sleep(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
 {
-	KTRACE("%p %p %p %p\n", sys_call_args->args[0], sys_call_args->args[1], sys_call_args->args[2], sys_call_args->args[3]);
+	static int x=0;
+	if (x%1000) {
+		KTRACE("%p %p %p %p\n", sys_call_args->args[0], sys_call_args->args[1], sys_call_args->args[2], sys_call_args->args[3]);
+	}
+	x++;
 	* retval = -1;
 	return 0;
 }

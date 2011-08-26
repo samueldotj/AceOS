@@ -69,6 +69,11 @@ THREAD_CONTAINER_PTR CreateThread(TASK_PTR task, void * start_address, SCHEDULER
 			KTRACE("User stack allocation failed");
 			return NULL;
 		}
+		
+		/*allocate a page for scratch*/
+		AllocateVirtualMemory( task->virtual_map, (VADDR *)&thread_container->thread.user_scratch, 0, PAGE_SIZE, PROT_READ|PROT_WRITE, 0, NULL );
+		/*should we need assert here?*/
+		assert( thread_container->thread.user_scratch != NULL );
 	}
 	
 	/*architecture depended things*/

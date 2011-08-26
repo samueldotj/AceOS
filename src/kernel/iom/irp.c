@@ -13,6 +13,9 @@
 
 extern CACHE irp_cache;
 
+int IrpCacheConstructor( void * buffer);
+int IrpCacheDestructor( void * buffer);
+
 /*! Allocates a Irp for the use of driver
 	\param stack_size - number of stacks assoicated with this irp
 	\return irp

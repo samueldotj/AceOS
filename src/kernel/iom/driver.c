@@ -8,6 +8,7 @@
 #include <kernel/debug.h>
 #include <kernel/mm/kmem.h>
 #include <kernel/pm/elf.h>
+#include <kernel/pm/task.h>
 #include <kernel/iom/iom.h>
 #include <kernel/vfs/vfs.h>
 
@@ -51,10 +52,10 @@ DRIVER_OBJECT_PTR LoadDriver(char * device_id)
 	strcat( driver_file_path, driver_file_name );
 	kprintf("Loading %s: ", driver_file_path);
 	
-	err = OpenFile(driver_file_path, VFS_ACCESS_TYPE_READ, OPEN_EXISTING, &file_id);
+	err = OpenFile(&kernel_task, driver_file_path, VFS_ACCESS_TYPE_READ, OPEN_EXISTING, &file_id);
 	if ( err != ERROR_SUCCESS )
 		goto error;
-	err = GetFileSize(file_id, &file_size);
+	err = GetFileSize(&kernel_task, file_id, &file_size);
 	if ( err != ERROR_SUCCESS )
 		goto error;
 	file_size = PAGE_ALIGN_UP(file_size);
@@ -109,11 +110,11 @@ ERROR_CODE FindDriverFile(char * device_id, char * buffer, int buf_length)
 	
 	buffer[0]=0;
 	
-	err = OpenFile(driver_id_database, VFS_ACCESS_TYPE_READ, OPEN_EXISTING, &file_id);
+	err = OpenFile( &kernel_task, driver_id_database, VFS_ACCESS_TYPE_READ, OPEN_EXISTING, &file_id);
 	if ( err != ERROR_SUCCESS )
 		goto done;
 		
-	err = GetFileSize(file_id, &file_size);
+	err = GetFileSize(&kernel_task, file_id, &file_size);
 	if ( err != ERROR_SUCCESS )
 		goto done;
 
@@ -163,6 +164,6 @@ ERROR_CODE FindDriverFile(char * device_id, char * buffer, int buf_length)
 done:
 	/* \todo - release the mapping */
 	
-	CloseFile(file_id);
+	CloseFile(&kernel_task, file_id);
 	return err;
 }

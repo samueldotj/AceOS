@@ -115,7 +115,7 @@ struct vm_descriptor
 	
 	VADDR				offset_in_unit;		/*! starting offset in the vm unit*/
 	
-	VM_PROTECTION		protection;			/*! protection for this range*/
+	UINT32				protection;			/*! protection for this range*/
 	
 	VM_UNIT_PTR			unit;				/*! pointer to the vm_unit*/
 };
@@ -188,6 +188,8 @@ extern VM_PROTECTION protection_kernel_write;
 extern VM_PROTECTION protection_kernel_read;
 extern VM_PROTECTION protection_user_write;
 extern VM_PROTECTION protection_user_read;
+extern VM_PROTECTION protection_all_write;
+extern VM_PROTECTION protection_all_read;
 
 extern CACHE virtual_map_cache;
 extern CACHE vm_descriptor_cache;
@@ -214,6 +216,9 @@ ERROR_CODE MapViewOfFile(int file_id, VADDR * va, UINT32 protection, UINT32 file
 ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, UINT32 src_size, VIRTUAL_MAP_PTR dest_vmap, VADDR *dest_preferred_va, UINT32 dest_size, UINT32 protection);
 
 VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size, VADDR preferred_va, UINT32 protection);
+
+ERROR_CODE CopyFromUserSpace(void * user_va, void * kernel_va, size_t length);
+ERROR_CODE CopyToUserSpace(void * user_va, void * kernel_va, size_t length);
 
 VIRTUAL_MAP_PTR GetCurrentVirtualMap();
 ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type);

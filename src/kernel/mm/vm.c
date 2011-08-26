@@ -21,6 +21,9 @@ VM_PROTECTION protection_kernel_write = {0,0,1,1};
 VM_PROTECTION protection_kernel_read = {0,0,0,1};
 VM_PROTECTION protection_user_write = {1,1,0,0};
 VM_PROTECTION protection_user_read = {0,1,0,0};
+VM_PROTECTION protection_all_write = {1,1,1,1};
+VM_PROTECTION protection_all_read = {0,1,0,1};
+
 
 KERNEL_RESERVE_RANGE kernel_reserve_range;
 
@@ -103,26 +106,26 @@ static ERROR_CODE MapKernel()
 	kernel_map.end = kernel_reserve_range.kmem_va_end;
 	
 	/*map kernel code*/
-	vm_unit = CreateVmUnit( VM_UNIT_TYPE_KERNEL, VM_UNIT_FLAG_PRIVATE, kernel_reserve_range.code_va_end - kernel_reserve_range.code_va_start);
-	InitVmDescriptor( &kernel_static_code_descriptor, &kernel_map, kernel_reserve_range.code_va_start, kernel_reserve_range.code_va_end, vm_unit, &protection_kernel_read);
+	vm_unit = CreateVmUnit(VM_UNIT_TYPE_KERNEL, VM_UNIT_FLAG_PRIVATE, kernel_reserve_range.code_va_end - kernel_reserve_range.code_va_start);
+	InitVmDescriptor(&kernel_static_code_descriptor, &kernel_map, kernel_reserve_range.code_va_start, kernel_reserve_range.code_va_end, vm_unit, &protection_kernel_read);
 	InitKernelDescriptorVtoP(&kernel_static_code_descriptor, kernel_reserve_range.code_va_start, kernel_reserve_range.code_va_end, kernel_reserve_range.code_pa_start);
 	
 	/*map kernel data*/
-	vm_unit = CreateVmUnit( VM_UNIT_TYPE_KERNEL, VM_UNIT_FLAG_PRIVATE, kernel_reserve_range.data_va_end - kernel_reserve_range.data_va_start);
-	InitVmDescriptor( &kernel_static_data_descriptor, &kernel_map, kernel_reserve_range.data_va_start, kernel_reserve_range.data_va_end, vm_unit, &protection_kernel_write);
+	vm_unit = CreateVmUnit(VM_UNIT_TYPE_KERNEL, VM_UNIT_FLAG_PRIVATE, kernel_reserve_range.data_va_end - kernel_reserve_range.data_va_start);
+	InitVmDescriptor(&kernel_static_data_descriptor, &kernel_map, kernel_reserve_range.data_va_start, kernel_reserve_range.data_va_end, vm_unit, &protection_kernel_write);
 	InitKernelDescriptorVtoP(&kernel_static_data_descriptor, kernel_reserve_range.data_va_start, kernel_reserve_range.data_va_end, kernel_reserve_range.data_pa_start);
 	
 	/*map modules*/
-	vm_unit = CreateVmUnit( VM_UNIT_TYPE_KERNEL, VM_UNIT_FLAG_SHARED, kernel_reserve_range.module_va_end - kernel_reserve_range.module_va_start );
+	vm_unit = CreateVmUnit(VM_UNIT_TYPE_KERNEL, VM_UNIT_FLAG_SHARED, kernel_reserve_range.module_va_end - kernel_reserve_range.module_va_start);
 	vd = CreateVmDescriptor(&kernel_map, kernel_reserve_range.module_va_start, kernel_reserve_range.module_va_end, vm_unit, &protection_kernel_write);
-	InitKernelDescriptorVtoP(vd, kernel_reserve_range.module_va_start, kernel_reserve_range.module_va_end, kernel_reserve_range.module_pa_start );
+	InitKernelDescriptorVtoP(vd, kernel_reserve_range.module_va_start, kernel_reserve_range.module_va_end, kernel_reserve_range.module_pa_start);
 
 	/*map symbol table*/
 	if ( kernel_reserve_range.symbol_pa_start )
 	{
-		vm_unit = CreateVmUnit( VM_UNIT_TYPE_KERNEL, VM_UNIT_FLAG_PRIVATE, kernel_reserve_range.symbol_va_end - kernel_reserve_range.symbol_va_start );
+		vm_unit = CreateVmUnit(VM_UNIT_TYPE_KERNEL, VM_UNIT_FLAG_PRIVATE, kernel_reserve_range.symbol_va_end - kernel_reserve_range.symbol_va_start);
 		vd = CreateVmDescriptor(&kernel_map, kernel_reserve_range.symbol_va_start, kernel_reserve_range.symbol_va_end, vm_unit, &protection_kernel_write);
-		InitKernelDescriptorVtoP(vd, kernel_reserve_range.symbol_va_start, kernel_reserve_range.symbol_va_end, kernel_reserve_range.symbol_pa_start );
+		InitKernelDescriptorVtoP(vd, kernel_reserve_range.symbol_va_start, kernel_reserve_range.symbol_va_end, kernel_reserve_range.symbol_pa_start);
 	}
 	
 	/*map string table*/
@@ -164,18 +167,44 @@ static void InitKernelDescriptorVtoP(VM_DESCRIPTOR_PTR vd, VADDR va_start, VADDR
 VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size, VADDR preferred_va, UINT32 protection)
 {
 	VADDR va;
-	UINT32 i;
-	
+	UINT32 i, vtop_index;
+	VM_DESCRIPTOR_PTR vd;
+	VIRTUAL_PAGE_PTR vp = NULL;
+
+	assert(pa != 0);
 	size = PAGE_ALIGN_UP(size);
 	pa = PAGE_ALIGN(pa);
 	if ( AllocateVirtualMemory( vmap, &va, preferred_va, size, protection, 0, NULL) != ERROR_SUCCESS )
+	{
 		return NULL;
+	}
+	vd = GetVmDescriptor(vmap, va, 1);
+	assert ( vd != NULL  );
+	assert( va >= vd->start && va <= vd->end );
+	vtop_index = ((va - vd->start) / PAGE_SIZE) + (vd->offset_in_unit/PAGE_SIZE);
+	assert( vtop_index <= (vd->unit->size/PAGE_SIZE) );
+	
 	for(i=0; i<size;i+=PAGE_SIZE )
 	{
-		if ( CreatePhysicalMapping(vmap->physical_map, va+i, pa+i, 0) != ERROR_SUCCESS )
+		if (GetCurrentVirtualMap() == vmap)
 		{
-			FreeVirtualMemory(vmap, va, size, 0);
-			return NULL;
+			if ( CreatePhysicalMapping(vmap->physical_map, va+i, pa+i, protection) != ERROR_SUCCESS )
+			{
+				FreeVirtualMemory(vmap, va, size, 0);
+				return NULL;
+			}
+		}
+		else
+		{
+			/* if the PA is managed then create a lazy mapping */
+			vp = PhysicalToVirtualPage(pa+i);
+			if (vp == NULL)
+			{
+				panic("Request to map unmanaged page in different task map - Use kvm driver for that purpose");	
+			}
+			
+			vd->unit->page_count++;
+			vd->unit->vtop_array[vtop_index+(i/PAGE_SIZE)].vpage = (VIRTUAL_PAGE_PTR) ( ((VADDR)vp) | 1 );
 		}
 	}
 	return va;
@@ -211,19 +240,26 @@ ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR pre
 	SpinLock(&vmap->lock);
 	/*find a free vm range in the current virtual map*/
 	start = (VADDR)FindFreeVmRange(vmap, preferred_start, size, VA_RANGE_SEARCH_FROM_TOP);
-	KTRACE("start %p\n", start);
 	if ( start == NULL )
 	{
 		kprintf("AllocateVirtualMemory(%d) - No memory range available \n", size);
 		SpinUnlock(&vmap->lock);
 		return ERROR_NOT_ENOUGH_MEMORY;
 	}
+	/*adjust the virtual map end 
+	 * \todo - is this neccessary?*/
 	if ( vmap->end < start + size )
 		vmap->end = start + size;
 	SpinUnlock(&vmap->lock);
 	
+	/*get the protection*/
 	if ( vmap == &kernel_map )
-		prot = &protection_kernel_write;
+	{
+		if ( protection & PROT_WRITE )
+			prot = &protection_kernel_write;
+		else
+			prot = &protection_kernel_read;
+	}
 	else
 	{
 		if ( protection & PROT_WRITE )
@@ -305,15 +341,14 @@ ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, UINT3
 	/*allocate virtaul address range and map the same vm unit*/
 	ret = AllocateVirtualMemory(dest_vmap, &va, *dest_preferred_va, src_size, protection, 0, unit);
 	if ( ret != ERROR_SUCCESS )
-		return ret;
-	
+		return ret;	
 		
 	/*set the offset in descriptor of the newly allocated va*/
 	dest_vd = GetVmDescriptor(dest_vmap, va, src_size);
 	assert( dest_vd != NULL );
 	dest_vd->offset_in_unit = unit_offset;
 	dest_vd->end = dest_vd->start + va_difference + org_src_size;
-	
+
 	/*do we need a zerofilling section after the mapping?*/
 	if ( dest_size > src_size  )
 	{
@@ -333,7 +368,6 @@ ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, UINT3
 	
 	/*although we cant protect the caller using the entire page, we should return where the actual data starts*/
 	*dest_preferred_va = va + va_difference;
-
 	return ERROR_SUCCESS;
 }
 
@@ -368,7 +402,9 @@ ERROR_CODE MapViewOfFile(int file_id, VADDR * va, UINT32 protection, UINT32 file
 	
 	assert( va );
 	vnode = GetVnodeFromFile(file_id);
-	assert(vnode != NULL);
+	/*if vnode not found it could be either because the file_id is wrong or some resource shortage*/
+	if( vnode == NULL )
+		return ERROR_INVALID_PARAMETER;
 	
 	if( file_offset!=0 && IS_PAGE_ALIGNED(file_offset) )
 	if( !IS_PAGE_ALIGNED(size) )
@@ -430,6 +466,30 @@ ERROR_CODE MapViewOfFile(int file_id, VADDR * va, UINT32 protection, UINT32 file
 	return ERROR_SUCCESS;
 }
 
+/*! Copy data from user space to kernel space(any user faults are handled and returned as failure)
+ * \param user_va - user virtual address
+ * \param kernel_va - kernel virtual address
+ * \param length - size of the virtual address range to copy 
+ * */
+ERROR_CODE CopyFromUserSpace(void * user_va, void * kernel_va, size_t length)
+{
+	/*\todo - write proper code*/
+	memmove( kernel_va, user_va, length );
+	return ERROR_SUCCESS;
+}
+
+/*! Copy data from kernel to user space(any user faults are handled and returned as failure)
+ * \param user_va - user virtual address
+ * \param kernel_va - kernel virtual address
+ * \param length - size of the virtual address range to copy 
+ * */
+ERROR_CODE CopyToUserSpace(void * user_va, void * kernel_va, size_t length)
+{
+	/*\todo - write proper code*/
+	memmove( user_va, kernel_va, length );
+	return ERROR_SUCCESS;
+}
+
 /*! Generic memory management fault handler
 */
 ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type)
@@ -437,7 +497,6 @@ ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type)
 	VIRTUAL_MAP_PTR virtual_map;
 	VM_DESCRIPTOR_PTR vd;
 	UINT32 vtop_index;
-	UINT32 protection = access_type;
 	VIRTUAL_PAGE_PTR vp = NULL;
 	int zero_fill = FALSE;
 	VADDR aligned_va;
@@ -467,7 +526,7 @@ retry:
 		if ( virtual_map != &kernel_map )
 		{
 			virtual_map = &kernel_map;
-			ktrace("Kernel memory fault - va = %p virtual_map = %p, retrying..\n", va, virtual_map);
+			kprintf("Kernel memory fault - va = %p virtual_map = %p, retrying..\n", va, virtual_map);
 			goto retry;
 		}
 		kprintf("Kernel memory fault - va = %p virtual_map = %p\n", va, virtual_map);
@@ -475,7 +534,8 @@ retry:
 		return ERROR_NOT_FOUND;	
 	}
 
-	assert( va >= vd->start && va <= vd->end );
+	//assert( va >= vd->start && va <= vd->end );
+	
 	vtop_index = ((va - vd->start) / PAGE_SIZE) + (vd->offset_in_unit/PAGE_SIZE);
 	assert( vtop_index <= (vd->unit->size/PAGE_SIZE) );
 	
@@ -517,13 +577,18 @@ retry:
 		vd->unit->vtop_array[vtop_index].vpage = (VIRTUAL_PAGE_PTR) ( ((VADDR)vp) | 1 );
 	}
 
-	CreatePhysicalMapping( virtual_map->physical_map, va, vp->physical_address, protection);
-
+	CreatePhysicalMapping(virtual_map->physical_map, va, vp->physical_address, vd->protection);
+	
 	if( zero_fill )
 	{
 		/*zero fill a anon page*/
 		memset( (void *) aligned_va, 0, PAGE_SIZE);
 	}
+#if 0
+	/* The following might look good but wont work - because files are loaded into a single page and shared by multiple descriptors(using a single vmunit)
+	 * For example consider a 16K file is mapped into two descriptors 0-5k and 7-11K. In this case the file contents 4k-8k will be shared by descriptors
+	 * so zeroing would cause problem.
+	 */
 	else if ( aligned_va+PAGE_SIZE > vd->end )
 	{
 		/*zero fill remaining in a page*/
@@ -531,6 +596,7 @@ retry:
 		diff = (aligned_va+PAGE_SIZE) - vd->end;
 		memset( (void *)vd->end, 0, diff);
 	}
+#endif
 	
 	return ERROR_SUCCESS;
 }

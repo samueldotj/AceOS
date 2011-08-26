@@ -42,7 +42,9 @@ void InitKernelTask()
 TASK_PTR CreateTask(char * exe_file_path, IMAGE_TYPE image_type, UINT32 creation_flag, VADDR * entry_point, char * command_line, char * environment)
 {
 	TASK_PTR task;
-	UINT32 err, start_address;
+	ERROR_CODE err;
+	UINT32 start_address;
+
 	int file_id;
 	long file_size;
 	void *main_entry=NULL;
@@ -76,10 +78,10 @@ TASK_PTR CreateTask(char * exe_file_path, IMAGE_TYPE image_type, UINT32 creation
 	if( image_type == IMAGE_TYPE_ELF_FILE  || image_type == IMAGE_TYPE_BIN_FILE)
 	{
 		/*map the executable in kernel address space*/
-		err = OpenFile(exe_file_path, VFS_ACCESS_TYPE_READ, OPEN_EXISTING, &file_id);
+		err = OpenFile(&kernel_task, exe_file_path, VFS_ACCESS_TYPE_READ, OPEN_EXISTING, &file_id);
 		if ( err != ERROR_SUCCESS )
 			goto error;
-		err = GetFileSize(file_id, &file_size);
+		err = GetFileSize(&kernel_task, file_id, &file_size);
 		if ( err != ERROR_SUCCESS )
 			goto error;
 		file_size = PAGE_ALIGN_UP(file_size);
@@ -101,7 +103,7 @@ TASK_PTR CreateTask(char * exe_file_path, IMAGE_TYPE image_type, UINT32 creation
 				break;
 		}
 		/*\todo -unmap the mapped view*/
-		CloseFile(file_id);
+		CloseFile(&kernel_task, file_id);
 
 	}
 	else if ( image_type == IMAGE_TYPE_BIN_PROGRAM )
@@ -116,7 +118,6 @@ TASK_PTR CreateTask(char * exe_file_path, IMAGE_TYPE image_type, UINT32 creation
 	if ( err != ERROR_SUCCESS )
 		goto error;
 	
-
 	/*create main thread if needed*/
 	if ( creation_flag != TASK_CREATION_FLAG_NO_THREAD )
 	{

@@ -142,7 +142,7 @@ static ERROR_CODE AddDevice(DRIVER_OBJECT_PTR drv_obj, DEVICE_OBJECT_PTR parent_
 	DEVICE_OBJECT_PTR dev_obj;
 	ERROR_CODE err;
 
-	err = CreateDevice(drv_obj, 0, &dev_obj, NULL);
+	err = CreateDevice(drv_obj, 0, &dev_obj, "keyboard", DO_BUFFERED_IO);
 	if( err != ERROR_SUCCESS )
 		return err;
 

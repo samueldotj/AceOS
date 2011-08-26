@@ -62,6 +62,8 @@ VIRTUAL_PAGE_PTR GetVnodePage(VNODE_PTR vnode, VADDR offset)
 
 /*! Fills a virtual page with content from file by doing a FS IO
 	\param vp - virtual page
+	\param offset - offset from starting of the file
+	\param vp - virtual page where the contents should be filled
 */
 ERROR_CODE FillUbcPage(VNODE_PTR vnode, VADDR offset, VIRTUAL_PAGE_PTR vp)
 {

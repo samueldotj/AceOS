@@ -446,6 +446,7 @@ VIRTUAL_PAGE_PTR PhysicalToVirtualPage(UINT32 physical_address)
 {
 	int i,j;
 	int debug=0;
+
 retry:
 	
 	for(i=0; i<memory_area_count; i++ )
@@ -455,7 +456,9 @@ retry:
 		{
 			pmr = &memory_areas[i].physical_memory_regions[j];
 			if ( debug )
-				kprintf("%p - %p : %p\n", pmr->start_physical_address, pmr->end_physical_address, physical_address);
+			{
+				KTRACE("%p - %p : %p\n", pmr->start_physical_address, pmr->end_physical_address, physical_address);
+			}
 			if ( physical_address >= pmr->start_physical_address && physical_address < pmr->end_physical_address )
 			{
 				UINT32 index;
@@ -468,9 +471,10 @@ retry:
 	if ( !debug )
 	{
 		debug++;
+		KTRACE("PA not managed\n");
 		goto retry;
 	}
-	panic("PhysicalToVirtualPage not found");
+	
 	return NULL;
 }
 

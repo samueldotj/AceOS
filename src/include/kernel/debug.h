@@ -17,15 +17,15 @@
 
 #ifdef __KERNEL_TRACE__
 	#define KTRACE( ... )	\
-			ktrace("%s:%d:%s(): ", __FILE__ , __LINE__,__PRETTY_FUNCTION__ ); \
-			ktrace( __VA_ARGS__ );
+			ktrace("%s:%d:%s(): ", __FILE__, __LINE__, __PRETTY_FUNCTION__); \
+			ktrace(__VA_ARGS__);
 #else
     #define KTRACE( ... ) 
 #endif
 
 #define KPRINTF( ... )	\
-			kprintf("%s:%d: ", __PRETTY_FUNCTION__ , __LINE__ ); \
-			kprintf( __VA_ARGS__ );
+			kprintf("%s:%d: ", __PRETTY_FUNCTION__ , __LINE__); \
+			kprintf(__VA_ARGS__);
 
 #ifdef __cplusplus
 	extern "C" {

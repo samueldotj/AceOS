@@ -10,6 +10,7 @@
 #include <libc/sys/stat.h>
 #include <kernel/debug.h>
 #include <kernel/system_call_handler.h>
+#include <kernel/pm/task.h>
 #include <kernel/vfs/vfs.h>
 
 /*! open a file
@@ -37,7 +38,7 @@ UINT32 syscall_open(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
 		access = VFS_ACCESS_TYPE_WRITE;
 	
 	KTRACE("%s %x\n", path, oflag);
-	ret = OpenFile( path, access, flag, retval );
+	ret = OpenFile( GetCurrentTask(), path, access, flag, (int *)retval );
 	KTRACE("%s\n", ERROR_CODE_AS_STRING(ret));
 	if ( ret == ERROR_SUCCESS )
 		return 0;
@@ -54,27 +55,38 @@ UINT32 syscall_open(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
 UINT32 syscall_close(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
 {
 	KTRACE("%p %p %p %p\n", sys_call_args->args[0], sys_call_args->args[1], sys_call_args->args[2], sys_call_args->args[3]);
-	CloseFile( sys_call_args->args[0] );
+	CloseFile( GetCurrentTask(), sys_call_args->args[0] );
 	* retval = 0;
 	return 0;
 }
 
 UINT32 syscall_read(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
 {
-	KTRACE("(file=%d buf=%p size=%d)\n", sys_call_args->args[0], sys_call_args->args[1], sys_call_args->args[1]);
-	*retval = -1;
-	return -1;
+	KTRACE("(file=%d buf=%p size=%d)\n", sys_call_args->args[0], sys_call_args->args[1], sys_call_args->args[2]);
+	int size;
+	char * buf;
+	ERROR_CODE err;
+	
+	size = sys_call_args->args[2];
+	buf = (char *)sys_call_args->args[1];
+	err = ReadWriteFile( sys_call_args->args[0], size, buf, 0, retval);
+	KTRACE("%s\n", ERROR_CODE_AS_STRING(err));
+	
+	return 0;
 }
 UINT32 syscall_write(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
 {
 	KTRACE("(file=%d buf=%p size=%d)\n", sys_call_args->args[0], sys_call_args->args[1], sys_call_args->args[2]);
-	int i=0;
+	int i, size;
+	char * buf;
 	
-	char * buf = (char *)sys_call_args->args[1];
-	while(i<sys_call_args->args[2] && buf)
+	i = 0;
+	size = sys_call_args->args[2];
+	buf = (char *)sys_call_args->args[1];
+	while(i<size && buf)
 		kprintf("%c", buf[i++]);
-	*retval = -1;
-	return -1;
+	*retval = i;
+	return 0;
 }
 
 UINT32 syscall_link(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
@@ -103,8 +115,9 @@ UINT32 syscall_chdir(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
  * [ENOMEM] - Insufficient storage space is available.*/
 UINT32 syscall_getcwd(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
 {
-	KTRACE("%p %p %p %p\n", sys_call_args->args[0], sys_call_args->args[1], sys_call_args->args[2], sys_call_args->args[3]);
-	* retval = NULL;
+	KTRACE("%p %d\n", sys_call_args->args[0], sys_call_args->args[1]);
+	//strcpy( sys_call_args->args[0], "/test_getcwd" );
+	* retval = NULL;// sys_call_args->args[0];
 	return 1;
 }
 UINT32 syscall_mknod(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
@@ -133,7 +146,7 @@ UINT32 syscall_fchmod(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
  * */
 UINT32 syscall_stat(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
 {
-	KTRACE("%p %p %p %p\n", sys_call_args->args[0], sys_call_args->args[1], sys_call_args->args[2], sys_call_args->args[3]);
+	KTRACE("%s %p %p %p\n", sys_call_args->args[0], sys_call_args->args[1], sys_call_args->args[2], sys_call_args->args[3]);
 	* retval = -1;
 	return 0;
 }

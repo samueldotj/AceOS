@@ -17,3 +17,8 @@ acpi_bus.find_sources_in_dirs('acpi')
 ps2keyboard = bld.new_task_gen('cc', 'program', target='ps2keyboard', name='ps2keyboard', install_path=None, includes=include_dirs, uselib='DRIVER' )
 ps2keyboard.env['program_PATTERN'] = '%s.sys'
 ps2keyboard.find_sources_in_dirs('ps2keyboard')
+
+#build console driver
+console = bld.new_task_gen('cc', 'program', target='console', name='console', install_path=None, includes=include_dirs, uselib='DRIVER' )
+console.env['program_PATTERN'] = '%s.sys'
+console.find_sources_in_dirs('console')

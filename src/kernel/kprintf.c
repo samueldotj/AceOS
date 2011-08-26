@@ -4,6 +4,7 @@
 */
 #include <ace.h>
 #include <stdlib.h>
+#include <kernel/debug.h>
 #include <kernel/printf.h>
 #include <kernel/mm/kmem.h>
 
@@ -29,6 +30,9 @@ void sprintf_putc(void * arg, char ch)
 */
 int kprintf(const char *fmt, ...)
 {
+	#ifdef __KERNEL_TRACE__
+		_doprint( fmt, ktrace_putc, NULL, (va_list) ((&fmt)+1));
+	#endif
 	return _doprint( fmt, kprintf_putc, NULL, (va_list) ((&fmt)+1));
 }
 /*! prints formatted string in a string buffer

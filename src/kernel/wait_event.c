@@ -27,6 +27,8 @@ WAIT_EVENT_PTR AddToEventQueue(WAIT_EVENT_PTR *wait_queue)
 	InitList( &(wait_event->thread_events) );
 	wait_event->fired = 0;
 
+	assert( wait_queue != NULL );
+	
 	if(*wait_queue == NULL)
 		*wait_queue = wait_event;
 	else
@@ -101,7 +103,6 @@ void WakeUpEvent(WAIT_EVENT_PTR *event, int flag)
 
 	if(flag & WAIT_EVENT_WAKE_UP_ALL)
 	{
-		//kprintf("WakeUpEvent: Waking up all threads\n");
 		LIST_FOR_EACH_REMOVAL(temp_list1, temp_list2, head_list)
 		{
 			if(temp_list1 == head_list)
@@ -121,13 +122,11 @@ void WakeUpEvent(WAIT_EVENT_PTR *event, int flag)
 				if(thread->state == THREAD_STATE_RUN)
 				{
 					thread->state = THREAD_STATE_EVENT_FIRED;	/* An intermediate state to instruct the thread not to sleep or block */
-					//kprintf("special case!! event fired while thread about to sleep\n");
 					SpinUnlock( &(thread->lock) );
 				}
 				else
 				{
 					SpinUnlock( &(thread->lock) );
-					//kprintf("Event %p waking thread %p\n", temp_wait_event, thread);
 					ResumeThread(thread);
 				}
 			}
@@ -159,13 +158,11 @@ void WakeUpEvent(WAIT_EVENT_PTR *event, int flag)
 		if(thread->state == THREAD_STATE_RUN)
 		{
 			thread->state = THREAD_STATE_EVENT_FIRED;	/* An intermediate state to instruct the thread not to sleep or block */
-			//kprintf("special case!! event fired while thread: %p about to sleep\n", thread);
 			SpinUnlock( &(thread->lock) );
 		}
 		else
 		{
 			SpinUnlock( &(thread->lock) );
-			//kprintf("Event %p waking thread %p\n", temp_wait_event, thread);
 			ResumeThread(thread);
 		}
 	}
@@ -188,9 +185,7 @@ static void ClearRelatedWaitEvents(WAIT_EVENT_PTR event)
 			continue;
 		temp_wait_event = STRUCT_ADDRESS_FROM_MEMBER(temp_list1, WAIT_EVENT, thread_events);
 		RemoveFromList( &(temp_wait_event->thread_events) );
-		//kprintf("Event: %p Will not wake up thread: %p\n", temp_wait_event, temp_wait_event->thread);
 		temp_wait_event->thread = NULL;
-		//head_list = temp_list2;
 	}
 
 	//temp_wait_event = STRUCT_ADDRESS_FROM_MEMBER(head_list, WAIT_EVENT, thread_events);

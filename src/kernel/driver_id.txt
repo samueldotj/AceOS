@@ -2,6 +2,7 @@
 
 #root bus device ids
 acpi									acpi.sys
+console									console.sys
 
 #pnp device ids
 PNP0A03									pci_bus.sys

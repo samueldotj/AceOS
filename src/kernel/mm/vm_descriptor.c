@@ -76,6 +76,9 @@ VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR start, VADDR en
 	vmap->reference_count++;
 	SpinUnlock(&vmap->lock);
 	
+	start = PAGE_ALIGN(start);
+	end = PAGE_ALIGN_UP(end)-1;
+	
 	vd = (VM_DESCRIPTOR_PTR)kmalloc(sizeof(VM_DESCRIPTOR), KMEM_NO_FAIL);
 	//vd = AllocateBuffer( &vm_descriptor_cache, 0 );
 	InitVmDescriptor( vd, vmap, start, end, vm_unit, protection);

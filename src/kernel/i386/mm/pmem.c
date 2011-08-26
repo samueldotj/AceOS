@@ -76,19 +76,16 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 	
 	assert( pmap != NULL );
 	
-	mapped_pte = PT_SELF_MAP_PAGE_TABLE1_PTE(va);
-	if ( IS_KERNEL_ADDRESS(va) )
-		pte.all = KERNEL_PTE_FLAG;
-	else
-		pte.all = USER_PTE_FLAG;
-		
-	pte.page_pfn = pfn;
-	
+	/* VA of PDE */
 	mapped_pde = &pmap->page_directory[PAGE_DIRECTORY_ENTRY_INDEX(va)];
 	/*create page table if not present*/
 	if ( !mapped_pde->present )
+	{
 		CreatePageTable( pmap, va );
-
+	}
+	
+	/* VA of PTE */
+	mapped_pte = PT_SELF_MAP_PAGE_TABLE1_PTE(va);
 	if ( mapped_pte->present )
 	{
 		/*if somebody else created this mapping return*/
@@ -107,9 +104,28 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 	{
 		//now mapping should present for the page table
 		assert( mapped_pde->present );
+		assert( protection != NULL );
+		
+		/* Set fields in PTE */
+		pte.all = 0;
+		pte.present = 1;
+		pte.page_pfn = pfn;
+		if ( protection & PROT_WRITE )
+		{
+			pte.write = 1;
+		}
+		if ( IS_KERNEL_ADDRESS(va) ) 
+		{
+			pte.global = 1;
+		} else 
+		{
+			pte.user = 1;
+		}
+		
+		/* Update the page table */
 		mapped_pte->all = pte.all;
+		asm volatile("invlpg (%%eax)" : : "a" (va));
 	}
-	
 
 finish:
 	return ERROR_SUCCESS;
@@ -213,12 +229,14 @@ static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
 	pd_index = PAGE_DIRECTORY_ENTRY_INDEX(va);
 	
 	/*if page table already present do nothing*/
-	if ( page_dir[ pd_index ].present )
+	if ( page_dir[pd_index].present )
+	{
 		return;
+	}
 
 	/*allocate page table*/
 	pa = AllocatePageTable();
-		
+	
 	/*enter pde*/
 	page_dir[pd_index].all = pa | USER_PDE_FLAG;
 	
@@ -226,6 +244,8 @@ static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
 	page_table_va = PT_SELF_MAP_PAGE_TABLE1(va);
 	assert( page_table_va != NULL );
 	memset( (void *) page_table_va, 0, PAGE_SIZE);
+	
+	asm volatile("invlpg (%%eax)" : : "a" (page_table_va));
 }
 /*! Reports the given virtual address range's status - readable/writeable or mapping not exists
 	\param va - virtual address
@@ -272,6 +292,7 @@ VA_STATUS TranslatePaFromVa(VADDR va, VADDR * pa)
 {
 	PAGE_DIRECTORY_ENTRY_PTR pde;
 	PAGE_TABLE_ENTRY_PTR pte;
+	
 	pde = PT_SELF_MAP_PAGE_DIRECTORY_PTR(va);
 	if ( !pde->present )
 		return VA_NOT_EXISTS;
@@ -279,9 +300,14 @@ VA_STATUS TranslatePaFromVa(VADDR va, VADDR * pa)
 	if ( !pte->present )
 		return VA_NOT_EXISTS;
 	
-	*pa = PFN_TO_PA( pte->page_pfn );
+	if (pa)
+	{
+		*pa = PFN_TO_PA( pte->page_pfn );
+	}
 	if ( pte->write )
+	{
 		return VA_WRITEABLE;
+	}
 	return VA_READABLE;
 }
 

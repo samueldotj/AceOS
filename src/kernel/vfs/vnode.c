@@ -7,6 +7,7 @@
 #include <string.h>
 #include <ds/lrulist.h>
 #include <sync/spinlock.h>
+#include <kernel/debug.h>
 #include <kernel/vfs/vfs.h>
 #include <kernel/pm/task.h>
 
@@ -71,11 +72,12 @@ VNODE_PTR GetVnodeFromFile(int file_id)
 {
 	TASK_PTR task;
 	OPEN_FILE_INFO_PTR op;
-	if( file_id < 0 || file_id > MAX_OPEN_FILE )
+	if( file_id < 0 || file_id >= MAX_OPEN_FILE )
 		return NULL;
 	
 	task = GetCurrentTask();
 	op = &task->process_file_info.open_file_info[file_id];
+	
 	return op->vnode;
 }
 
@@ -141,7 +143,7 @@ ERROR_CODE GetVnode(DIRECTORY_ENTRY_PTR de, VNODE_PTR * result)
 	return ERROR_SUCCESS;
 }
 
-/*! Communicates with the FS to file_stat for a given file
+/*! Communicates with the FS to get file_stat for a given file
 	\param mount - mounted file system to which I have to communicate
 	\param inode - inode number for which file_stat needs to be returned
 	\param file - file path(if we dont have inode number)
@@ -166,5 +168,4 @@ static ERROR_CODE GetFileStat(MOUNTED_FILE_SYSTEM_PTR mount, UINT32 inode, char 
 	
 	return ERROR_SUCCESS;
 }
-
 

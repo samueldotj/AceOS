@@ -20,7 +20,7 @@ extern UINT32 ebss, kernel_code_start;
 static UINT32 InitMemoryArea(MEMORY_AREA_PTR ma_pa, MULTIBOOT_MEMORY_MAP_PTR memory_map_array, int memory_map_count);
 static void * GetFreePhysicalPage();
 static void InitKernelPageDirectory();
-static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa);
+static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa, UINT32 prot);
 
 /*the following contains where kernel code/data physical address start and end*/
 UINT32 kernel_physical_address_start=KERNEL_PHYSICAL_ADDRESS_LOAD, kernel_physical_address_end=0;
@@ -325,9 +325,9 @@ static void InitKernelPageDirectory()
 	do
 	{
 		/*identity map*/
-		EnterKernelPageTableEntry(physical_address, physical_address);
+		EnterKernelPageTableEntry(physical_address, physical_address, PROT_READ | PROT_WRITE);
 		/*kernel code/data and also below 0 MB mapping*/
-		EnterKernelPageTableEntry(va, physical_address);
+		EnterKernelPageTableEntry(va, physical_address, PROT_READ | PROT_WRITE);
 		physical_address += PAGE_SIZE;
 		va += PAGE_SIZE;
 	}while( physical_address < end_physical_address );
@@ -341,7 +341,7 @@ static void InitKernelPageDirectory()
 		*((VADDR *)BOOT_ADDRESS( &kernel_reserve_range.module_va_start ) ) = va;
 		do
 		{
-			EnterKernelPageTableEntry(va, physical_address);
+			EnterKernelPageTableEntry(va, physical_address, PROT_READ);
 			physical_address += PAGE_SIZE;
 			va += PAGE_SIZE;
 		}while( physical_address < end_physical_address );
@@ -361,7 +361,7 @@ static void InitKernelPageDirectory()
 		end_physical_address = PAGE_ALIGN_UP( * ((UINT32 *)BOOT_ADDRESS ( &kernel_reserve_range.symbol_pa_end ) ) );
 		do
 		{
-			EnterKernelPageTableEntry(va, physical_address);
+			EnterKernelPageTableEntry(va, physical_address, PROT_READ);
 			physical_address += PAGE_SIZE;
 			va += PAGE_SIZE;
 		}while( physical_address < end_physical_address );
@@ -380,7 +380,7 @@ static void InitKernelPageDirectory()
 		end_physical_address = PAGE_ALIGN_UP( *((UINT32 *)BOOT_ADDRESS( &kernel_reserve_range.string_pa_end)) );
 		do
 		{
-			EnterKernelPageTableEntry(va, physical_address);
+			EnterKernelPageTableEntry(va, physical_address, PROT_READ);
 			physical_address += PAGE_SIZE;
 			va += PAGE_SIZE;
 		}while( physical_address < end_physical_address );
@@ -401,7 +401,7 @@ static void InitKernelPageDirectory()
 			pmr_pa->virtual_page_array =  (VIRTUAL_PAGE_PTR)va;
 			do
 			{
-				EnterKernelPageTableEntry( va, physical_address);
+				EnterKernelPageTableEntry( va, physical_address, PROT_READ | PROT_WRITE);
 				physical_address += PAGE_SIZE;
 				va += PAGE_SIZE;
 			}while( physical_address < ( end_address ) );
@@ -425,7 +425,7 @@ static void InitKernelPageDirectory()
 	\param va - virtual address for which translation needs to be added
 	\param pa - physical address needs to be filled
 */
-static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
+static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa, UINT32 prot)
 {
 	int pd_index, pt_index;
 	PAGE_TABLE_ENTRY_PTR page_table;
@@ -442,7 +442,10 @@ static void EnterKernelPageTableEntry(UINT32 va, UINT32 pa)
 		page_table = (PAGE_TABLE_ENTRY_PTR) pa;
 		
 		/*enter pde*/
-		k_page_dir[pd_index].all = KERNEL_PTE_FLAG;
+		k_page_dir[pd_index].present = 1;
+		k_page_dir[pd_index].global = 1;
+		if (prot & PROT_WRITE)
+			k_page_dir[pd_index].write = 1;
 		k_page_dir[pd_index].page_table_pfn = PA_TO_PFN(pa);
 	}
 	else
@@ -474,11 +477,11 @@ void InitPhysicalMemoryManagerPhaseII()
 	for(i=0; i<memory_area_count; i++ )
 	{
 		int j;
-		kprintf("System map:    START     END       PAGES      TYPE\n");
+		ktrace("System map:    START     END       PAGES      TYPE\n");
 		for(j=0; j<memory_areas[i].physical_memory_regions_count; j++ )
 		{
 			PHYSICAL_MEMORY_REGION_PTR pmr = &memory_areas[i].physical_memory_regions[j];
-			kprintf("           %9p %9p %9d %10s\n", pmr->start_physical_address, pmr->end_physical_address, pmr->virtual_page_count, 
+			ktrace("           %9p %9p %9d %10s\n", pmr->start_physical_address, pmr->end_physical_address, pmr->virtual_page_count, 
 				pmr->type == PMEM_TYPE_AVAILABLE ? "Available" : pmr->type == PMEM_TYPE_ACPI_RECLAIM ? "ACPI Reclaim" : pmr->type == PMEM_TYPE_ACPI_NVS ? "ACPI NVS" : "Reserved" );
 			
 			if ( pmr->type == PMEM_TYPE_AVAILABLE )

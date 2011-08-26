@@ -30,6 +30,7 @@ extern AVL_TREE_PTR	devfs_root;
 #endif
 
 ERROR_CODE CreateDeviceNode(const char * filename, DEVICE_OBJECT_PTR device);
+ERROR_CODE ReadWriteDevice(DEVICE_OBJECT_PTR device_object, void * user_buffer, long offset, long length, int is_write, int * result_count, IO_COMPLETION_ROUTINE completion_rountine, void * completion_rountine_context);
 
 #ifdef __cplusplus
 	}

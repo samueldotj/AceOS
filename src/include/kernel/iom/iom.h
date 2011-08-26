@@ -22,6 +22,21 @@
 
 typedef enum
 {
+	DO_BUFFERED_IO = 1,
+	DO_DIRECT_IO = 2,
+	DO_NEITHER_IO = 4,
+}DO_FLAG;
+
+
+typedef enum
+{
+	IRP_COMPLETION_INVOKE_ON_SUCCESS=1,
+	IRP_COMPLETION_INVOKE_ON_ERROR=2,
+	IRP_COMPLETION_INVOKE_ON_CANCEL=4,
+}IRP_COMPLETION_INVOKE;
+
+typedef enum
+{
 	IRP_MJ_CREATE	= 0,
 	IRP_MJ_CLOSE,
 	IRP_MJ_READ,
@@ -89,13 +104,13 @@ typedef UINT32 (*IO_COMPLETION_ROUTINE) (DEVICE_OBJECT_PTR device_object, IRP_PT
 
 struct driver_functions
 {
-		ERROR_CODE (*DriverEntry)(DRIVER_OBJECT_PTR pDriverObject);							/*! Called to initialize a driver - called only once*/
-		ERROR_CODE (*DriverUnload)(DRIVER_OBJECT_PTR pDriverObject);						/*! Called to destroy driver - called during driver exit*/
+	ERROR_CODE (*DriverEntry)(DRIVER_OBJECT_PTR pDriverObject);							/*! Called to initialize a driver - called only once*/
+	ERROR_CODE (*DriverUnload)(DRIVER_OBJECT_PTR pDriverObject);						/*! Called to destroy driver - called during driver exit*/
+	
+	ERROR_CODE (*AddDevice)(DRIVER_OBJECT_PTR pDriverObject, DEVICE_OBJECT_PTR pPdo);	/*! When a appropriate device is found this function is called*/
 		
-		ERROR_CODE (*AddDevice)(DRIVER_OBJECT_PTR pDriverObject, DEVICE_OBJECT_PTR pPdo);	/*! When a appropriate device is found this function is called*/
-		
-		ERROR_CODE (*StartIo)(DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pIrp);				/*! Called to start IO on a device*/
-		ERROR_CODE (*MajorFunctions[IRP_MJ_MAXIMUM_FUNCTION]) (DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pIrp);		/*! Various functions supported by the device*/
+	ERROR_CODE (*StartIo)(DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pIrp);				/*! Called to start IO on a device*/
+	ERROR_CODE (*MajorFunctions[IRP_MJ_MAXIMUM_FUNCTION]) (DEVICE_OBJECT_PTR pDeviceObject, IRP_PTR pIrp);		/*! Various functions supported by the device*/
 };
 
 struct driver_object
@@ -118,6 +133,8 @@ struct device_object
 	SPIN_LOCK			lock;								/*! For mp sync*/
 	int					reference_count;					/*! For garbage collection*/
 	
+	UINT32				flags;								/*! flags of object - buffered io/direct io etc*/
+	
 	DEVICE_OBJECT_PTR	parent_device;						/*! parent device - may be bus device*/
 	LIST				sibilings_list;						/*! list of devices that are created by the same parent*/
 	DEVICE_OBJECT_PTR	child_device;						/*! pointer to the first child*/
@@ -138,7 +155,13 @@ struct io_status_block{
 struct irp
 {
 	UINT32					flags;
-
+	
+	/*addresses used during read, write and ioctl calls
+	 * \todo - try to put the following things in a union*/
+	void *					user_buffer;					/*! user buffer address - driver has to take care of locking and translating the page to kernel address - valid in DO_NEITHER_IO*/
+	void *					mdl_address;					/*! memory page descriptor list - iom will lock user buffer and create a list of pages associated with the buffer - valid in DO_DIRECT_IO*/
+	void *					system_buffer;					/*! system buffer address - iom will allocate kernel memory and copy the user buffer content here - valid in DO_BUFFERED_IO */
+	
 	IO_STATUS_BLOCK			io_status;						/*! Status of the IRP*/
 	
 	BYTE					stack_count;					/*! Total IO_STACK associated with this IRP*/
@@ -164,8 +187,8 @@ struct io_stack_location
 		}create;
 		struct
 		{
-			UINT32		length;
-			UINT32		byte_offset;
+			UINT32		length;								/*! length of data to read/write*/
+			UINT32		byte_offset;						/*! offset to start the read/write*/
 		}read_write;
 		struct
 		{
@@ -175,15 +198,15 @@ struct io_stack_location
 		}device_io_control;
 		struct 
 		{
-			DEVICE_RELATION_TYPE	type;
+			DEVICE_RELATION_TYPE	type;					/*! input from iom - type of relation to reterive - currenly it is only bus*/
 		}query_device_relations;
 		struct
 		{
-			QUERY_ID_TYPE			id_type;
+			QUERY_ID_TYPE			id_type;				/*! input from iom - id to reterive - hardware, instance*/
 		}query_id;
 		struct
 		{
-			DEVICE_CAPABILITIES_PTR device_capabilities;
+			DEVICE_CAPABILITIES_PTR device_capabilities;	/*! output from driver - capability of the device*/
 		}capabilities;
 	}parameters;
 	
@@ -191,6 +214,7 @@ struct io_stack_location
 	
 	IO_COMPLETION_ROUTINE completion_routine;				/*! Completion routine registered by the driver*/
 	void * context;											/*! Context to passed driver completion routine*/
+	IRP_COMPLETION_INVOKE invoke_on;						/*! when to invoke the completion routine*/
 };
 
 struct device_capabilities{
@@ -205,21 +229,21 @@ struct device_capabilities{
 	
 	struct
 	{
-		UINT32				device_d1:1;					/*! Specifies whether the device hardware supports the D1 power state.*/
-		UINT32				device_d2:1;					/*! Specifies whether the device hardware supports the D2 power state.*/
-		UINT32				wake_from_d0:1;					/*! Specifies whether the device can respond to an external wake signal while in the D0 state.*/
-		UINT32				wake_from_d1:1;					/*! Specifies whether the device can respond to an external wake signal while in the D1 state.*/
-		UINT32				wake_from_d2:1;					/*! Specifies whether the device can respond to an external wake signal while in the D2 state.*/
-		UINT32				wake_from_d3:1;					/*! Specifies whether the device can respond to an external wake signal while in the D3 state.*/
-		UINT32				d1_latency;
-		UINT32				d2_latency;
-		UINT32				d3_latency;
+		UINT32		device_d1:1;							/*! Specifies whether the device hardware supports the D1 power state.*/
+		UINT32		device_d2:1;							/*! Specifies whether the device hardware supports the D2 power state.*/
+		UINT32		wake_from_d0:1;							/*! Specifies whether the device can respond to an external wake signal while in the D0 state.*/
+		UINT32		wake_from_d1:1;							/*! Specifies whether the device can respond to an external wake signal while in the D1 state.*/
+		UINT32		wake_from_d2:1;							/*! Specifies whether the device can respond to an external wake signal while in the D2 state.*/
+		UINT32		wake_from_d3:1;							/*! Specifies whether the device can respond to an external wake signal while in the D3 state.*/
+		UINT32		d1_latency;
+		UINT32		d2_latency;
+		UINT32		d3_latency;
 	}power;
 };
 
 struct device_relations{
-    UINT32 count;
-    DEVICE_OBJECT_PTR objects[0];
+    UINT32 count;											/*! total number of devices in the objects array*/
+    DEVICE_OBJECT_PTR objects[0];							/*! array of child device objects*/
 };
 
 extern DEVICE_OBJECT_PTR root_bus_device_object;
@@ -230,13 +254,15 @@ extern CACHE device_object_cache;
 
 void InitIoManager();
 
-ERROR_CODE CreateDevice(DRIVER_OBJECT_PTR driver_object, UINT32 device_extension_size, DEVICE_OBJECT_PTR * device_object, char * device_name);
+ERROR_CODE CreateDevice(DRIVER_OBJECT_PTR driver_object, UINT32 device_extension_size, DEVICE_OBJECT_PTR * device_object, char * device_name, UINT32 flag);
 DEVICE_OBJECT_PTR AttachDeviceToDeviceStack(DEVICE_OBJECT_PTR source_device, DEVICE_OBJECT_PTR target_device);
 void InvalidateDeviceRelations(DEVICE_OBJECT_PTR device_object, DEVICE_RELATION_TYPE type);
 
 IO_STACK_LOCATION_PTR GetNextIrpStackLocation(IRP_PTR Irp);
 IO_STACK_LOCATION_PTR GetCurrentIrpStackLocation(IRP_PTR Irp);
 inline void FillIoStack(IO_STACK_LOCATION_PTR io_stack, BYTE major_function, BYTE minor_function, DEVICE_OBJECT_PTR device_object, IO_COMPLETION_ROUTINE completion_routine, void * context);
+
+ERROR_CODE SetIrpCompletionRoutine(IRP_PTR irp, IO_COMPLETION_ROUTINE completion_routine, void * context, IRP_COMPLETION_INVOKE invoke_on);
 
 IRP_PTR AllocateIrp(BYTE stack_size);
 void ReuseIrp(IRP_PTR irp, ERROR_CODE error_code);

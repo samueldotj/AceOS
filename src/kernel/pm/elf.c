@@ -230,7 +230,7 @@ static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_tabl
 			symbol_table_header = &first_section_header[section_header->sh_link];
 			string_table_header = &first_section_header[symbol_table_header->sh_link];
 			ret = RelocateSection( section_header, (ELF_SYMBOL_PTR) ((char*)file_header + symbol_table_header->sh_offset),
-				relocation_section_index, (char*)file_header + string_table_header->sh_offset, (VADDR)file_header + section_header->sh_offset, section_loaded_va );
+					relocation_section_index, (char*)file_header + string_table_header->sh_offset, (VADDR)file_header + section_header->sh_offset, section_loaded_va );
 			if ( ret != ERROR_SUCCESS )
 				return ret;
 		}
@@ -267,19 +267,23 @@ static ERROR_CODE LoadElfSectionIntoMap(ELF_SECTION_HEADER_PTR section_header, V
 	*section_loaded_va = section_header->sh_addr;
 	
 	/*create a new zero filled section if bss*/
-	if ( section_header->sh_type == SHT_NOBITS )
+	if ( section_header->sh_type == SHT_NOBITS && section_header->sh_size>0 )
 	{
 		VADDR size = section_header->sh_size;
 		if ( size == 0 )
 			size = PAGE_SIZE;
 		ret = AllocateVirtualMemory( virtual_map, section_loaded_va, section_header->sh_addr, size, protection, 0, NULL );
 	}
-	else
+	else if( section_header->sh_size > 0 )
 	{
 		/*copy section data only if the source section has some data to copy*/
 		ret = CopyVirtualAddressRange( GetCurrentVirtualMap(), section_data_offset, section_header->sh_size, virtual_map, section_loaded_va, section_header->sh_size, protection);
 	}
 	
+	if (ret != ERROR_SUCCESS)
+	{
+		KTRACE("return %s\n", ERROR_CODE_AS_STRING(ret));
+	}
 	return ret;
 }
 
@@ -464,7 +468,7 @@ static void UpdateElfCommonSectionSymbols(ELF_SYMBOL_PTR symbol_table, UINT32 sy
 static ERROR_CODE RelocateSection(ELF_SECTION_HEADER_PTR section_header, ELF_SYMBOL_PTR symbol_table, int relocation_section_index, char * string_table, VADDR relocation_entries, VADDR * section_loaded_va)
 {
 	int i, total_entries;
-	
+
 	total_entries =  section_header->sh_size / ( section_header->sh_type == SHT_REL ? sizeof(ELF_RELOCATION) : sizeof(ELF_RELOCATION_ADDEND) );
 	for( i=0; i< total_entries; i++)
 	{
@@ -514,6 +518,7 @@ static ERROR_CODE RelocateSection(ELF_SECTION_HEADER_PTR section_header, ELF_SYM
 				kprintf("relocation_section_index=%d\n", relocation_section_index);
 				panic("section_loaded_va[relocation_section_index] == NULL");
 			}
+
 			RelocateI386Field(rp, symbol_value, section_loaded_va[relocation_section_index], type);
 #endif
 		}

@@ -147,9 +147,9 @@ static void ProcessVfsMessage( MESSAGE_TYPE message_type, VFS_IPC vfs_id, IPC_AR
 			else
 				ReplyToLastMessage( MESSAGE_TYPE_VALUE, (IPC_ARG_TYPE)VFS_RETURN_CODE_NOT_FOUND, NULL, NULL, NULL, NULL, NULL  );
 			break;
+		case VFS_IPC_WRITE_FILE:
 		case VFS_IPC_READ_FILE:
 			break;
-		case VFS_IPC_WRITE_FILE:
 		case VFS_IPC_DELETE_FILE:
 		case VFS_IPC_MOVE:
 		case VFS_IPC_CREATE_SOFT_LINK:

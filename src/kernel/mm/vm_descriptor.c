@@ -26,6 +26,7 @@ static COMPARISION_RESULT compare_vm_descriptor_with_va(struct binary_tree * nod
 static COMPARISION_RESULT compare_vm_descriptor(struct binary_tree * node1, struct binary_tree * node2);
 static void * FindVaRange(VM_DESCRIPTOR_PTR descriptor_ptr, VADDR start, UINT32 size, int top_down_search, VADDR last_va_end);
 static int enumerate_descriptor_callback(AVL_TREE_PTR node, void * arg);
+static int enumerate_printvmdescriptor_callback(AVL_TREE_PTR node, void * arg);
 
 CACHE vm_descriptor_cache;
 
@@ -161,8 +162,10 @@ VM_DESCRIPTOR_PTR GetVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size)
 	search_descriptor.end = search_descriptor.start + size-1;
 	ret = SearchAvlTree(vmap->descriptors, &(search_descriptor.tree_node), compare_vm_descriptor_with_va);
 	if ( ret )
-		vm_descriptor = STRUCT_ADDRESS_FROM_MEMBER( ret, VM_DESCRIPTOR, tree_node );
-	
+	{
+		vm_descriptor = STRUCT_ADDRESS_FROM_MEMBER( ret, VM_DESCRIPTOR, tree_node );	
+	}
+
 	return vm_descriptor;
 }
 
@@ -275,3 +278,22 @@ int VmDescriptorCacheDestructor(void * buffer)
 	return 0;
 }
 
+/*! Print all vm descriptor associated with a vmmap
+	\param vmap - vmap to print
+*/
+void PrintVmDescriptors(VIRTUAL_MAP_PTR vmap)
+{
+	EnumerateAvlTree(vmap->descriptors, enumerate_printvmdescriptor_callback, NULL);
+}
+
+/*! Enumerator - call back function used by PrintVmDescriptors()
+	\param node - AVL tree node(vm descriptor)
+*/
+static int enumerate_printvmdescriptor_callback(AVL_TREE_PTR node, void * arg)
+{
+	VM_DESCRIPTOR_PTR descriptor = STRUCT_ADDRESS_FROM_MEMBER(node, VM_DESCRIPTOR, tree_node);
+	
+	kprintf("%p - %p %p %c 0x%x\n", descriptor->start, descriptor->end, descriptor->unit, (descriptor->protection & PROT_WRITE ? 'W' : (descriptor->protection & PROT_READ ? 'R' : 'N')), descriptor->offset_in_unit );
+	
+	return 0;
+}

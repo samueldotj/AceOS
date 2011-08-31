@@ -65,6 +65,8 @@ void InitPhysicalMemoryManagerPhaseI(unsigned long magic, MULTIBOOT_INFO_PTR mbi
 void InitPhysicalMemoryManagerPhaseII();
 void CompletePhysicalMemoryManagerInit();
 
+void MapKernelPageTableEntries();
+
 ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UINT32 protection);
 ERROR_CODE RemovePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va);
 

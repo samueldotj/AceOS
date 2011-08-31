@@ -53,7 +53,8 @@ typedef enum
 	VM_UNIT_TYPE_KERNEL=1,				/*kernel mapping*/
 	VM_UNIT_TYPE_ANONYMOUS,				
 	VM_UNIT_TYPE_FILE_MAPPED,
-	VM_UNIT_TYPE_STACK
+	VM_UNIT_TYPE_STACK,
+	VM_UNIT_TYPE_PTE
 }VM_UNIT_TYPE;
 
 typedef enum
@@ -206,8 +207,10 @@ void InitVmDescriptor(VM_DESCRIPTOR_PTR descriptor, VIRTUAL_MAP_PTR vmap, VADDR 
 VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR start, VADDR end, VM_UNIT_PTR vm_unit, VM_PROTECTION_PTR protection);
 VM_DESCRIPTOR_PTR GetVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size);
 void * FindFreeVmRange(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 size, UINT32 option);
+void PrintVmDescriptors(VIRTUAL_MAP_PTR vmap);
 
 VM_UNIT_PTR CreateVmUnit(VM_UNIT_TYPE type, VM_UNIT_FLAG flag, UINT32 size);
+void SetVmUnitPage(VM_UNIT_PTR unit, VIRTUAL_PAGE_PTR vp, UINT32 vtop_index);
 
 ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR preferred_start, UINT32 size, UINT32 protection, UINT32 flags, VM_UNIT_PTR unit);
 ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32 flags);

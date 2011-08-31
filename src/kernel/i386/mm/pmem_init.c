@@ -472,6 +472,7 @@ void InitPhysicalMemoryManagerPhaseII()
 	/*initialize the kernel physical map*/
 	InitSpinLock( &kernel_physical_map.lock );
 	kernel_physical_map.page_directory = kernel_page_directory;
+	kernel_physical_map.virtual_map = &kernel_map;
 	
 	/*initialize the virtual page array*/
 	for(i=0; i<memory_area_count; i++ )

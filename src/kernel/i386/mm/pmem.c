@@ -12,6 +12,8 @@
 #include <kernel/mm/pmem.h>
 #include <kernel/i386/pmem.h>
 
+VM_UNIT_PTR kernel_pte_vm_unit=NULL;
+
 /*! Checks whether the given VA is kernel VA or user VA*/
 #define IS_KERNEL_ADDRESS(va)	(va >= KERNEL_VIRTUAL_ADDRESS_START)
 
@@ -34,7 +36,10 @@ static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va );
 PHYSICAL_MAP_PTR CreatePhysicalMap(VIRTUAL_MAP_PTR vmap)
 {
 	PHYSICAL_MAP_PTR pmap;
+	VADDR pte_va_start;
 	UINT32 page_dir_pa;
+	UINT32 pte_va_size;
+	VM_UNIT_PTR user_pte_vm_unit;
 	
 	pmap = AllocateBuffer( &physical_map_cache, CACHE_ALLOC_SLEEP );
 	if ( pmap == NULL )
@@ -52,10 +57,34 @@ PHYSICAL_MAP_PTR CreatePhysicalMap(VIRTUAL_MAP_PTR vmap)
 	
 	/*set the self mapping*/
 	if ( TranslatePaFromVa( (VADDR )pmap->page_directory, &page_dir_pa ) == VA_NOT_EXISTS )
+	{
 		panic("pagedirectory is not in memory");
+	}
+	
 	pmap->page_directory[PT_SELF_MAP_INDEX].all = (page_dir_pa | KERNEL_PTE_FLAG);
 	
+	/*Create vmdescriptor for user PageTable VAs*/
+	pte_va_size = PAGE_SIZE * 754;
+	pte_va_start = PT_SELF_MAP_ADDRESS;
+	user_pte_vm_unit = CreateVmUnit(VM_UNIT_TYPE_PTE, VM_UNIT_FLAG_PRIVATE, pte_va_size);
+	CreateVmDescriptor(vmap, pte_va_start, pte_va_start + pte_va_size, user_pte_vm_unit, &protection_kernel_write);
+	
+	/*Create vmdescriptor for user PageTable VAs*/
+	pte_va_start = PT_SELF_MAP_ADDRESS + pte_va_start;
+	pte_va_size = PAGE_SIZE * 260;
+	CreateVmDescriptor(vmap, pte_va_start, pte_va_start + pte_va_size, kernel_pte_vm_unit, &protection_kernel_write);
+		
 	return pmap;
+}
+
+void MapKernelPageTableEntries()
+{
+	UINT32 size;
+	
+	size = PAGE_SIZE * 1024;
+	/*map page tables*/
+	kernel_pte_vm_unit = CreateVmUnit(VM_UNIT_TYPE_PTE, VM_UNIT_FLAG_PRIVATE, size);
+	CreateVmDescriptor(&kernel_map, PT_SELF_MAP_ADDRESS, PT_SELF_MAP_ADDRESS + size, kernel_pte_vm_unit, &protection_kernel_write);
 }
 
 /*! Fills page table entry for a given VA. This function makes the corresponding VA to point to PA by filling PTEs.
@@ -224,6 +253,12 @@ static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
 	PAGE_DIRECTORY_ENTRY_PTR page_dir;
 	VADDR page_table_va;
 	UINT32 pa;
+	VIRTUAL_PAGE_PTR vp;
+	VM_DESCRIPTOR_PTR vd;
+	UINT32 vtop_index;
+	
+	assert(GetCurrentVirtualMap()->physical_map == pmap);
+	assert(GetCurrentVirtualMap() == pmap->virtual_map);
 	
 	page_dir = pmap->page_directory;
 	pd_index = PAGE_DIRECTORY_ENTRY_INDEX(va);
@@ -235,8 +270,14 @@ static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
 	}
 
 	/*allocate page table*/
-	pa = AllocatePageTable();
+	vp = AllocateVirtualPages(1, VIRTUAL_PAGE_RANGE_TYPE_NORMAL);
+	assert ( vp != NULL );
+	vd = GetVmDescriptor(pmap->virtual_map, va, 1);
+	vtop_index = ((va - vd->start) / PAGE_SIZE) + (vd->offset_in_unit/PAGE_SIZE);
+	SetVmUnitPage(vd->unit, vp, vtop_index);
 	
+	pa = vp->physical_address;
+		
 	/*enter pde*/
 	page_dir[pd_index].all = pa | USER_PDE_FLAG;
 	

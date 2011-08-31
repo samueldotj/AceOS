@@ -11,6 +11,7 @@
 #include <kernel/pm/elf.h>
 #include <kernel/pm/thread.h>
 #include <kernel/i386/i386.h>
+#include <kernel/pm/pm_types.h>
 
 /*max depth of page faults inside page fault*/
 #define MAX_SERIAL_PAGE_FAULTS	2
@@ -119,11 +120,11 @@ void PageFaultHandler(REGS_PTR reg)
 		{
 			VADDR new_va;
 			va = PAGE_ALIGN(va);
-			new_va = MapPhysicalMemory( GetCurrentVirtualMap(), va, PAGE_SIZE, va, PROT_READ | PROT_WRITE );
+			new_va = MapPhysicalMemory( GetCurrentVirtualMap(), va, PAGE_SIZE, va, PROT_READ | PROT_WRITE);
 			if ( new_va != va )
 			{
 				FreeVirtualMemory(GetCurrentVirtualMap(), va, PAGE_SIZE, 0);
-				CreatePhysicalMapping(GetCurrentVirtualMap()->physical_map, va, va, PROT_READ | PROT_WRITE );
+				CreatePhysicalMapping(GetCurrentVirtualMap()->physical_map, va, va, PROT_READ | PROT_WRITE);
 			}
 			goto done;
 		}
@@ -211,11 +212,11 @@ int GeneralProtectionFaultHandlerForV86Mode(REGS_V86_PTR v86_reg)
 	
 	/*create translations for all things that we might touch*/
 	if( TranslatePaFromVa((UINT32)ivt, &pa) == VA_NOT_EXISTS )
-		CreatePhysicalMapping( GetCurrentVirtualMap()->physical_map, (UINT32)ivt, (UINT32)ivt, PROT_READ|PROT_WRITE );
+		CreatePhysicalMapping( GetCurrentVirtualMap()->physical_map, (UINT32)ivt, (UINT32)ivt, PROT_READ | PROT_WRITE);
 	if( TranslatePaFromVa((UINT32)stack, &pa) == VA_NOT_EXISTS )
-		CreatePhysicalMapping( GetCurrentVirtualMap()->physical_map, (UINT32)stack, (UINT32)stack, PROT_READ|PROT_WRITE );
+		CreatePhysicalMapping( GetCurrentVirtualMap()->physical_map, (UINT32)stack, (UINT32)stack, PROT_READ | PROT_WRITE);
 	if( TranslatePaFromVa((UINT32)stack32, &pa) == VA_NOT_EXISTS )
-		CreatePhysicalMapping( GetCurrentVirtualMap()->physical_map, (UINT32)stack32, (UINT32)stack32, PROT_READ|PROT_WRITE );
+		CreatePhysicalMapping( GetCurrentVirtualMap()->physical_map, (UINT32)stack32, (UINT32)stack32, PROT_READ | PROT_WRITE);
 	
     while (TRUE)
     {

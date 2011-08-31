@@ -73,3 +73,12 @@ void FreeVmUnit(VM_UNIT_PTR unit)
 		/*\todo remove the pages here*/
 	}
 }
+
+void SetVmUnitPage(VM_UNIT_PTR unit, VIRTUAL_PAGE_PTR vp, UINT32 vtop_index)
+{
+	assert( unit != NULL );
+	assert( vtop_index <= unit->size / PAGE_SIZE );
+	
+	unit->page_count++;
+	unit->vtop_array[vtop_index].vpage = (VIRTUAL_PAGE_PTR) ( ((VADDR)vp) | 1 );
+}

@@ -24,7 +24,6 @@ VM_PROTECTION protection_user_read = {0,1,0,0};
 VM_PROTECTION protection_all_write = {1,1,1,1};
 VM_PROTECTION protection_all_read = {0,1,0,1};
 
-
 KERNEL_RESERVE_RANGE kernel_reserve_range;
 
 /*from kernel.ld*/
@@ -87,7 +86,7 @@ void InitVm()
 	MapKernel();
 
 	/*map kmem*/
-	vm_unit = CreateVmUnit( VM_UNIT_TYPE_KERNEL, VM_UNIT_FLAG_PRIVATE, kernel_reserve_range.kmem_va_end - kernel_reserve_range.kmem_va_start);
+	vm_unit = CreateVmUnit(VM_UNIT_TYPE_KERNEL, VM_UNIT_FLAG_PRIVATE, kernel_reserve_range.kmem_va_end - kernel_reserve_range.kmem_va_start);
 	CreateVmDescriptor(&kernel_map, kernel_reserve_range.kmem_va_start, kernel_reserve_range.kmem_va_end, vm_unit, &protection_kernel_write);
 }
 
@@ -135,6 +134,8 @@ static ERROR_CODE MapKernel()
 		vd = CreateVmDescriptor(&kernel_map, kernel_reserve_range.string_va_start, kernel_reserve_range.string_va_end, vm_unit, &protection_kernel_write);
 		InitKernelDescriptorVtoP(vd, kernel_reserve_range.string_va_start, kernel_reserve_range.string_va_end, kernel_reserve_range.string_pa_start );	
 	}
+	
+	MapKernelPageTableEntries();
 
 	return ERROR_SUCCESS;
 }
@@ -519,6 +520,7 @@ retry:
 		if ( is_user_mode )
 		{
 			kprintf("User VA  %p not found - kill it\n", va);
+			PrintVmDescriptors(virtual_map);
 			/*\todo - kill the process*/
 			return ERROR_NOT_FOUND;
 		}
@@ -530,6 +532,7 @@ retry:
 			goto retry;
 		}
 		kprintf("Kernel memory fault - va = %p virtual_map = %p\n", va, virtual_map);
+		PrintVmDescriptors(virtual_map);
 		/*! if the faulting va is kernel va and the kernel map doesnt have descriptor panic*/
 		return ERROR_NOT_FOUND;	
 	}
@@ -547,7 +550,7 @@ retry:
 	else
 	{
 		/*if the page is backed by file, get it from file system*/
-		if( vd->unit->type == VM_UNIT_TYPE_FILE_MAPPED )
+		if ( vd->unit->type == VM_UNIT_TYPE_FILE_MAPPED )
 		{
 			UINT32 file_offset;
 			assert(vd->unit->vnode!=NULL);
@@ -573,8 +576,7 @@ retry:
 					panic("Kernel resource shortage");
 			}
 		}
-		vd->unit->page_count++;
-		vd->unit->vtop_array[vtop_index].vpage = (VIRTUAL_PAGE_PTR) ( ((VADDR)vp) | 1 );
+		SetVmUnitPage(vd->unit, vp, vtop_index);
 	}
 
 	CreatePhysicalMapping(virtual_map->physical_map, va, vp->physical_address, vd->protection);

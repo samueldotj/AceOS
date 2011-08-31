@@ -93,7 +93,7 @@ void cmain(unsigned long magic, MULTIBOOT_INFO_PTR mbi)
 	
 	//InitGraphicsConsole();
 		
-	//CreateTask("/boot/app/hello.exe", IMAGE_TYPE_ELF_FILE, TASK_CREATION_FLAG_NONE, NULL, "hello.exe", "TEST=TS");
+	CreateTask("/boot/app/hello.exe", IMAGE_TYPE_ELF_FILE, TASK_CREATION_FLAG_NONE, NULL, "hello.exe", "TEST=TS");
 	
 	CreateTask("/boot/app/bash", IMAGE_TYPE_ELF_FILE, TASK_CREATION_FLAG_NONE, NULL,  "bash -i", "ees=33");
 	

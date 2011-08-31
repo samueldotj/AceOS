@@ -35,6 +35,7 @@ typedef struct physical_memory_region
 	
 	VIRTUAL_PAGE_PTR	virtual_page_array;				/*! virtual address of virutal page array for this region*/
 	UINT32				virtual_page_count;				/*! total virtual pages in this region*/
+	UINT32				virtual_pages_used_for_booting;	/*! Pages used during booting - used for kernel page tables*/
 	
 	UINT32				type;							/*! type of this region - usable, reserved, etc*/
 	

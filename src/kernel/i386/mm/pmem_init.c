@@ -181,6 +181,7 @@ static UINT32 InitMemoryArea(MEMORY_AREA_PTR ma_pa, MULTIBOOT_MEMORY_MAP_PTR mem
 		pmr_pa->end_physical_address = pmr_pa->start_physical_address + memory_map_array[i].length_low;
 		pmr_pa->virtual_page_array = NULL; 
 		pmr_pa->virtual_page_count = 0;
+		pmr_pa->virtual_pages_used_for_booting = 0;
 		pmr_pa->type = memory_map_array[i].type;
 		
 		ma_pa->physical_memory_regions_count++;
@@ -259,7 +260,7 @@ static void * GetFreePhysicalPage()
 	MEMORY_AREA_PTR ma_pa;
 	ma_pa = (MEMORY_AREA_PTR)BOOT_ADDRESS( memory_areas );
 	
-	for(i=ma_pa->physical_memory_regions_count-1; i >= 0 ; i--)
+	for(i=ma_pa->physical_memory_regions_count-1; i >= 0 ;i--)
 	{
 		PHYSICAL_MEMORY_REGION_PTR pmr_pa;
 		void * pa;
@@ -268,13 +269,11 @@ static void * GetFreePhysicalPage()
 		/*if the region has enough free space allocate and return*/
 		if ( pmr_pa->type == PMEM_TYPE_AVAILABLE && (pmr_pa->end_physical_address - pmr_pa->start_physical_address) > PAGE_SIZE )
 		{
-			/*get the last page*/
-			pa = (void *)(pmr_pa->end_physical_address-PAGE_SIZE);
-			
-			/*adjust the region*/
-			pmr_pa->end_physical_address = (UINT32)pa;
-			pmr_pa->virtual_page_count--;
-			
+			/*get the last free page*/
+			pa = (void *)(pmr_pa->end_physical_address - PAGE_SIZE - (pmr_pa->virtual_pages_used_for_booting * PAGE_SIZE));
+		
+			pmr_pa->virtual_pages_used_for_booting++;	
+
 			memset(pa, 0, PAGE_SIZE);
 			
 			return pa;
@@ -282,6 +281,7 @@ static void * GetFreePhysicalPage()
 	}
 	/*panic if we dont find a free physical page- however we cant call panic() because we havent boot yet so just halt*/
 	asm("cli;hlt");
+	
 	return NULL;
 }
 
@@ -487,7 +487,7 @@ void InitPhysicalMemoryManagerPhaseII()
 			
 			if ( pmr->type == PMEM_TYPE_AVAILABLE )
 			{
-				vm_data.total_memory_pages += InitVirtualPageArray(pmr->virtual_page_array, pmr->virtual_page_count, pmr->start_physical_address);
+				vm_data.total_memory_pages += InitVirtualPageArray(pmr->virtual_page_array, pmr->virtual_page_count, pmr->virtual_page_count - pmr->virtual_pages_used_for_booting, pmr->start_physical_address);
 			}
 		}
 	}

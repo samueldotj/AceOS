@@ -39,7 +39,7 @@ static COMPARISION_RESULT free_range_compare_fn(BINARY_TREE_PTR node1, BINARY_TR
 	\param start_physical_address - starting physical address of the first virtual page
 	\return Returns how many pages added to virtual page array
 */
-UINT32 InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 start_physical_address)
+UINT32 InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 free_count, UINT32 start_physical_address)
 {
 	int i;
 	AVL_TREE_PTR * vp_current_free_tree, * vp_prev_free_tree = NULL;
@@ -55,7 +55,7 @@ UINT32 InitVirtualPageArray(VIRTUAL_PAGE_PTR vpa, UINT32 page_count, UINT32 star
 		}
 	}
 	/*Adding a page to Tree/list involves operations on other pages also, so do this after initializing a page*/
-	for(i=0; i<page_count ;i++)
+	for(i=0; i<free_count ;i++)
 	{
 		vp_current_free_tree = GetVirtualPageFreeTreeFromPage( &vpa[i] );
 		AddVirtualPageToVmFreeTree( &vpa[i], vp_prev_free_tree == vp_current_free_tree);
@@ -463,8 +463,9 @@ retry:
 			{
 				UINT32 index;
 				index = (physical_address - pmr->start_physical_address)/PAGE_SIZE;
-				assert ( index <= pmr->virtual_page_count );
-				return &pmr->virtual_page_array[index];
+				if ( index <= pmr->virtual_page_count ) {
+					return &pmr->virtual_page_array[index];
+				}
 			}
 		}
 	}

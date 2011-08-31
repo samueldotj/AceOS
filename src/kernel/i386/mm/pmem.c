@@ -79,12 +79,28 @@ PHYSICAL_MAP_PTR CreatePhysicalMap(VIRTUAL_MAP_PTR vmap)
 
 void MapKernelPageTableEntries()
 {
+	VM_DESCRIPTOR_PTR vd;
+	VIRTUAL_PAGE_PTR vp;
 	UINT32 size;
+	int i;
 	
-	size = PAGE_SIZE * 1024;
-	/*map page tables*/
+	size = PAGE_SIZE * KB;
+	/* map page tables */
 	kernel_pte_vm_unit = CreateVmUnit(VM_UNIT_TYPE_PTE, VM_UNIT_FLAG_PRIVATE, size);
-	CreateVmDescriptor(&kernel_map, PT_SELF_MAP_ADDRESS, PT_SELF_MAP_ADDRESS + size, kernel_pte_vm_unit, &protection_kernel_write);
+	vd = CreateVmDescriptor(&kernel_map, PT_SELF_MAP_ADDRESS, PT_SELF_MAP_ADDRESS + size, kernel_pte_vm_unit, &protection_kernel_write);
+	assert(vd != NULL);
+	
+	/* Map all the PT pages created during boot time. */
+	for(i=0;i<4;i++) {
+		PAGE_DIRECTORY_ENTRY pde;
+		
+		pde = kernel_page_directory[PT_SELF_MAP_INDEX + i];
+		if (pde.present) {
+			vp = PhysicalToVirtualPage(PFN_TO_PA(pde.page_table_pfn));
+			assert(vp != NULL);
+			SetVmUnitPage(vd->unit, vp, i);
+		}
+	}
 }
 
 /*! Fills page table entry for a given VA. This function makes the corresponding VA to point to PA by filling PTEs.
@@ -233,16 +249,6 @@ ERROR_CODE RemovePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va)
 	return ERROR_SUCCESS;
 }
 
-/*! allocates a page for page table use*/
-static UINT32 AllocatePageTable()
-{
-	VIRTUAL_PAGE_PTR vp;
-	
-	vp = AllocateVirtualPages(1, VIRTUAL_PAGE_RANGE_TYPE_NORMAL);
-
-	assert ( vp != NULL );
-	return vp->physical_address;
-}
 /*! creates page table for a given VA.
 	\param pmap - physical map for which va mapping should be created
 	\param va - virtual address
@@ -273,8 +279,11 @@ static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
 	vp = AllocateVirtualPages(1, VIRTUAL_PAGE_RANGE_TYPE_NORMAL);
 	assert ( vp != NULL );
 	vd = GetVmDescriptor(pmap->virtual_map, va, 1);
-	vtop_index = ((va - vd->start) / PAGE_SIZE) + (vd->offset_in_unit/PAGE_SIZE);
-	SetVmUnitPage(vd->unit, vp, vtop_index);
+	if ( vd )
+	{
+		vtop_index = ((va - vd->start) / PAGE_SIZE) + (vd->offset_in_unit/PAGE_SIZE);
+		SetVmUnitPage(vd->unit, vp, vtop_index);
+	}
 	
 	pa = vp->physical_address;
 		
@@ -287,6 +296,8 @@ static void CreatePageTable(PHYSICAL_MAP_PTR pmap, UINT32 va )
 	memset( (void *) page_table_va, 0, PAGE_SIZE);
 	
 	asm volatile("invlpg (%%eax)" : : "a" (page_table_va));
+	
+	/* \todo - Initiate IPI to other CPUs to start flush TLB */
 }
 /*! Reports the given virtual address range's status - readable/writeable or mapping not exists
 	\param va - virtual address
@@ -368,4 +379,3 @@ int PhysicalMapCacheDestructor( void *buffer)
 	PhysicalMapCacheConstructor(buffer);
 	return 0;
 }
-

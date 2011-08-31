@@ -50,6 +50,7 @@ void InitVm()
 	vm_data.total_free_pages = 0;
 
 	/*complete physical memory initialization*/
+	kernel_map.physical_map = &kernel_physical_map;
 	InitPhysicalMemoryManagerPhaseII();
 	kprintf("Total memory: %d KB (PAGE_SIZE %d)\n", (vm_data.total_memory_pages * PAGE_SIZE) / (1024), PAGE_SIZE );
 	
@@ -100,7 +101,6 @@ static ERROR_CODE MapKernel()
 	VM_UNIT_PTR vm_unit;
 	VM_DESCRIPTOR_PTR vd;
 	
-	kernel_map.physical_map = &kernel_physical_map;
 	kernel_map.start = kernel_reserve_range.code_va_start;
 	kernel_map.end = kernel_reserve_range.kmem_va_end;
 	

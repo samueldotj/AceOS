@@ -45,7 +45,7 @@ REGS_V86_PTR CallBiosIsr(BYTE interrupt, REGS_V86_PTR input)
 	program[0] = interrupt<<8 | 0xCD;		
 	program[1] = 0x13<<8 | 0xCD;
 	
-	AllocateVirtualMemory( GetCurrentVirtualMap(), &va, 0, PAGE_SIZE, PROT_READ|PROT_WRITE, 0, NULL );
+	AllocateVirtualMemory( GetCurrentVirtualMap(), &va, 0, PAGE_SIZE, PROT_READ|PROT_WRITE, VM_UNIT_FLAG_PRIVATE, NULL );
 	memmove( (void *)va,(void *) program, sizeof(program)  );
 	task = CreateTask((char *)va, IMAGE_TYPE_BIN_PROGRAM, TASK_CREATION_FLAG_NO_THREAD, &entry_point, NULL, NULL);
 	if ( task == NULL )

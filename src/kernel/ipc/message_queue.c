@@ -335,7 +335,7 @@ static inline ERROR_CODE ArgsToMessageBuffer(TASK_PTR target_task, MESSAGE_BUFFE
 			if(IPR_ARGUMENT_ADDRESS == NULL || !IS_PAGE_ALIGNED((long)IPR_ARGUMENT_ADDRESS) || IPC_ARGUMENT_LENGTH <= 0 || !IS_PAGE_ALIGNED(IPC_ARGUMENT_LENGTH))
 				return ERROR_INVALID_PARAMETER;
 			copy_va = (VADDR)IPR_ARGUMENT_ADDRESS;
-			ret = CopyVirtualAddressRange( GetCurrentVirtualMap(), (VADDR)IPR_ARGUMENT_ADDRESS, IPC_ARGUMENT_LENGTH, target_task->virtual_map, &copy_va, IPC_ARGUMENT_LENGTH, PROT_READ );
+			ret = CopyVirtualAddressRange(GetCurrentVirtualMap(), (VADDR)IPR_ARGUMENT_ADDRESS, IPC_ARGUMENT_LENGTH, target_task->virtual_map, &copy_va, IPC_ARGUMENT_LENGTH, PROT_READ, VM_UNIT_FLAG_PRIVATE);
 			if( ret != ERROR_SUCCESS )
 				return ret;
 			

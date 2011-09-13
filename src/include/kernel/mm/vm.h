@@ -50,11 +50,11 @@
 
 typedef enum 
 {
-	VM_UNIT_TYPE_KERNEL=1,				/*kernel mapping*/
-	VM_UNIT_TYPE_ANONYMOUS,				
-	VM_UNIT_TYPE_FILE_MAPPED,
-	VM_UNIT_TYPE_STACK,
-	VM_UNIT_TYPE_PTE
+	VM_UNIT_TYPE_KERNEL=1,				/*kernel wired memory*/
+	VM_UNIT_TYPE_ANONYMOUS,				/*zero filled initially and backed by swap*/				
+	VM_UNIT_TYPE_FILE_MAPPED,			/*loaded from file and backed by file*/
+	VM_UNIT_TYPE_STACK,					/*zero filled initially and backed by swap*/
+	VM_UNIT_TYPE_PTE					/*UNIT containing all pages of page tables itself*/
 }VM_UNIT_TYPE;
 
 typedef enum
@@ -130,14 +130,14 @@ struct vm_unit
 	VM_UNIT_TYPE		type;				/*! type - text, code, heap...*/
 	VM_UNIT_FLAG		flag;				/*! flag - shared, private....*/
 		
-	UINT32				size;				/*! total size of this unit*/
+	size_t				size;				/*! total size of this unit*/
 	
 	SPIN_LOCK			vtop_lock;			/*! lock to protect array and page_count*/
 	VM_VTOP_PTR			vtop_array;			/*! pointer to the virtual page array*/
 	int					page_count;			/*! total pages in memory*/
 	
 	VNODE_PTR			vnode;				/*! pointer to vnode, if this unit backed by a file/swap*/
-	UINT32				offset;				/*! offset in the file*/
+	offset_t			offset;				/*! offset in the file*/
 	LIST				units_in_vnode_list;/*! all the vmunits corresponds to a vm unit are linked through this list*/
 };
 
@@ -210,20 +210,24 @@ void * FindFreeVmRange(VIRTUAL_MAP_PTR vmap, VADDR start, UINT32 size, UINT32 op
 void PrintVmDescriptors(VIRTUAL_MAP_PTR vmap);
 
 VM_UNIT_PTR CreateVmUnit(VM_UNIT_TYPE type, VM_UNIT_FLAG flag, UINT32 size);
+VM_UNIT_PTR CopyVmUnit(VM_UNIT_PTR unit, VADDR start, VADDR end);
 void SetVmUnitPage(VM_UNIT_PTR unit, VIRTUAL_PAGE_PTR vp, UINT32 vtop_index);
 
 ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR preferred_start, UINT32 size, UINT32 protection, UINT32 flags, VM_UNIT_PTR unit);
-ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32 flags);
+ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, size_t size, UINT32 flags);
 ERROR_CODE MapViewOfFile(int file_id, VADDR * va, UINT32 protection, UINT32 file_offset, UINT32 size, UINT32 preferred_start, UINT32 flags);
+ERROR_CODE ReadFileIntoAddressSpace(int file_id, offset_t offset, size_t size, VIRTUAL_MAP_PTR virtual_map, VADDR *preferred_va, size_t dest_size, UINT32 protection, UINT32 flags);
 
-ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, UINT32 src_size, VIRTUAL_MAP_PTR dest_vmap, VADDR *dest_preferred_va, UINT32 dest_size, UINT32 protection);
+ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, UINT32 src_size, VIRTUAL_MAP_PTR dest_vmap, VADDR *dest_preferred_va, UINT32 dest_size, UINT32 protection, UINT32 flags);
 
 VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size, VADDR preferred_va, UINT32 protection);
+
+void AddVmunitToVnodeList(VNODE_PTR vnode, VM_UNIT_PTR unit, offset_t offset);
 
 ERROR_CODE CopyFromUserSpace(void * user_va, void * kernel_va, size_t length);
 ERROR_CODE CopyToUserSpace(void * user_va, void * kernel_va, size_t length);
 
-VIRTUAL_MAP_PTR GetCurrentVirtualMap();
+inline VIRTUAL_MAP_PTR GetCurrentVirtualMap();
 ERROR_CODE MemoryFaultHandler(UINT32 va, int is_user_mode, int access_type);
 
 int VirtualMapCacheConstructor(void * buffer);

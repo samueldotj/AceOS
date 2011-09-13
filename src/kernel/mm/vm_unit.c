@@ -6,6 +6,8 @@
 #include <ds/avl_tree.h>
 #include <kernel/mm/vm.h>
 #include <kernel/mm/kmem.h>
+#include <kernel/mm/pmem.h>
+#include <kernel/debug.h>
 
 /*! Initializes the given VM unit
 	\param unit - pointer to vm unit
@@ -76,9 +78,45 @@ void FreeVmUnit(VM_UNIT_PTR unit)
 
 void SetVmUnitPage(VM_UNIT_PTR unit, VIRTUAL_PAGE_PTR vp, UINT32 vtop_index)
 {
-	assert( unit != NULL );
-	assert( vtop_index <= unit->size / PAGE_SIZE );
+	assert(unit != NULL);
+	assert(vtop_index <= (unit->size / PAGE_SIZE));
+	assert(vp != NULL);
 	
 	unit->page_count++;
 	unit->vtop_array[vtop_index].vpage = (VIRTUAL_PAGE_PTR) ( ((VADDR)vp) | 1 );
+}
+
+VM_UNIT_PTR CopyVmUnit(VM_UNIT_PTR unit, VADDR start, VADDR end)
+{
+	VM_UNIT_PTR new_unit;
+	UINT32 new_size;
+	int i, total_pages, old_start_index;
+	
+	new_size = end - start;
+	
+	assert(unit != NULL);
+	assert(start < unit->size && IS_PAGE_ALIGNED(start));
+	assert(end <= unit->size && IS_PAGE_ALIGNED(end));
+	assert(new_size != 0 && new_size <= unit->size);
+	
+	new_unit = CreateVmUnit(unit->type, 0, new_size);
+	
+	total_pages = new_size / PAGE_SIZE;
+	old_start_index = start/PAGE_SIZE;
+	for(i = 0; i < total_pages; i++)
+	{
+		new_unit->vtop_array[i].vpage = unit->vtop_array[old_start_index+i].vpage;
+		if (new_unit->vtop_array[i].in_memory)
+		{
+			new_unit->page_count++;
+			MarkPageForCOW( (VIRTUAL_PAGE_PTR)(((VADDR)new_unit->vtop_array[i].vpage) & ~1));
+		}
+	}
+	if (new_unit->vnode)
+	{
+		AddVmunitToVnodeList(new_unit->vnode, new_unit, unit->offset + start);
+	}
+	
+	return new_unit;
+	
 }

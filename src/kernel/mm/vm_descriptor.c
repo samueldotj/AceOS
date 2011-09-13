@@ -73,12 +73,14 @@ VM_DESCRIPTOR_PTR CreateVmDescriptor(VIRTUAL_MAP_PTR vmap, VADDR start, VADDR en
 {
 	VM_DESCRIPTOR_PTR vd;
 	
+	assert( PAGE_ALIGN_UP(end-start) <= PAGE_ALIGN_UP(vm_unit->size) );
+	
 	SpinLock(&vmap->lock);
 	vmap->reference_count++;
 	SpinUnlock(&vmap->lock);
 	
 	start = PAGE_ALIGN(start);
-	end = PAGE_ALIGN_UP(end)-1;
+	//end = PAGE_ALIGN_UP(end)-1;
 	
 	vd = (VM_DESCRIPTOR_PTR)kmalloc(sizeof(VM_DESCRIPTOR), KMEM_NO_FAIL);
 	//vd = AllocateBuffer( &vm_descriptor_cache, 0 );
@@ -203,7 +205,7 @@ static int enumerate_descriptor_callback(AVL_TREE_PTR node, void * arg)
 	size = PAGE_ALIGN_UP(a->size)-1;
 	a->previous_descriptor_va_end = PAGE_ALIGN_UP(a->previous_descriptor_va_end);
 	/*check whether the hole has "preferred" start and required size*/
-	if ( RANGE_WITH_IN_RANGE( a->previous_descriptor_va_end, descriptor->start, va_start, va_end ) )
+	if ( RANGE_WITH_IN_RANGE( PAGE_ALIGN_UP(a->previous_descriptor_va_end), PAGE_ALIGN(descriptor->start), va_start, va_end ) )
 	{
 		/*update the result with correct address*/
 		a->result = va_start;
@@ -252,10 +254,10 @@ static COMPARISION_RESULT compare_vm_descriptor_with_va(struct binary_tree * nod
 	d1 = STRUCT_ADDRESS_FROM_MEMBER(node1, VM_DESCRIPTOR, tree_node.bintree);
 	d2 = STRUCT_ADDRESS_FROM_MEMBER(node2, VM_DESCRIPTOR, tree_node.bintree);
 	
-	if( d1->start <= d2->start && d1->end >= d2->end )
+	if( PAGE_ALIGN(d1->start) <= PAGE_ALIGN(d2->start) && PAGE_ALIGN_UP(d1->end)-1 >= d2->end )
 		return EQUAL;
 
-	if ( d1->start > d2->start )
+	if ( PAGE_ALIGN(d1->start) > PAGE_ALIGN(d2->start) )
 		return LESS_THAN;
 	else
 		return GREATER_THAN;

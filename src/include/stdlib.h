@@ -10,6 +10,11 @@
   #define _SIZE_T_DEFINED
 #endif
 
+#ifndef _OFFSET_T_DEFINED
+  typedef unsigned int offset_t;
+  #define _SIZE_T_DEFINED
+#endif
+
 #ifndef NULL
     #define NULL 0
 #endif

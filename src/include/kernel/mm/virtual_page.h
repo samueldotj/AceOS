@@ -29,8 +29,10 @@ struct virtual_page
 				busy:1,				/*! if set page is busy due to IO*/
 				error:1,			/*! if set a page error occurred during last IO*/
 				reserved;
+#ifdef DOIT_LATER
 	union
 	{
+#endif
 		/*the following structure is used when the page in FREE state*/
 		struct
 		{
@@ -38,13 +40,15 @@ struct virtual_page
 			AVL_TREE_D			free_tree;		/*! this is starting of a free physical range*/
 			UINT32				free_size;  	/*! size of the free range in page units*/
 		};
+		
 		/*the following structure is used when the page is in USE state*/
 		struct
 		{
 			LIST				lru_list;			/*! LRU List - active/inactive link*/
- 
+
 			VA_MAP_PTR			va_map_list;		/*! list of VAs associated with this page*/
 		};
+		
 		/*the following structure is used when the page is controlled by ubc*/
 		struct
 		{
@@ -54,8 +58,10 @@ struct virtual_page
 			BYTE				loaded:1,			/*! set to 1 if the page is loaded from file*/
 								modified:1;			/*! set to 1 if the page is modified after load*/
 		}ubc_info;
+#if DOIT_LATER
 	};
-
+#endif
+	
 	UINT16		copy_on_write;		/*! No of processes sharing this page*/
 	UINT16 		wire_count;			/*! Total wire count*/
 	

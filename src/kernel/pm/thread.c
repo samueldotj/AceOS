@@ -64,14 +64,14 @@ THREAD_CONTAINER_PTR CreateThread(TASK_PTR task, void * start_address, SCHEDULER
 	else
 	{
 		/*create user stack*/
-		if ( AllocateVirtualMemory( task->virtual_map, &user_stack, 0, USER_STACK_SIZE, PROT_WRITE|PROT_READ, 0, NULL ) != ERROR_SUCCESS )
+		if ( AllocateVirtualMemory( task->virtual_map, &user_stack, 0, USER_STACK_SIZE, PROT_WRITE|PROT_READ, VM_UNIT_FLAG_PRIVATE, NULL ) != ERROR_SUCCESS )
 		{
 			KTRACE("User stack allocation failed");
 			return NULL;
 		}
 		
 		/*allocate a page for scratch*/
-		AllocateVirtualMemory( task->virtual_map, (VADDR *)&thread_container->thread.user_scratch, 0, PAGE_SIZE, PROT_READ|PROT_WRITE, 0, NULL );
+		AllocateVirtualMemory( task->virtual_map, (VADDR *)&thread_container->thread.user_scratch, 0, PAGE_SIZE, PROT_READ|PROT_WRITE, VM_UNIT_FLAG_PRIVATE, NULL );
 		/*should we need assert here?*/
 		assert( thread_container->thread.user_scratch != NULL );
 	}

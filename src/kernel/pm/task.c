@@ -77,26 +77,26 @@ TASK_PTR CreateTask(char * exe_file_path, IMAGE_TYPE image_type, UINT32 creation
 
 	if( image_type == IMAGE_TYPE_ELF_FILE  || image_type == IMAGE_TYPE_BIN_FILE)
 	{
-		/*map the executable in kernel address space*/
-		err = OpenFile(&kernel_task, exe_file_path, VFS_ACCESS_TYPE_READ, OPEN_EXISTING, &file_id);
-		if ( err != ERROR_SUCCESS )
-			goto error;
-		err = GetFileSize(&kernel_task, file_id, &file_size);
-		if ( err != ERROR_SUCCESS )
-			goto error;
-		file_size = PAGE_ALIGN_UP(file_size);
-		err = MapViewOfFile(file_id, &start_address, PROT_READ, 0, file_size, 0, 0);
-		if ( err != ERROR_SUCCESS )
-			goto error;
 		/*load the image into address space*/
 		switch( image_type )
 		{
 			case IMAGE_TYPE_ELF_FILE:
-				err = LoadElfImage( (ELF_HEADER_PTR)start_address, task->virtual_map, NULL, (void *)&main_entry );
+				err = LoadElfImage(exe_file_path , NULL, (void *)&main_entry);
 				break;
 			case IMAGE_TYPE_BIN_FILE:
+				/*map the executable in kernel address space*/
+				err = OpenFile(GetCurrentTask(), exe_file_path, VFS_ACCESS_TYPE_READ, OPEN_EXISTING, &file_id);
+				if ( err != ERROR_SUCCESS )
+					goto error;
+				err = GetFileSize(GetCurrentTask(), file_id, &file_size);
+				if ( err != ERROR_SUCCESS )
+					goto error;
+				file_size = PAGE_ALIGN_UP(file_size);
+				err = MapViewOfFile(file_id, &start_address, PROT_READ, 0, file_size, 0, 0);
+				if ( err != ERROR_SUCCESS )
+					goto error;
 				main_entry = (void *)(PAGE_SIZE*2);
-				err = CopyVirtualAddressRange( GetCurrentVirtualMap(), start_address, file_size, task->virtual_map, (VADDR *)&main_entry, file_size, PROT_READ | PROT_WRITE );
+				err = CopyVirtualAddressRange( GetCurrentVirtualMap(), start_address, file_size, task->virtual_map, (VADDR *)&main_entry, file_size, PROT_READ | PROT_WRITE, VM_UNIT_FLAG_PRIVATE);
 				break;
 			case IMAGE_TYPE_BIN_PROGRAM:
 				/*just to avoid gcc warning - this case wont come because it is filtered in the "if" condition*/
@@ -109,7 +109,7 @@ TASK_PTR CreateTask(char * exe_file_path, IMAGE_TYPE image_type, UINT32 creation
 	else if ( image_type == IMAGE_TYPE_BIN_PROGRAM )
 	{
 		main_entry = (void *)(PAGE_SIZE*20);
-		err = CopyVirtualAddressRange( GetCurrentVirtualMap(), (VADDR)exe_file_path, PAGE_SIZE, task->virtual_map, (VADDR *)&main_entry, PAGE_SIZE, PROT_READ | PROT_WRITE );
+		err = CopyVirtualAddressRange( GetCurrentVirtualMap(), (VADDR)exe_file_path, PAGE_SIZE, task->virtual_map, (VADDR *)&main_entry, PAGE_SIZE, PROT_READ | PROT_WRITE, VM_UNIT_FLAG_PRIVATE);
 	}
 	else
 		panic("Invalid image type");
@@ -121,7 +121,7 @@ TASK_PTR CreateTask(char * exe_file_path, IMAGE_TYPE image_type, UINT32 creation
 	/*create main thread if needed*/
 	if ( creation_flag != TASK_CREATION_FLAG_NO_THREAD )
 	{
-		CreateThread( task, main_entry, SCHED_PRI_MID, FALSE, NULL);
+		CreateThread(task, main_entry, SCHED_PRI_MID, FALSE, NULL);
 	}
 	
 	/*upate thread entry point*/

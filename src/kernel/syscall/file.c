@@ -39,6 +39,9 @@ UINT32 syscall_open(SYSTEM_CALL_ARGS_PTR sys_call_args, UINT32 *retval)
 	
 	KTRACE("%s %x\n", path, oflag);
 	ret = OpenFile( GetCurrentTask(), path, access, flag, (int *)retval );
+	if (strcmp(path, "/device/console")== 0 )
+		return 0;
+	
 	KTRACE("%s\n", ERROR_CODE_AS_STRING(ret));
 	if ( ret == ERROR_SUCCESS )
 		return 0;

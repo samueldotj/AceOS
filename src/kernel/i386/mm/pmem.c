@@ -47,7 +47,7 @@ PHYSICAL_MAP_PTR CreatePhysicalMap(VIRTUAL_MAP_PTR vmap)
 		
 	pmap->virtual_map = vmap;
 	/*allocate page directory from kernel map*/
-	if ( AllocateVirtualMemory(&kernel_map, (VADDR*) &pmap->page_directory, 0, PAGE_SIZE, PROT_READ|PROT_WRITE, 0, NULL) != ERROR_SUCCESS )
+	if ( AllocateVirtualMemory(&kernel_map, (VADDR*) &pmap->page_directory, 0, PAGE_SIZE, PROT_READ|PROT_WRITE, VM_UNIT_FLAG_PRIVATE, NULL) != ERROR_SUCCESS )
 	{
 		FreeBuffer( pmap, &physical_map_cache );
 		return NULL;
@@ -136,7 +136,19 @@ ERROR_CODE CreatePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 pa, UI
 		/*if somebody else created this mapping return*/
 		if ( mapped_pte->page_pfn == pfn )
 		{
-			/*! \todo - handle protection change here*/
+			if ( protection & PROT_WRITE )
+			{
+				/*! \todo - an assert for write == 0 is requried here ?*/
+				mapped_pte->write = 1;
+				
+			}
+			else
+			{
+				/*! \todo - an assert for write == 1 is requried here ?*/
+				mapped_pte->write = 0;
+			}
+
+			asm volatile("invlpg (%%eax)" : : "a" (va));
 			goto finish;
 		}
 		else
@@ -363,6 +375,33 @@ VA_STATUS TranslatePaFromVa(VADDR va, VADDR * pa)
 	return VA_READABLE;
 }
 
+ERROR_CODE MarkPageForCOW(VIRTUAL_PAGE_PTR vp)
+{
+	LIST_PTR map_list;
+	
+	KTRACE("vp %p\n", vp);
+	assert(vp);
+	
+	vp->copy_on_write++;
+	
+	if (vp->va_map_list != NULL)
+	{
+		LIST_FOR_EACH(map_list, &vp->va_map_list->list)
+		{
+			VA_MAP_PTR va_map;
+			
+			va_map = STRUCT_ADDRESS_FROM_MEMBER(map_list, VA_MAP, list);
+			/* Mark the mapping as read-only*/
+			//CreatePhysicalMapping(va_map->physical_map, va_map->va, vp->physical_address, PROT_READ);
+			if (va_map->physical_map == GetCurrentVirtualMap()->physical_map)
+			{
+				CreatePhysicalMapping(va_map->physical_map, va_map->va, vp->physical_address, PROT_READ);
+			}
+		}
+	}
+		
+	return ERROR_SUCCESS;
+}
 
 /*! Internal function used to initialize the physical map structure*/
 int PhysicalMapCacheConstructor( void *buffer)

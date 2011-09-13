@@ -1554,7 +1554,7 @@ extern UINT32 kernel_symbol_table_size;
 extern char * kernel_string_table;
 extern UINT32 kernel_string_table_size;
 
-ERROR_CODE LoadElfImage(ELF_HEADER_PTR file_header, VIRTUAL_MAP_PTR virtual_map, char * start_symbol_name, VADDR * start_entry);
+ERROR_CODE LoadElfImage(char *elf_file_path, char * start_symbol_name, VADDR * start_entry);
 
 char * FindKernelSymbolByAddress(VADDR address, int * offset);
 

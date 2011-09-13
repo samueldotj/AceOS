@@ -20,9 +20,6 @@ ERROR_CODE FindDriverFile(char * device_id, char * buffer, int buf_length);
 DRIVER_OBJECT_PTR LoadDriver(char * device_id)
 {
 	char driver_file_name[MAX_FILE_NAME], driver_file_path[MAX_FILE_PATH]="/boot/drivers/";
-	VADDR driver_start_address;
-	int file_id;
-	long file_size;
 	DRIVER_OBJECT_PTR driver_object;
 	ERROR_CODE (*DriverEntry)(DRIVER_OBJECT_PTR pDriverObject);
 	ERROR_CODE err;
@@ -52,17 +49,7 @@ DRIVER_OBJECT_PTR LoadDriver(char * device_id)
 	strcat( driver_file_path, driver_file_name );
 	kprintf("Loading %s: ", driver_file_path);
 	
-	err = OpenFile(&kernel_task, driver_file_path, VFS_ACCESS_TYPE_READ, OPEN_EXISTING, &file_id);
-	if ( err != ERROR_SUCCESS )
-		goto error;
-	err = GetFileSize(&kernel_task, file_id, &file_size);
-	if ( err != ERROR_SUCCESS )
-		goto error;
-	file_size = PAGE_ALIGN_UP(file_size);
-	err = MapViewOfFile(file_id, &driver_start_address, PROT_READ, 0, file_size, 0, 0);
-	if ( err != ERROR_SUCCESS )
-		goto error;
-	err = LoadElfImage( (void *) driver_start_address, &kernel_map, "DriverEntry", (void *)&DriverEntry );
+	err = LoadElfImage( driver_file_path, "DriverEntry", (void *)&DriverEntry );
 	if ( err != ERROR_SUCCESS || DriverEntry == NULL )
 		goto error;
 	driver_object = AllocateBuffer( &driver_object_cache, CACHE_ALLOC_SLEEP );

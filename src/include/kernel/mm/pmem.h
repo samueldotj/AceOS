@@ -73,6 +73,8 @@ ERROR_CODE RemovePhysicalMapping(PHYSICAL_MAP_PTR pmap, UINT32 va);
 
 ERROR_CODE MapVirtualAddressRange(PHYSICAL_MAP_PTR pmap, UINT32 va, UINT32 size, UINT32 protection);
 
+ERROR_CODE MarkPageForCOW(VIRTUAL_PAGE_PTR vp);
+
 VA_STATUS GetVirtualRangeStatus(VADDR va, UINT32 size);
 VA_STATUS TranslatePaFromVa(VADDR va, VADDR * pa);
 

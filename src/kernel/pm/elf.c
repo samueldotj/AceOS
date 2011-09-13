@@ -7,7 +7,7 @@
 #include <kernel/pm/elf.h>
 
 static ERROR_CODE LoadElfSegments(ELF_HEADER_PTR file_header, char * string_table, VIRTUAL_MAP_PTR virtual_map);
-static ERROR_CODE LoadElfSegmentIntoMap(ELF_PROGRAM_HEADER_PTR program_header, char *segment_start, VIRTUAL_MAP_PTR virtual_map);
+static ERROR_CODE LoadElfSegmentIntoMap(ELF_PROGRAM_HEADER_PTR program_header, char * segment_start, VIRTUAL_MAP_PTR virtual_map);
 static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_table, VIRTUAL_MAP_PTR virtual_map, VADDR * section_loaded_va);
 static ERROR_CODE LoadElfSectionIntoMap(ELF_SECTION_HEADER_PTR section_header, VADDR section_data_offset, VIRTUAL_MAP_PTR virtual_map, VADDR * section_loaded_va);
 static ERROR_CODE RelocateSection(ELF_SECTION_HEADER_PTR section_header, ELF_SYMBOL_PTR symbol_table, int relocation_section_index, char * string_table, VADDR relocation_entries, VADDR * section_loaded_va);
@@ -20,42 +20,78 @@ static void UpdateElfCommonSectionSymbols(ELF_SYMBOL_PTR symbol_table, UINT32 sy
 static void RelocateI386Field(ELF32_RELOCATION_PTR rp, VADDR symbol_value, VADDR base_va, int type);
 #endif
 
-/*! Loads an ELF image into the given virtual map
+/*! Loads an ELF image into the current virtual map
 	\param file_header - virtual address where the elf file resides
+	\param file_id - elf file id
 	\param virtual_map - the elf sections will be loaded into this virtual map
 	\param start_symbol_name - program's first function to start
 	\param start_entry - if start_symbol_name is not null then the symbol will be searched in the symbol table and if found its loaded VA will be updated here.
 	
 	This function is just a wrapper LoadElfSections(). It just performs some sanity checks and give calls LoadElfSections()
 */
-ERROR_CODE LoadElfImage(ELF_HEADER_PTR file_header, VIRTUAL_MAP_PTR virtual_map, char * start_symbol_name, VADDR * start_entry)
+ERROR_CODE LoadElfImage(char *elf_file_path, char * start_symbol_name, VADDR * start_entry)
 {
 	ELF_SECTION_HEADER_PTR string_section_header = NULL;
 	char * string_table = NULL;
 	VADDR * section_loaded_va = NULL;			/*holds array of virtual addresses, where the sections are loaded into the virtual map*/
+	long file_size;
+	int i, file_id;
+	ELF_HEADER_PTR file_header = NULL;
+	VIRTUAL_MAP_PTR virtual_map;
 	ERROR_CODE err = ERROR_NOT_SUPPORTED;
-	int i;
 	
+	virtual_map = GetCurrentVirtualMap();
+	
+	err = OpenFile(GetCurrentTask(), elf_file_path, VFS_ACCESS_TYPE_READ, OPEN_EXISTING, &file_id);
+	if ( err != ERROR_SUCCESS )
+	{
+		return err;
+	}
+	err = GetFileSize(&kernel_task, file_id, &file_size);
+	if ( err != ERROR_SUCCESS )
+	{
+		goto done;
+	}
+		
+	file_size = PAGE_ALIGN_UP(file_size);
+	err = MapViewOfFile(file_id, (void *)&file_header, PROT_READ, 0, file_size, 0, 0);
+	if ( err != ERROR_SUCCESS )
+	{
+		goto done;
+	}
+		
 	assert(file_header != NULL);
 	
 	/*check for correct file type and machine type*/
 	if( file_header->e_ident[EI_MAGIC0] != ELFMAGIC0 || file_header->e_ident[EI_MAGIC1] != ELFMAGIC1 || 
 		file_header->e_ident[EI_MAGIC2] != ELFMAGIC2 || file_header->e_ident[EI_MAGIC3] != ELFMAGIC3 )
-		return ERROR_INVALID_FORMAT;	
+	{
+		err = ERROR_INVALID_FORMAT;
+		goto done;
+	}
 		
 #if ARCH == i386
 	if( file_header->e_ident[EI_CLASS] != ELFCLASS32 || file_header->e_ident[EI_DATA] != ELFDATA2LSB )
-		return ERROR_INVALID_FORMAT;
+	{
+		err = ERROR_INVALID_FORMAT;
+		goto done;
+	}
 #endif
 	if ( file_header->e_type == ET_NONE )
-		return ERROR_NOT_SUPPORTED;
+	{
+		err = ERROR_NOT_SUPPORTED;
+		goto done;
+	}
 		
 	/*  Allocate memory to hold the virtual addresses where sections will be loaded.
 		The last entry is used for common section(SHN_COMMON).
 	*/
 	section_loaded_va  = (VADDR *) kmalloc( sizeof(VADDR) * file_header->e_shnum+1, 0 );
 	if ( section_loaded_va  == NULL )
-		return ERROR_NOT_ENOUGH_MEMORY;
+	{
+		err = ERROR_NOT_ENOUGH_MEMORY;
+		goto done;
+	}
 	for(i=0; i<=file_header->e_shnum; i++)
 		section_loaded_va[i] = NULL;
 
@@ -65,13 +101,16 @@ ERROR_CODE LoadElfImage(ELF_HEADER_PTR file_header, VIRTUAL_MAP_PTR virtual_map,
 		string_section_header = (ELF_SECTION_HEADER_PTR)( (VADDR)file_header + file_header->e_shoff + (file_header->e_shstrndx*file_header->e_shentsize) );
 		/*just make sure we have correct section type*/
 		if ( string_section_header->sh_type != SHT_STRTAB )
-			return ERROR_INVALID_FORMAT;
+		{
+			err = ERROR_INVALID_FORMAT;
+			goto done;
+		}
 		
 		string_table = (char *)file_header + string_section_header->sh_offset;
 	}
 
 	/*if program header present load all segments*/
-	if (  file_header->e_phoff != 0 )
+	if ( file_header->e_phoff != 0 )
 	{
 		/*load the elf section and relocate it */
 		err = LoadElfSegments(file_header, string_table, virtual_map);
@@ -97,9 +136,19 @@ ERROR_CODE LoadElfImage(ELF_HEADER_PTR file_header, VIRTUAL_MAP_PTR virtual_map,
 		*start_entry =  file_header->e_entry;
 	}
 	
-	kfree( section_loaded_va );
+done:
+	if ( section_loaded_va != NULL )
+	{
+		kfree( section_loaded_va );
+	}
+	if (file_header != NULL)
+	{
+		FreeVirtualMemory(virtual_map, (VADDR)file_header, file_size, 0);
+	}
+	CloseFile(GetCurrentTask(), file_id);
 	return err;
 }
+
 static ERROR_CODE LoadElfSegments(ELF_HEADER_PTR file_header, char * string_table, VIRTUAL_MAP_PTR virtual_map)
 {
 	ELF_PROGRAM_HEADER_PTR first_program_header, program_header;
@@ -118,7 +167,7 @@ static ERROR_CODE LoadElfSegments(ELF_HEADER_PTR file_header, char * string_tabl
 		}
 		else
 		{
-			ret = LoadElfSegmentIntoMap(program_header, ((char *)file_header)+program_header->p_offset, virtual_map );
+			ret = LoadElfSegmentIntoMap(program_header, ((char *)file_header)+program_header->p_offset, virtual_map);
 			if ( ret != ERROR_SUCCESS )
 				return ret;
 		}
@@ -126,6 +175,7 @@ static ERROR_CODE LoadElfSegments(ELF_HEADER_PTR file_header, char * string_tabl
 	
 	return ret;
 }
+
 static ERROR_CODE LoadElfSegmentIntoMap(ELF_PROGRAM_HEADER_PTR program_header, char * segment_start, VIRTUAL_MAP_PTR virtual_map)
 {
 	ERROR_CODE ret = ERROR_SUCCESS;
@@ -149,7 +199,10 @@ static ERROR_CODE LoadElfSegmentIntoMap(ELF_PROGRAM_HEADER_PTR program_header, c
 	/*if the segment is loadable - map it into the address space*/
 	if ( program_header->p_type == PT_LOAD )
 	{
-		ret = CopyVirtualAddressRange( GetCurrentVirtualMap(), (VADDR)segment_start, program_header->p_filesz, virtual_map, &preferred_va, program_header->p_memsz, protection );
+		assert( program_header->p_memsz >= program_header->p_filesz);
+		ret = AllocateVirtualMemory(virtual_map, &preferred_va, program_header->p_vaddr, program_header->p_memsz, protection, VM_UNIT_FLAG_PRIVATE, NULL);
+		assert( preferred_va == program_header->p_vaddr);
+		memcpy((void *)preferred_va, segment_start, program_header->p_filesz);
 	}
 	else
 	{
@@ -158,11 +211,13 @@ static ERROR_CODE LoadElfSegmentIntoMap(ELF_PROGRAM_HEADER_PTR program_header, c
 		if ( size == 0 )
 			size = PAGE_SIZE;
 		/* \todo - ensure we load into preferred address else do the relocation...*/
-		ret = AllocateVirtualMemory( virtual_map, &preferred_va, program_header->p_vaddr, size, protection, 0, NULL );
+		ret = AllocateVirtualMemory(virtual_map, &preferred_va, program_header->p_vaddr, size, protection, VM_UNIT_FLAG_PRIVATE, NULL);
+		assert( preferred_va == program_header->p_vaddr);
 	}
 	
 	return ret;
 }
+
 /*! Loads ELF sections into given virtual map and fixes the relocations
 	\param file_header - virtual address where the elf file resides
 	\param string_table - string table for the elf section names
@@ -200,7 +255,7 @@ static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_tabl
 			symbol_table_size = section_header->sh_size;
 			common_size += GetElfCommonSectionSize( symbol_table, symbol_table_size );
 		}
-		ret = LoadElfSectionIntoMap(section_header, (VADDR)file_header+section_header->sh_offset, virtual_map, &section_loaded_va[i]);
+		ret = LoadElfSectionIntoMap(section_header, ((VADDR)file_header)+section_header->sh_offset, virtual_map, &section_loaded_va[i]);
 		if ( ret != ERROR_SUCCESS )
 			return ret;
 	}
@@ -208,7 +263,7 @@ static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_tabl
 	if( common_size != 0 )
 	{
 		/*allocate memory*/
-		ret = AllocateVirtualMemory( virtual_map, &section_loaded_va[file_header->e_shnum], 0, PAGE_ALIGN_UP(common_size), PROT_READ | PROT_WRITE, 0, NULL );
+		ret = AllocateVirtualMemory( virtual_map, &section_loaded_va[file_header->e_shnum], 0, PAGE_ALIGN_UP(common_size), PROT_READ | PROT_WRITE, VM_UNIT_FLAG_PRIVATE, NULL );
 		if ( ret != ERROR_SUCCESS )
 			return ret;
 		/*Update the symbols*/
@@ -238,6 +293,7 @@ static ERROR_CODE LoadElfSections(ELF_HEADER_PTR file_header, char * string_tabl
 
 	return ret;
 }
+
 /*! Loads a given ELF section into a Virtual Map and returns the loaded virtual address in section_loaded_va
 		Sections are loaded only if the section has SHF_ALLOC otherwise just ERROR_SUCCESS will returned without loading and section_loaded_va will set to NULL
 	\param section_header - section header
@@ -272,12 +328,13 @@ static ERROR_CODE LoadElfSectionIntoMap(ELF_SECTION_HEADER_PTR section_header, V
 		VADDR size = section_header->sh_size;
 		if ( size == 0 )
 			size = PAGE_SIZE;
-		ret = AllocateVirtualMemory( virtual_map, section_loaded_va, section_header->sh_addr, size, protection, 0, NULL );
+		ret = AllocateVirtualMemory(virtual_map, section_loaded_va, section_header->sh_addr, size, protection, VM_UNIT_FLAG_PRIVATE, NULL);
 	}
 	else if( section_header->sh_size > 0 )
 	{
 		/*copy section data only if the source section has some data to copy*/
-		ret = CopyVirtualAddressRange( GetCurrentVirtualMap(), section_data_offset, section_header->sh_size, virtual_map, section_loaded_va, section_header->sh_size, protection);
+		ret = AllocateVirtualMemory(virtual_map, section_loaded_va, *section_loaded_va, section_header->sh_size, protection, VM_UNIT_FLAG_PRIVATE, NULL);
+		memcpy((void *)*section_loaded_va, (void *)section_data_offset, section_header->sh_size);
 	}
 	
 	if (ret != ERROR_SUCCESS)
@@ -523,6 +580,7 @@ static ERROR_CODE RelocateSection(ELF_SECTION_HEADER_PTR section_header, ELF_SYM
 #endif
 		}
 	}
+	
 	return ERROR_SUCCESS;
 }
 

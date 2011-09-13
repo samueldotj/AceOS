@@ -181,12 +181,13 @@ VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size, VADDR pref
 	}
 	vd = GetVmDescriptor(vmap, va, 1);
 	assert ( vd != NULL  );
-	assert( va >= vd->start && va <= vd->end );
+	assert( va >= vd->start && va <= PAGE_ALIGN_UP(vd->end) );
 	vtop_index = ((va - vd->start) / PAGE_SIZE) + (vd->offset_in_unit/PAGE_SIZE);
 	assert( vtop_index <= (vd->unit->size/PAGE_SIZE) );
 	
 	for(i=0; i<size;i+=PAGE_SIZE )
 	{
+		vp = PhysicalToVirtualPage(pa+i);
 		if (GetCurrentVirtualMap() == vmap)
 		{
 			if ( CreatePhysicalMapping(vmap->physical_map, va+i, pa+i, protection) != ERROR_SUCCESS )
@@ -194,11 +195,15 @@ VADDR MapPhysicalMemory(VIRTUAL_MAP_PTR vmap, UINT32 pa, UINT32 size, VADDR pref
 				FreeVirtualMemory(vmap, va, size, 0);
 				return NULL;
 			}
+			if (vp != NULL) 
+			{
+				vd->unit->page_count++;
+				vd->unit->vtop_array[vtop_index+(i/PAGE_SIZE)].vpage = (VIRTUAL_PAGE_PTR) ( ((VADDR)vp) | 1 );
+			}
 		}
 		else
 		{
 			/* if the PA is managed then create a lazy mapping */
-			vp = PhysicalToVirtualPage(pa+i);
 			if (vp == NULL)
 			{
 				panic("Request to map unmanaged page in different task map - Use kvm driver for that purpose");	
@@ -272,18 +277,25 @@ ERROR_CODE AllocateVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR * va_ptr, VADDR pre
 	/*create new vm_unit if unit is not provided*/
 	if ( unit == NULL )
 	{
-		unit = CreateVmUnit(VM_UNIT_TYPE_ANONYMOUS, VM_UNIT_FLAG_SHARED, size);
+		unit = CreateVmUnit(VM_UNIT_TYPE_ANONYMOUS, flags, size);
+	}
+	else if (flags & VM_UNIT_FLAG_PRIVATE)
+	{
+		/*Mark all pages for COW and create new unit*/
+		unit = CopyVmUnit(unit, 0, size);
+		assert(unit != NULL);
 	}
 	/*link map, descriptor and unit*/
 	CreateVmDescriptor(vmap, start, start+size-1, unit, prot);
 	
+		
 	* (va_ptr) = start;
 	return ERROR_SUCCESS;
 }
 
 /*! Free the already allocated virtual memory range
 */
-ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32 flags)
+ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, size_t size, UINT32 flags)
 {
 	ERROR_CODE ret;
 	UINT32 rem_va;
@@ -309,7 +321,7 @@ ERROR_CODE FreeVirtualMemory(VIRTUAL_MAP_PTR vmap, VADDR va, UINT32 size, UINT32
  * \param dest_size - Size of the new allocation in destination map. It can be greater than src_size in that case, the remaining space will be zeroed. 
  * \param protection - protection for the new mapping
 */
-ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, UINT32 src_size, VIRTUAL_MAP_PTR dest_vmap, VADDR *dest_preferred_va, UINT32 dest_size, UINT32 protection)
+ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, UINT32 src_size, VIRTUAL_MAP_PTR dest_vmap, VADDR *dest_preferred_va, UINT32 dest_size, UINT32 protection, UINT32 flags)
 {
 	VM_DESCRIPTOR_PTR src_vd, dest_vd;
 	VM_UNIT_PTR unit=NULL;
@@ -317,8 +329,8 @@ ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, UINT3
 	ERROR_CODE ret;
 	VADDR org_src_size, org_dest_size, size;
 	
-	assert( src_size <= dest_size );
-	
+	assert(src_size <= dest_size);
+		
 	/*preserve the passed sizes*/
 	org_src_size = src_size;
 	org_dest_size = dest_size;
@@ -340,7 +352,7 @@ ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, UINT3
 		return ERROR_INVALID_PARAMETER;
 	
 	/*allocate virtaul address range and map the same vm unit*/
-	ret = AllocateVirtualMemory(dest_vmap, &va, *dest_preferred_va, src_size, protection, 0, unit);
+	ret = AllocateVirtualMemory(dest_vmap, &va, *dest_preferred_va, src_size, protection, flags, unit);
 	if ( ret != ERROR_SUCCESS )
 		return ret;	
 		
@@ -357,7 +369,7 @@ ERROR_CODE CopyVirtualAddressRange(VIRTUAL_MAP_PTR src_vmap, VADDR src_va, UINT3
 		size = dest_size - src_size;
 		assert( size > 0 );
 		/*we cant use the same unit as backing object - allocate virtaul address range with ZEROFILL unit*/
-		ret = AllocateVirtualMemory(dest_vmap, &second_va, PAGE_ALIGN_UP(va+src_size), size, protection, 0, NULL);
+		ret = AllocateVirtualMemory(dest_vmap, &second_va, PAGE_ALIGN_UP(va+src_size), size, protection, VM_UNIT_FLAG_PRIVATE, NULL);
 		if ( ret != ERROR_SUCCESS )
 		{
 			FreeVirtualMemory(dest_vmap, va, src_size, 0);
@@ -382,6 +394,25 @@ inline VIRTUAL_MAP_PTR GetCurrentVirtualMap()
 	assert(thread->task != NULL);
 	assert(thread->task->virtual_map != NULL);
 	return thread->task->virtual_map;
+}
+
+void AddVmunitToVnodeList(VNODE_PTR vnode, VM_UNIT_PTR unit, offset_t offset)
+{
+	assert(vnode != NULL && unit != NULL);
+	
+	unit->offset = offset;
+	unit->vnode = vnode;
+	SpinLock(&vnode->lock);
+	if ( vnode->unit_head == NULL )
+	{
+		vnode->unit_head = unit;
+	}
+	else
+	{
+		AddToList( &vnode->unit_head->units_in_vnode_list, &unit->units_in_vnode_list );
+	}
+	vnode->reference_count++;
+	SpinUnlock(&vnode->lock);
 }
 
 /*! Maps a view of a file mapping into the address space of a calling process
@@ -440,15 +471,7 @@ ERROR_CODE MapViewOfFile(int file_id, VADDR * va, UINT32 protection, UINT32 file
 	if( unit == NULL)
 	{
 		unit = CreateVmUnit(VM_UNIT_TYPE_FILE_MAPPED, VM_UNIT_FLAG_SHARED, size);
-		unit->offset = file_offset;
-		unit->vnode = vnode;
-		SpinLock(&vnode->lock);
-		if ( vnode->unit_head == NULL )
-			vnode->unit_head = unit;
-		else
-			AddToList( &vnode->unit_head->units_in_vnode_list, &unit->units_in_vnode_list );
-		vnode->reference_count++;
-		SpinUnlock(&vnode->lock);
+		AddVmunitToVnodeList(vnode, unit, file_offset);
 	}
 	
 	assert ( unit->vnode  == vnode );
@@ -537,8 +560,6 @@ retry:
 		return ERROR_NOT_FOUND;	
 	}
 
-	//assert( va >= vd->start && va <= vd->end );
-	
 	vtop_index = ((va - vd->start) / PAGE_SIZE) + (vd->offset_in_unit/PAGE_SIZE);
 	assert( vtop_index <= (vd->unit->size/PAGE_SIZE) );
 	
@@ -558,7 +579,7 @@ retry:
 			assert( IS_PAGE_ALIGNED(file_offset) );
 			vp = GetVnodePage(vd->unit->vnode, file_offset); 
 			assert(vp!=NULL);
-		}
+		} 
 		else
 		{
 			/*anonymous memory allocate memory and zero fill*/
@@ -584,7 +605,7 @@ retry:
 	if( zero_fill )
 	{
 		/*zero fill a anon page*/
-		memset( (void *) aligned_va, 0, PAGE_SIZE);
+		memset((void *)aligned_va, 0, PAGE_SIZE);
 	}
 #if 0
 	/* The following might look good but wont work - because files are loaded into a single page and shared by multiple descriptors(using a single vmunit)

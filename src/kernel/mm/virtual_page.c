@@ -73,6 +73,7 @@ static void InitVirtualPage(VIRTUAL_PAGE_PTR vp, UINT32 physical_address)
 	memset(vp, 0, sizeof( VIRTUAL_PAGE ) );
 	
 	InitSpinLock( &vp->lock );
+	
 	InitList( &vp->lru_list );
 	
 	InitAvlTreeNode( VP_AVL_TREE(vp), TRUE );
@@ -445,20 +446,13 @@ UINT32 ReserveVirtualPages(VIRTUAL_PAGE_PTR first_vp, int pages)
 VIRTUAL_PAGE_PTR PhysicalToVirtualPage(UINT32 physical_address)
 {
 	int i,j;
-	int debug=0;
 
-retry:
-	
 	for(i=0; i<memory_area_count; i++ )
 	{
 		PHYSICAL_MEMORY_REGION_PTR pmr;
 		for(j=0;j<memory_areas[i].physical_memory_regions_count;j++)
 		{
 			pmr = &memory_areas[i].physical_memory_regions[j];
-			if ( debug )
-			{
-				KTRACE("%p - %p : %p\n", pmr->start_physical_address, pmr->end_physical_address, physical_address);
-			}
 			if ( physical_address >= pmr->start_physical_address && physical_address < pmr->end_physical_address )
 			{
 				UINT32 index;
@@ -469,12 +463,8 @@ retry:
 			}
 		}
 	}
-	if ( !debug )
-	{
-		debug++;
-		KTRACE("PA not managed\n");
-		goto retry;
-	}
+	
+	KTRACE("PA not managed 0x%x\n", physical_address);
 	
 	return NULL;
 }
